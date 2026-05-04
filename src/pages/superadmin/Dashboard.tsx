@@ -30,7 +30,7 @@ const SuperAdminDashboard = () => {
       const { data: shopsData } = await supabase
         .from('shops')
         .select(`
-          id, name,
+          id, name, shop_code, expired_at, status,
           subscriptions ( status, plans ( name ) )
         `);
       if (shopsData) setShops(shopsData);
@@ -41,6 +41,12 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const generateShopCode = () => {
+    const letters = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const numbers = Math.floor(100 + Math.random() * 900);
+    return letters + numbers;
+  };
+
   const handleCreateShop = async () => {
     if (!form.shopName || !form.email || !form.password) {
       alert('Vui lòng điền đầy đủ thông tin');
@@ -49,32 +55,45 @@ const SuperAdminDashboard = () => {
     
     setCreating(true);
     try {
+      const shopCode = generateShopCode();
+      const selectedPlan = plans.find(p => p.id === form.planId);
+      
+      let expiredAt = new Date();
+      if (selectedPlan?.price === 0) {
+        expiredAt.setDate(expiredAt.getDate() + 30); // Free 30 days
+      } else {
+        expiredAt.setFullYear(expiredAt.getFullYear() + 1); // Pro 1 year
+      }
+
       // 1. Tạo Shop mới
       const { data: newShop, error: shopError } = await supabase
         .from('shops')
-        .insert({ name: form.shopName })
+        .insert({ 
+          name: form.shopName,
+          shop_code: shopCode,
+          plan_id: form.planId,
+          expired_at: expiredAt.toISOString(),
+          status: 'active'
+        })
         .select()
         .single();
         
       if (shopError) throw shopError;
 
       // 2. Gán Subscription
-      const endDate = new Date();
-      endDate.setFullYear(endDate.getFullYear() + 1); // +1 năm
-
       const { error: subError } = await supabase
         .from('subscriptions')
         .insert({
           shop_id: newShop.id,
           plan_id: form.planId,
           start_date: new Date().toISOString(),
-          end_date: endDate.toISOString(),
+          end_date: expiredAt.toISOString(),
           status: 'active'
         });
 
       if (subError) throw subError;
 
-      alert(`Khởi tạo Shop "${form.shopName}" thành công!\n\nLƯU Ý: Vì lý do bảo mật, việc tự động tạo tài khoản Auth (Email/Pass) cho Shop Admin từ giao diện Super Admin yêu cầu cấu hình Backend Edge Function. \n\nTạm thời, vui lòng hướng dẫn Shop Admin tự ấn "Đăng ký" bên ngoài với email ${form.email}, sau đó bạn gán shop_id của họ trong Database.`);
+      alert(`Khởi tạo Shop "${form.shopName}" thành công!\nMã shop: ${shopCode}\n\nLƯU Ý: Vui lòng hướng dẫn Shop Admin tự ấn "Đăng ký" bên ngoài với email ${form.email}, sau đó bạn gán shop_id của họ trong Database.`);
       
       setForm({ shopName: '', email: '', password: '', planId: plans[0]?.id || '' });
       fetchData();
@@ -167,8 +186,10 @@ const SuperAdminDashboard = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                  <th style={{ padding: '0.5rem' }}>Mã Shop</th>
                   <th style={{ padding: '0.5rem' }}>Tên Shop</th>
                   <th style={{ padding: '0.5rem' }}>Gói</th>
+                  <th style={{ padding: '0.5rem' }}>Hết hạn</th>
                   <th style={{ padding: '0.5rem' }}>Trạng thái</th>
                 </tr>
               </thead>
@@ -177,10 +198,12 @@ const SuperAdminDashboard = () => {
                   const sub = shop.subscriptions?.[0];
                   return (
                     <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{shop.shop_code}</td>
                       <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{shop.name}</td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>{sub?.plans?.name || 'Không có'}</td>
+                      <td style={{ padding: '0.75rem 0.5rem' }}>{shop.expired_at ? new Date(shop.expired_at).toLocaleDateString('vi-VN') : '---'}</td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>
-                        {sub?.status === 'active' ? (
+                        {shop.status === 'active' ? (
                           <span className="badge badge-success">Active</span>
                         ) : (
                           <span className="badge badge-danger">Expired</span>

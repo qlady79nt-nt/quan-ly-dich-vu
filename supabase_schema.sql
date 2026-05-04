@@ -1,22 +1,27 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Plans (SaaS Pricing)
-CREATE TABLE plans (
+-- 1. Plans (Các Gói Dịch Vụ)
+CREATE TABLE IF NOT EXISTS plans (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(50) NOT NULL, -- 'Free', 'Pro', 'Premium'
+    name VARCHAR(50) NOT NULL,
     price DECIMAL(15,2) NOT NULL DEFAULT 0,
-    limit_users INT NOT NULL DEFAULT 1,
-    limit_beds INT NOT NULL DEFAULT 5,
+    max_users INT NOT NULL DEFAULT 1,
+    max_branches INT NOT NULL DEFAULT 1,
     has_realtime BOOLEAN DEFAULT false,
     has_advanced_reports BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Shops
-CREATE TABLE shops (
+-- 2. Shops (Cửa tiệm / Tenants)
+CREATE TABLE IF NOT EXISTS shops (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
+    shop_code VARCHAR(20) UNIQUE NOT NULL,
+    owner_user_id UUID, -- References auth.users later if needed
+    plan_id UUID REFERENCES plans(id),
+    expired_at TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(50) DEFAULT 'active', -- 'active', 'expired'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
