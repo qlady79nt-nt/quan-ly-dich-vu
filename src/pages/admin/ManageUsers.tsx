@@ -25,16 +25,19 @@ const ManageUsers = () => {
     {
       title: 'BÁN HÀNG & THU NGÂN',
       perms: [
-        { id: 'sale.create', label: 'Tạo đơn hàng (POS)' },
-        { id: 'sale.discount', label: 'Cho phép Giảm giá' },
-        { id: 'invoice.print', label: 'In hoá đơn' },
+        { id: 'sale.create', label: 'Tạo đơn hàng (sale.create)' },
+        { id: 'sale.edit', label: 'Sửa đơn (sale.edit)' },
+        { id: 'sale.delete', label: 'Xóa đơn (sale.delete)' },
+        { id: 'sale.discount', label: 'Cho phép Giảm giá (sale.discount)' },
+        { id: 'invoice.print', label: 'In hoá đơn (invoice.print)' },
       ]
     },
     {
       title: 'BÁO CÁO & PHÂN TÍCH',
       perms: [
-        { id: 'report.revenue.view', label: 'Xem doanh thu tổng' },
-        { id: 'report.commission.view', label: 'Xem hoa hồng cá nhân' },
+        { id: 'report.revenue.view', label: 'Xem doanh thu (report.revenue.view)' },
+        { id: 'report.invoice.view', label: 'Xem danh sách hoá đơn (report.invoice.view)' },
+        { id: 'report.commission.view', label: 'Xem hoa hồng (report.commission.view)' },
       ]
     }
   ];
