@@ -238,6 +238,15 @@ const ManageUsers = () => {
 
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}><Loader2 className="animate-spin" /> Đang tải dữ liệu nhân sự...</div>;
 
+  if (!shopId) {
+    return (
+      <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'white', borderRadius: '1rem', boxShadow: 'var(--shadow-md)' }}>
+        <h2 style={{ color: 'var(--danger-color)', marginBottom: '1rem' }}>Thiếu thông tin Shop!</h2>
+        <p>Tài khoản của bạn chưa được liên kết với cửa hàng nào. Vui lòng vào mục <strong>Cấu hình Shop</strong> để kích hoạt trước.</p>
+      </div>
+    );
+  }
+
   const activeUsersCount = users.filter(u => u.status !== 'inactive').length;
   const maxUsers = planData?.max_users || 1;
   const isLimitReached = activeUsersCount >= maxUsers;
