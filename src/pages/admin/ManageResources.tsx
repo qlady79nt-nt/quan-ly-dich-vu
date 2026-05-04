@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BedDouble, Plus, Trash2 } from 'lucide-react';
 
 const ManageResources = () => {
-  const [beds, setBeds] = useState([
+  const [beds] = useState([
     { id: 1, name: 'Chỗ 1', status: 'available' },
     { id: 2, name: 'Chỗ 2', status: 'available' },
     { id: 3, name: 'Phòng VIP 1', status: 'occupied' },
