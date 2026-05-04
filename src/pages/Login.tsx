@@ -49,7 +49,7 @@ const Login = () => {
         // --- LUỒNG ĐĂNG KÝ (CLAIM SHOP) ---
         if (!shopCode) throw new Error('Vui lòng nhập Mã Shop do Super Admin cung cấp.');
 
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
