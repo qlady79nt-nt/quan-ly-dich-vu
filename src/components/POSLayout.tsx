@@ -1,11 +1,12 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { MonitorPlay, FileText, CalendarClock } from 'lucide-react';
+import { MonitorPlay, FileText, CalendarClock, PackageOpen } from 'lucide-react';
 
 const POSLayout = () => {
   const location = useLocation();
 
   const navItems = [
     { path: '/pos/invoice', label: 'Tạo hoá đơn mới', icon: FileText },
+    { path: '/pos/packages', label: 'Bán & Dùng Liệu trình', icon: PackageOpen },
     { path: '/pos/monitor', label: 'Màn hình Giường (Live)', icon: MonitorPlay },
   ];
 

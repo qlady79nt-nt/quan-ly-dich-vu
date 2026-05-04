@@ -108,11 +108,25 @@ CREATE TABLE invoice_items (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 12. Sessions (Bắt đầu dịch vụ - Thực hiện)
+-- 12. Customer Packages (Liệu trình khách đã mua)
+CREATE TABLE customer_packages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shop_id UUID REFERENCES shops(id) ON DELETE CASCADE,
+    customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
+    package_id UUID REFERENCES packages(id) ON DELETE CASCADE,
+    invoice_item_id UUID REFERENCES invoice_items(id) ON DELETE CASCADE,
+    total_sessions INT NOT NULL,
+    remaining_sessions INT NOT NULL,
+    session_revenue_value DECIMAL(15,2) NOT NULL, -- Doanh thu ghi nhận cho mỗi buổi (Giá bán / Tổng buổi)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 13. Sessions (Bắt đầu dịch vụ - Thực hiện)
 CREATE TABLE sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     shop_id UUID REFERENCES shops(id) ON DELETE CASCADE,
-    invoice_item_id UUID REFERENCES invoice_items(id) ON DELETE CASCADE,
+    invoice_item_id UUID REFERENCES invoice_items(id) ON DELETE CASCADE, -- Dành cho dịch vụ lẻ
+    customer_package_id UUID REFERENCES customer_packages(id) ON DELETE CASCADE, -- Dành cho liệu trình
     service_id UUID REFERENCES services(id),
     customer_id UUID REFERENCES customers(id),
     staff_id UUID REFERENCES profiles(id),
@@ -120,8 +134,30 @@ CREATE TABLE sessions (
     start_time TIMESTAMP WITH TIME ZONE,
     end_time TIMESTAMP WITH TIME ZONE,
     status VARCHAR(50) DEFAULT 'doing', -- 'doing', 'done'
+    revenue_amount DECIMAL(15,2) DEFAULT 0, -- Doanh thu (sẽ update khi done)
+    material_cost DECIMAL(15,2) DEFAULT 0, -- Chi phí vật liệu (sẽ update khi done)
+    profit DECIMAL(15,2) DEFAULT 0, -- Lợi nhuận = revenue - material_cost
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add some RLS policies (Basic setup, usually needs auth.uid() check, but keeping it simple for now)
--- You can run this in Supabase SQL editor.
+-- 14. Commissions (Hoa hồng nhân viên)
+CREATE TABLE commissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shop_id UUID REFERENCES shops(id) ON DELETE CASCADE,
+    staff_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    commission_type VARCHAR(50) NOT NULL, -- 'service_doing', 'package_selling'
+    amount DECIMAL(15,2) NOT NULL,
+    source_invoice_item_id UUID REFERENCES invoice_items(id), -- Nếu là bán liệu trình
+    source_session_id UUID REFERENCES sessions(id), -- Nếu là làm dịch vụ
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 15. Payments (Thanh toán / Biên lai)
+CREATE TABLE payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shop_id UUID REFERENCES shops(id) ON DELETE CASCADE,
+    invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
+    payment_method VARCHAR(50) NOT NULL, -- 'cash', 'transfer', 'card'
+    amount DECIMAL(15,2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Store, Users, Settings, Bed, Package } from 'lucide-react';
+import { Store, Users, Settings, Bed, Package, Target } from 'lucide-react';
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -9,6 +9,7 @@ const AdminLayout = () => {
     { path: '/admin/users', label: 'Nhân viên & Quyền', icon: Users },
     { path: '/admin/resources', label: 'Giường & Phòng', icon: Bed },
     { path: '/admin/services', label: 'Dịch vụ & Liệu trình', icon: Package },
+    { path: '/admin/reports', label: 'Báo Cáo Doanh Thu', icon: Target },
   ];
 
   return (
