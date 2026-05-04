@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Store, Plus, ShieldAlert, Loader2 } from 'lucide-react';
+import { Store, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const SuperAdminDashboard = () => {
