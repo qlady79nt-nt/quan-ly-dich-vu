@@ -7,7 +7,7 @@ const POSLayout = () => {
   const navItems = [
     { path: '/pos/invoice', label: 'Tạo hoá đơn mới', icon: FileText },
     { path: '/pos/packages', label: 'Bán & Dùng Liệu trình', icon: PackageOpen },
-    { path: '/pos/monitor', label: 'Màn hình Giường (Live)', icon: MonitorPlay },
+    { path: '/pos/monitor', label: 'Màn hình Trạng thái (Live)', icon: MonitorPlay },
   ];
 
   return (

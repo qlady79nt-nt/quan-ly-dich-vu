@@ -3,10 +3,10 @@ import { BedDouble, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 // Mock data representing beds from Supabase
 const initialBeds = [
-  { id: 1, name: 'Giường 1', status: 'doing', customer: 'Chị Lan', staff: 'NV A', endTime: new Date(Date.now() + 30 * 60000).toISOString(), service: 'Massage body' }, // 30 mins left
-  { id: 2, name: 'Giường 2', status: 'available', customer: null, staff: null, endTime: null, service: null },
-  { id: 3, name: 'Phòng VIP 1', status: 'doing', customer: 'Anh Tuấn', staff: 'NV B', endTime: new Date(Date.now() + 4 * 60000).toISOString(), service: 'Chăm sóc da' }, // 4 mins left (warning)
-  { id: 4, name: 'Giường 4', status: 'doing', customer: 'Chị Mai', staff: 'NV C', endTime: new Date(Date.now() - 1 * 60000).toISOString(), service: 'Gội đầu' }, // done/overdue
+  { id: 1, name: 'Chỗ 1', status: 'doing', customer: 'Chị Lan', staff: 'NV A', endTime: new Date(Date.now() + 30 * 60000).toISOString(), service: 'Massage body' }, // 30 mins left
+  { id: 2, name: 'Chỗ 2', status: 'available', customer: null, staff: null, endTime: null, service: null },
+  { id: 3, name: 'Chỗ 3', status: 'doing', customer: 'Anh Tuấn', staff: 'NV B', endTime: new Date(Date.now() + 4 * 60000).toISOString(), service: 'Chăm sóc da' }, // 4 mins left (warning)
+  { id: 4, name: 'Chỗ 4', status: 'doing', customer: 'Chị Mai', staff: 'NV C', endTime: new Date(Date.now() - 1 * 60000).toISOString(), service: 'Gội đầu' }, // done/overdue
 ];
 
 const BedMonitor = () => {
@@ -36,7 +36,7 @@ const BedMonitor = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ color: 'var(--primary-color)' }}>Màn Hình Giường Live</h2>
+        <h2 style={{ color: 'var(--primary-color)' }}>Màn Hình Trạng Thái Chỗ Live</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
           <Clock color="var(--secondary-color)" />
           {currentTime.toLocaleTimeString('vi-VN')}
@@ -80,7 +80,7 @@ const BedMonitor = () => {
 
               {isAvailable ? (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', minHeight: '120px' }}>
-                  Giường đang trống, có thể nhận khách mới
+                  Chỗ đang trống, có thể nhận khách mới
                 </div>
               ) : (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

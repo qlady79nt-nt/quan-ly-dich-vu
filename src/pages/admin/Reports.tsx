@@ -62,12 +62,12 @@ const Reports = () => {
       <div className="premium-card" style={{ gridColumn: 'span 2' }}>
         <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Target size={24} />
-          Báo Cáo Giường (Hiệu Suất)
+          Báo Cáo Chỗ (Hiệu Suất)
         </h2>
         <div className="grid-cols-4">
           {[1, 2, 3, 4].map(i => (
             <div key={i} style={{ border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-              <h4 style={{ marginBottom: '0.5rem' }}>Giường {i}</h4>
+              <h4 style={{ marginBottom: '0.5rem' }}>Chỗ {i}</h4>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>85%</div>
               <div style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Tỷ lệ sử dụng</div>
               <div style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>Cao điểm: <strong>14:00 - 16:00</strong></div>

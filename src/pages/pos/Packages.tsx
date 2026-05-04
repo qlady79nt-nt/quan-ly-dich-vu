@@ -86,9 +86,9 @@ const POSPackages = () => {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Chọn Giường</label>
+              <label className="form-label">Chọn Chỗ (Vị trí dịch vụ)</label>
               <select className="form-select">
-                <option>Giường 2</option>
+                <option>Chỗ 2</option>
               </select>
             </div>
             <button className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--secondary-color)' }}>

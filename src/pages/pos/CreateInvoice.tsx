@@ -10,7 +10,7 @@ const POSCreateInvoice = () => {
 
   const handleStartService = () => {
     // In a real app, we would save to Supabase, update Bed status, etc.
-    alert('Đã bắt đầu dịch vụ! Giường đã chuyển trạng thái Occupied.');
+    alert('Đã bắt đầu dịch vụ! Chỗ đã chuyển trạng thái Occupied.');
     navigate('/pos/monitor');
   };
 
@@ -57,11 +57,11 @@ const POSCreateInvoice = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Chọn Giường (Bắt buộc)</label>
+                <label className="form-label">Chọn Chỗ (Bắt buộc)</label>
                 <select className="form-select">
-                  <option value="">-- Chọn giường --</option>
-                  <option value="g1">Giường 1 (Trống)</option>
-                  <option value="g2">Giường 2 (Trống)</option>
+                  <option value="">-- Chọn chỗ --</option>
+                  <option value="g1">Chỗ 1 (Trống)</option>
+                  <option value="g2">Chỗ 2 (Trống)</option>
                 </select>
               </div>
             </div>

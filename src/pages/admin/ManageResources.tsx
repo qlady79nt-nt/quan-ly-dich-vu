@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { BedDouble, Plus, Trash2 } from 'lucide-react';
 
 const ManageResources = () => {
-  const [beds] = useState([
-    { id: 1, name: 'Giường 1', status: 'available' },
-    { id: 2, name: 'Giường 2', status: 'available' },
-    { id: 3, name: 'Phòng VIP 1', status: 'available' },
+  const [beds, setBeds] = useState([
+    { id: 1, name: 'Chỗ 1', status: 'available' },
+    { id: 2, name: 'Chỗ 2', status: 'available' },
+    { id: 3, name: 'Phòng VIP 1', status: 'occupied' },
   ]);
 
   return (
@@ -13,11 +13,11 @@ const ManageResources = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <BedDouble size={24} />
-          Quản lý Tài nguyên (Giường/Ghế)
+          Quản lý Không Gian Dịch Vụ
         </h2>
         <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Plus size={20} />
-          Thêm giường mới
+          Thêm chỗ mới
         </button>
       </div>
 

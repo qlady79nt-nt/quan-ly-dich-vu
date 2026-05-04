@@ -7,7 +7,7 @@ const AdminLayout = () => {
   const navItems = [
     { path: '/admin/shop', label: 'Cửa hàng', icon: Store },
     { path: '/admin/users', label: 'Nhân viên & Quyền', icon: Users },
-    { path: '/admin/resources', label: 'Giường & Phòng', icon: Bed },
+    { path: '/admin/resources', label: 'Không gian dịch vụ', icon: Bed },
     { path: '/admin/services', label: 'Dịch vụ & Liệu trình', icon: Package },
     { path: '/admin/reports', label: 'Báo Cáo Doanh Thu', icon: Target },
   ];
