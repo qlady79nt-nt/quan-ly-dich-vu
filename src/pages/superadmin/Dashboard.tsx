@@ -112,116 +112,130 @@ const SuperAdminDashboard = () => {
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}><Loader2 className="animate-spin" /> Đang tải dữ liệu...</div>;
 
   return (
-    <div className="grid-cols-2">
-      <div className="premium-card">
-        <h2 style={{ marginBottom: '1.5rem', color: 'var(--success-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Store size={24} />
-          Tạo Shop Mới (Onboarding)
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-          Hệ thống sẽ cấp một Mã Shop (Shop Code). Chủ tiệm dùng mã này để đăng ký tài khoản.
+    <div style={{ padding: '2rem', maxWidth: 1200, margin: '0 auto' }}>
+      
+      {/* HEADER */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 700 }}>
+          Super Admin Dashboard
+        </h1>
+        <p style={{ color: '#888' }}>
+          Quản lý toàn bộ hệ thống SaaS
         </p>
-        
-        <div className="form-group">
-          <label className="form-label">Tên cửa tiệm (Tên hiển thị)</label>
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="Ví dụ: Thẩm Mỹ Viện XYZ" 
-            value={form.shopName}
-            onChange={e => setForm({...form, shopName: e.target.value})}
-          />
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">Email liên hệ của Chủ Tiệm (Để quản lý)</label>
-          <input 
-            type="email" 
-            className="form-input" 
-            placeholder="admin@xyz.com" 
-            value={form.email}
-            onChange={e => setForm({...form, email: e.target.value})}
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Gán Gói Dịch Vụ (SaaS Plan)</label>
-          <select 
-            className="form-select"
-            value={form.planId}
-            onChange={e => setForm({...form, planId: e.target.value})}
-          >
-            {plans.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name} (Tối đa {p.max_users} User, {p.max_branches} Chi nhánh) - {p.price === 0 ? 'Miễn phí 30 ngày' : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price) + '/năm'}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button 
-          className="btn-primary" 
-          onClick={handleCreateShop}
-          disabled={creating}
-          style={{ width: '100%', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--success-color)', boxShadow: 'none' }}
-        >
-          {creating ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-          Khởi tạo Shop & Sinh Mã
-        </button>
       </div>
 
-      <div>
-        <div className="premium-card" style={{ marginBottom: '1.5rem', overflowX: 'auto' }}>
-          <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            Danh sách Shop (Tenants)
+      {/* STATS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+        <div className="premium-card" style={{ textAlign: 'center' }}>
+          <h3 style={{ fontSize: '2rem', color: 'var(--primary-color)' }}>{shops.length}</h3>
+          <p style={{ color: 'var(--text-secondary)' }}>Tổng Shop</p>
+        </div>
+        <div className="premium-card" style={{ textAlign: 'center' }}>
+          <h3 style={{ fontSize: '2rem', color: 'var(--success-color)' }}>{shops.filter(s => s.status === 'active').length}</h3>
+          <p style={{ color: 'var(--text-secondary)' }}>Đang hoạt động</p>
+        </div>
+        <div className="premium-card" style={{ textAlign: 'center' }}>
+          <h3 style={{ fontSize: '2rem', color: 'var(--danger-color)' }}>{shops.filter(s => s.status !== 'active').length}</h3>
+          <p style={{ color: 'var(--text-secondary)' }}>Hết hạn</p>
+        </div>
+      </div>
+
+      {/* MAIN */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
+        
+        {/* FORM */}
+        <div className="premium-card">
+          <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-color)' }}>
+            <Plus size={24} /> Tạo Shop mới
           </h2>
+
+          <div className="form-group">
+            <label className="form-label">Tên cửa tiệm</label>
+            <input
+              className="form-input"
+              placeholder="Thẩm Mỹ Viện XYZ"
+              value={form.shopName}
+              onChange={e => setForm({...form, shopName: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Email chủ tiệm</label>
+            <input
+              className="form-input"
+              placeholder="admin@xyz.com"
+              type="email"
+              value={form.email}
+              onChange={e => setForm({...form, email: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Gói Dịch Vụ (Plan)</label>
+            <select
+              className="form-select"
+              value={form.planId}
+              onChange={e => setForm({...form, planId: e.target.value})}
+            >
+              {plans.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name} - {p.price === 0 ? 'Free' : p.price.toLocaleString() + 'đ'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            className="btn-primary"
+            onClick={handleCreateShop}
+            disabled={creating}
+            style={{ width: '100%', marginTop: '1rem', backgroundColor: 'var(--success-color)' }}
+          >
+            {creating ? <Loader2 className="animate-spin" style={{ display: 'inline', marginRight: '0.5rem' }} size={20} /> : null}
+            {creating ? 'Đang tạo...' : 'Tạo Shop & Sinh mã'}
+          </button>
+        </div>
+
+        {/* TABLE */}
+        <div className="premium-card" style={{ overflowX: 'auto' }}>
+          <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Store size={24} /> Danh sách Shop
+          </h2>
+
           {shops.length === 0 ? (
             <p style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Chưa có shop nào.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-                  <th style={{ padding: '0.5rem' }}>Mã Shop</th>
-                  <th style={{ padding: '0.5rem' }}>Tên Shop</th>
-                  <th style={{ padding: '0.5rem' }}>Gói</th>
-                  <th style={{ padding: '0.5rem' }}>Hết hạn</th>
-                  <th style={{ padding: '0.5rem' }}>Trạng thái</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Mã</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Tên</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Hết hạn</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                {shops.map((shop, idx) => {
-                  const sub = shop.subscriptions?.[0];
-                  return (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{shop.shop_code}</td>
-                      <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{shop.name}</td>
-                      <td style={{ padding: '0.75rem 0.5rem' }}>{sub?.plans?.name || 'Không có'}</td>
-                      <td style={{ padding: '0.75rem 0.5rem' }}>{shop.expired_at ? new Date(shop.expired_at).toLocaleDateString('vi-VN') : '---'}</td>
-                      <td style={{ padding: '0.75rem 0.5rem' }}>
-                        {shop.status === 'active' ? (
-                          <span className="badge badge-success">Active</span>
-                        ) : (
-                          <span className="badge badge-danger">Expired</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
+                {shops.map(shop => (
+                  <tr key={shop.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '1rem 0.5rem', fontWeight: 600, color: 'var(--primary-color)' }}>
+                      {shop.shop_code}
+                    </td>
+                    <td style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>{shop.name}</td>
+                    <td style={{ padding: '1rem 0.5rem' }}>
+                      {shop.expired_at
+                        ? new Date(shop.expired_at).toLocaleDateString('vi-VN')
+                        : '-'}
+                    </td>
+                    <td style={{ padding: '1rem 0.5rem' }}>
+                      <span className={`badge badge-${shop.status === 'active' ? 'success' : 'danger'}`}>
+                        {shop.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}
-        </div>
-
-        <div className="premium-card" style={{ border: '1px solid var(--danger-color)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}>
-          <h3 style={{ color: 'var(--danger-color)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <ShieldAlert size={20} />
-            Hệ thống Bảo Mật
-          </h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            <strong>Cơ chế RLS (Row Level Security)</strong> đang hoạt động.<br/><br/>
-            Mỗi Shop Admin (Chủ tiệm) chỉ có thể truy vấn dữ liệu (nhân viên, hoá đơn, giường) có chứa <code>shop_id</code> của họ. 
-            Backend tự động block (throw Forbidden) nếu cố tình thay đổi <code>shop_id</code> trong payload API.
-          </p>
         </div>
       </div>
     </div>
