@@ -17,7 +17,7 @@ const AdminLayout = () => {
       <aside className="sidebar">
         <div className="sidebar-header">
           <Settings className="text-primary" />
-          <span>Admin Setup</span>
+          <span className="text-gradient">Admin Setup</span>
         </div>
         <nav className="sidebar-nav">
           {navItems.map((item) => {
@@ -35,8 +35,8 @@ const AdminLayout = () => {
             );
           })}
         </nav>
-        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <Link to="/pos/monitor" className="btn-secondary" style={{ display: 'block', textAlign: 'center', width: '100%' }}>
+        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <Link to="/pos/monitor" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
             Chuyển sang POS
           </Link>
           <Link to="/login" className="btn-danger" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', width: '100%' }}>
@@ -47,14 +47,14 @@ const AdminLayout = () => {
       
       <main className="main-content">
         <header className="topbar">
-          <h2 style={{ fontSize: '1.25rem' }}>Hệ thống Quản lý Dịch vụ</h2>
+          <h2 style={{ fontSize: '1.25rem', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Hệ thống Quản lý Dịch vụ</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-              A
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>Admin User</div>
+              <div style={{ color: 'var(--primary-light)', fontSize: '0.75rem', fontWeight: '500' }}>Quản trị viên Cấp cao</div>
             </div>
-            <div>
-              <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>Admin User</div>
-              <div style={{ color: 'var(--text-light)', fontSize: '0.75rem' }}>Quản trị viên</div>
+            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', boxShadow: '0 4px 10px rgba(109, 40, 217, 0.3)' }}>
+              A
             </div>
           </div>
         </header>
