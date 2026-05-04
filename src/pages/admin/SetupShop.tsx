@@ -100,57 +100,6 @@ const SetupShop = () => {
     return <div style={{ padding: '2rem', textAlign: 'center' }}><Loader2 className="animate-spin" /> Đang tải dữ liệu...</div>;
   }
 
-  // TRƯỜNG HỢP 1: TÀI KHOẢN CHƯA CÓ SHOP (NEW USER)
-  if (!shopData.id) {
-    return (
-      <div style={{ maxWidth: '500px', margin: '4rem auto', textAlign: 'center' }}>
-        <div className="premium-card">
-          <div style={{ width: '64px', height: '64px', backgroundColor: 'rgba(123, 31, 162, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-            <Store size={32} color="var(--primary-color)" />
-          </div>
-          <h2 style={{ marginBottom: '1rem' }}>Kích hoạt Cửa hàng</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-            Tài khoản của bạn chưa được liên kết với bất kỳ cửa hàng nào. Vui lòng nhập Mã Shop do Super Admin cung cấp để bắt đầu.
-          </p>
-          
-          <div className="form-group" style={{ textAlign: 'left' }}>
-            <label className="form-label">Mã Shop (Shop Code)</label>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Ví dụ: XY892" 
-              style={{ fontSize: '1.2rem', textAlign: 'center', letterSpacing: '2px', fontWeight: 'bold' }}
-              value={shopData.shop_code}
-              onChange={e => setShopData({...shopData, shop_code: e.target.value.toUpperCase()})}
-            />
-          </div>
-
-          <button 
-            className="btn-primary" 
-            style={{ width: '100%', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            disabled={saving || !shopData.shop_code}
-            onClick={async () => {
-              setSaving(true);
-              try {
-                const { error } = await supabase.rpc('claim_shop', { p_shop_code: shopData.shop_code });
-                if (error) throw new Error('Mã Shop không hợp lệ hoặc đã được sử dụng!');
-                alert('Kích hoạt cửa hàng thành công!');
-                fetchData(); // Tải lại dữ liệu
-              } catch (err: any) {
-                alert(err.message);
-              } finally {
-                setSaving(false);
-              }
-            }}
-          >
-            {saving ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
-            {saving ? 'Đang kích hoạt...' : 'Kích hoạt ngay'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const isExpired = shopData.status === 'expired' || (shopData.expired_at && new Date(shopData.expired_at) < new Date());
   
   // Calculate days left
