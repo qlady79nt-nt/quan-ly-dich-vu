@@ -229,3 +229,7 @@ CREATE POLICY "Cho phép staff/admin sửa dữ liệu shop của mình" ON beds
 
 -- (Các bảng khác như services, invoices, sessions... cũng áp dụng policy tương tự)
 -- Việc sử dụng RLS này đảm bảo 100% Hacker có lấy được API key cũng KHÔNG thể query xuyên Shop được.
+
+-- QUAN TRỌNG: Policy cho bảng profiles để user có thể đọc thông tin của chính mình khi đăng nhập
+CREATE POLICY "Users can read own profile" ON profiles 
+  FOR SELECT USING (auth.uid() = id);
