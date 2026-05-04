@@ -53,6 +53,11 @@ const SuperAdminDashboard = () => {
       return;
     }
     
+    if (!form.planId) {
+      alert('Danh sách Gói Dịch Vụ đang trống!\nBạn cần vào Supabase > SQL Editor chạy lệnh INSERT INTO plans... để nạp dữ liệu gói trước khi tạo Shop.');
+      return;
+    }
+    
     setCreating(true);
     try {
       const shopCode = generateShopCode();
