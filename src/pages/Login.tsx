@@ -8,7 +8,9 @@ const Login = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (role === 'admin') {
+    if (role === 'superadmin') {
+      navigate('/superadmin/dashboard');
+    } else if (role === 'admin') {
       navigate('/admin/shop');
     } else {
       navigate('/pos/monitor');
@@ -38,7 +40,8 @@ const Login = () => {
           <div className="form-group" style={{ textAlign: 'left' }}>
             <label className="form-label">Đăng nhập với vai trò</label>
             <select className="form-select" value={role} onChange={e => setRole(e.target.value)}>
-              <option value="admin">Quản lý (Admin)</option>
+              <option value="superadmin">Super Admin (Chủ hệ thống SaaS)</option>
+              <option value="admin">Quản lý Shop (Shop Admin)</option>
               <option value="staff">Nhân viên / POS</option>
             </select>
           </div>

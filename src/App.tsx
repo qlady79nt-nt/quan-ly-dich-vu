@@ -10,6 +10,8 @@ import Reports from './pages/admin/Reports';
 import POSCreateInvoice from './pages/pos/CreateInvoice';
 import BedMonitor from './pages/pos/BedMonitor';
 import POSPackages from './pages/pos/Packages';
+import SuperAdminLayout from './components/SuperAdminLayout';
+import SuperAdminDashboard from './pages/superadmin/Dashboard';
 
 function App() {
   return (
@@ -31,6 +33,12 @@ function App() {
           <Route path="invoice" element={<POSCreateInvoice />} />
           <Route path="packages" element={<POSPackages />} />
           <Route path="monitor" element={<BedMonitor />} />
+        </Route>
+
+        {/* SuperAdmin Routes */}
+        <Route path="/superadmin" element={<SuperAdminLayout />}>
+          <Route path="dashboard" element={<SuperAdminDashboard />} />
+          <Route path="plans" element={<SuperAdminDashboard />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
