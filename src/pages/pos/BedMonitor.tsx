@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BedDouble, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 // Mock data representing beds from Supabase

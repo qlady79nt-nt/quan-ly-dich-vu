@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Search, ShoppingCart, PlayCircle } from 'lucide-react';
 
 const POSCreateInvoice = () => {
   const navigate = useNavigate();
-  const [selectedServices, setSelectedServices] = useState([
+  const [selectedServices] = useState([
     { id: 1, name: 'Massage body 60 phút', price: 500000, duration: 60, staff: '', bed: '' }
   ]);
 

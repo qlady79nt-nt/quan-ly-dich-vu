@@ -1,6 +1,5 @@
-import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Store, Users, LayoutDashboard, Settings, Bed, Package } from 'lucide-react';
+import { Store, Users, Settings, Bed, Package } from 'lucide-react';
 
 const AdminLayout = () => {
   const location = useLocation();

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Package, Plus, Syringe } from 'lucide-react';
 
 const ManageServices = () => {

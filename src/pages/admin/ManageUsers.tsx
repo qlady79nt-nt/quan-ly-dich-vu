@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Save, UserCheck, Shield } from 'lucide-react';
 
 const ManageUsers = () => {
