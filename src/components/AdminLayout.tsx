@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Store, Users, Settings, Bed, Package, Target } from 'lucide-react';
+import { Store, Users, Settings, Bed, Package, Target, LogOut } from 'lucide-react';
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -35,9 +35,12 @@ const AdminLayout = () => {
             );
           })}
         </nav>
-        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <Link to="/pos/monitor" className="btn-secondary" style={{ display: 'block', textAlign: 'center', width: '100%' }}>
             Chuyển sang POS
+          </Link>
+          <Link to="/login" className="btn-danger" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', width: '100%' }}>
+            <LogOut size={18} /> Đăng xuất
           </Link>
         </div>
       </aside>

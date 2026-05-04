@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Store, ShieldCheck, Activity } from 'lucide-react';
+import { Store, ShieldCheck, Activity, LogOut } from 'lucide-react';
 
 const SuperAdminLayout = () => {
   const location = useLocation();
@@ -40,6 +40,11 @@ const SuperAdminLayout = () => {
             );
           })}
         </nav>
+        <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <Link to="/login" style={{ color: 'var(--danger-color)', textDecoration: 'none', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <LogOut size={16} /> Đăng xuất
+          </Link>
+        </div>
       </aside>
       
       <main className="main-content" style={{ backgroundColor: '#f3f4f6' }}>

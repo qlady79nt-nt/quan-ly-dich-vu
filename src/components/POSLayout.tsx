@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { MonitorPlay, FileText, CalendarClock, PackageOpen } from 'lucide-react';
+import { MonitorPlay, FileText, CalendarClock, PackageOpen, LogOut } from 'lucide-react';
 
 const POSLayout = () => {
   const location = useLocation();
@@ -41,9 +41,12 @@ const POSLayout = () => {
             );
           })}
         </nav>
-        <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <Link to="/admin/shop" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '0.875rem' }}>
             ← Về Admin
+          </Link>
+          <Link to="/login" style={{ color: 'var(--danger-color)', textDecoration: 'none', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <LogOut size={16} /> Đăng xuất
           </Link>
         </div>
       </aside>
