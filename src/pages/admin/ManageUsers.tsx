@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, UserCheck, Shield, Trash2, Loader2, Info, Users } from 'lucide-react';
+import { Save, UserCheck, Shield, Trash2, Loader2, Users, UserPlus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const ManageUsers = () => {
@@ -10,6 +10,15 @@ const ManageUsers = () => {
   const [planData, setPlanData] = useState<any>(null);
   const [shopId, setShopId] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+
+  // Form tạo user mới
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState({
+    fullName: '',
+    username: '',
+    password: '',
+    role: 'staff'
+  });
 
   // Phân nhóm quyền hạn rõ ràng
   const permissionGroups = [
@@ -52,7 +61,7 @@ const ManageUsers = () => {
         setShopId(adminProfile.shop_id);
         setCurrentUserProfile(adminProfile);
 
-        // Fetch Users (bao gồm cả Inactive)
+        // Fetch Users
         const { data: shopUsers } = await supabase
           .from('profiles')
           .select('*')
@@ -112,7 +121,45 @@ const ManageUsers = () => {
         data
       });
     } catch (e) {
-      console.error("Audit log failed", e); // Silently fail audit log so it doesn't break flow if table missing
+      console.error("Audit log failed", e);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shopId) return;
+    
+    if (activeUsersCount >= maxUsers) {
+      return alert('Đã đạt giới hạn nhân viên của gói dịch vụ! Vui lòng nâng cấp gói.');
+    }
+
+    setCreating(true);
+    try {
+      // 1. Gọi RPC để tạo user ngầm qua Fake Email Strategy
+      const { data: newUserId, error } = await supabase.rpc('create_staff_user', {
+        p_shop_id: shopId,
+        p_username: newUser.username.toLowerCase().trim(),
+        p_password: newUser.password,
+        p_full_name: newUser.fullName,
+        p_role: newUser.role
+      });
+
+      if (error) {
+        if (error.message.includes('unique constraint')) {
+          throw new Error('Tên đăng nhập này đã tồn tại trong hệ thống. Vui lòng chọn tên khác.');
+        }
+        throw error;
+      }
+
+      await logAudit('create_user', newUserId, { username: newUser.username, role: newUser.role });
+
+      alert('Đã tạo tài khoản nhân viên thành công!');
+      setNewUser({ fullName: '', username: '', password: '', role: 'staff' });
+      fetchData(); // Refresh list
+    } catch (error: any) {
+      alert('Lỗi khi tạo nhân viên: ' + error.message);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -189,20 +236,12 @@ const ManageUsers = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-        <div style={{ backgroundColor: 'var(--background-light)', padding: '1rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', border: '1px solid var(--border-color)' }}>
-          <Info size={24} color="var(--primary-color)" />
-          <div>
-            <strong style={{ display: 'block', color: 'var(--primary-color)' }}>Mời nhân viên</strong>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Gửi <strong>Mã Shop</strong> cho nhân viên để họ tự đăng ký tài khoản.</p>
-          </div>
-        </div>
-
-        <div style={{ backgroundColor: isLimitReached ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', padding: '1rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', border: `1px solid ${isLimitReached ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}` }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ width: '400px', backgroundColor: isLimitReached ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', padding: '1rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', border: `1px solid ${isLimitReached ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}` }}>
           <Users size={24} color={isLimitReached ? 'var(--danger-color)' : 'var(--success-color)'} />
           <div style={{ width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <strong style={{ color: isLimitReached ? 'var(--danger-color)' : 'var(--success-color)' }}>Sử dụng Gói (Nhân sự đang hoạt động)</strong>
+              <strong style={{ color: isLimitReached ? 'var(--danger-color)' : 'var(--success-color)' }}>Sử dụng Gói (Nhân sự hoạt động)</strong>
               <strong>{activeUsersCount} / {maxUsers}</strong>
             </div>
             <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--background-light)', borderRadius: '3px', overflow: 'hidden' }}>
@@ -213,63 +252,115 @@ const ManageUsers = () => {
       </div>
 
       <div className="grid-cols-2" style={{ gridTemplateColumns: '1fr 1.5fr' }}>
-        {/* DANH SÁCH NHÂN VIÊN */}
-        <div className="premium-card">
-          <h2 style={{ marginBottom: '1.5rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <UserCheck size={24} />
-            Hồ Sơ Nhân Sự
-          </h2>
+        {/* CỘT TRÁI: FORM TẠO & DANH SÁCH */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
-          {users.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2rem 0' }}>Chưa có nhân sự nào.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {users.map(u => (
-                <div 
-                  key={u.id}
-                  onClick={() => handleSelectUser(u)}
-                  style={{ 
-                    padding: '1rem', 
-                    borderRadius: '0.5rem', 
-                    border: selectedUser?.id === u.id ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
-                    backgroundColor: selectedUser?.id === u.id ? 'var(--background-light)' : 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    opacity: u.status === 'inactive' ? 0.6 : 1,
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div>
-                    <strong style={{ display: 'block' }}>
-                      {u.full_name || 'Nhân viên vô danh'}
-                      {u.status === 'inactive' && ' (Đã nghỉ)'}
-                    </strong>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-                      <span className={`badge ${u.role === 'shop_admin' ? 'badge-primary' : 'badge-success'}`}>
-                        {u.role === 'shop_admin' ? 'Quản lý' : 'Nhân viên'}
-                      </span>
-                      {u.status === 'inactive' && <span className="badge badge-danger">Inactive</span>}
-                    </div>
-                  </div>
-                  {u.role !== 'shop_admin' && u.status !== 'inactive' && (
-                    <button 
-                      onClick={(e) => handleSoftDeleteUser(e, u.id)}
-                      style={{ background: 'none', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', padding: '0.5rem' }}
-                      title="Vô hiệu hoá"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  )}
+          {/* TẠO NHÂN VIÊN MỚI */}
+          <div className="premium-card">
+            <h2 style={{ marginBottom: '1.5rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <UserPlus size={24} />
+              Tạo Nhân Viên Mới
+            </h2>
+            <form onSubmit={handleCreateUser}>
+              <div className="form-group">
+                <label className="form-label">Tên hiển thị</label>
+                <input 
+                  type="text" className="form-input" placeholder="Ví dụ: Nguyễn Văn A" 
+                  value={newUser.fullName} onChange={e => setNewUser({...newUser, fullName: e.target.value})} required 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tên đăng nhập (Username)</label>
+                <input 
+                  type="text" className="form-input" placeholder="Ví dụ: nva123" 
+                  value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} required 
+                  style={{ textTransform: 'lowercase' }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Mật khẩu</label>
+                  <input 
+                    type="password" className="form-input" placeholder="••••••••" 
+                    value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required minLength={6}
+                  />
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="form-group">
+                  <label className="form-label">Vai trò</label>
+                  <select 
+                    className="form-select" 
+                    value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}
+                  >
+                    <option value="staff">Kỹ thuật viên</option>
+                    <option value="manager">Quản lý nhánh</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="btn-primary" disabled={creating || isLimitReached} style={{ width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                {creating ? <Loader2 size={20} className="animate-spin" /> : <UserPlus size={20} />}
+                {creating ? 'Đang tạo...' : 'Tạo tài khoản'}
+              </button>
+            </form>
+          </div>
+
+          {/* DANH SÁCH NHÂN VIÊN */}
+          <div className="premium-card">
+            <h2 style={{ marginBottom: '1.5rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <UserCheck size={24} />
+              Hồ Sơ Nhân Sự ({users.length})
+            </h2>
+            
+            {users.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2rem 0' }}>Chưa có nhân sự nào.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                {users.map(u => (
+                  <div 
+                    key={u.id}
+                    onClick={() => handleSelectUser(u)}
+                    style={{ 
+                      padding: '1rem', 
+                      borderRadius: '0.5rem', 
+                      border: selectedUser?.id === u.id ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      backgroundColor: selectedUser?.id === u.id ? 'var(--background-light)' : 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      opacity: u.status === 'inactive' ? 0.6 : 1,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div>
+                      <strong style={{ display: 'block' }}>
+                        {u.full_name || 'Nhân viên vô danh'}
+                        {u.status === 'inactive' && ' (Đã nghỉ)'}
+                      </strong>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                        <span className={`badge ${u.role === 'shop_admin' ? 'badge-primary' : 'badge-success'}`}>
+                          {u.role === 'shop_admin' ? 'Quản lý' : 'Nhân viên'}
+                        </span>
+                        {u.status === 'inactive' && <span className="badge badge-danger">Inactive</span>}
+                      </div>
+                    </div>
+                    {u.role !== 'shop_admin' && u.status !== 'inactive' && (
+                      <button 
+                        onClick={(e) => handleSoftDeleteUser(e, u.id)}
+                        style={{ background: 'none', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', padding: '0.5rem' }}
+                        title="Vô hiệu hoá"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* CẤU HÌNH PHÂN QUYỀN */}
-        <div className="premium-card" style={{ opacity: selectedUser ? 1 : 0.5, pointerEvents: selectedUser ? 'auto' : 'none' }}>
+        {/* CỘT PHẢI: CẤU HÌNH PHÂN QUYỀN */}
+        <div className="premium-card" style={{ opacity: selectedUser ? 1 : 0.5, pointerEvents: selectedUser ? 'auto' : 'none', alignSelf: 'start' }}>
           <h2 style={{ marginBottom: '1.5rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Shield size={24} />
             Phân Quyền: {selectedUser?.full_name || '...'}

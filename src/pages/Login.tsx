@@ -5,9 +5,11 @@ import { supabase } from '../lib/supabase';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+  // tabs: 'staff', 'owner_login', 'owner_register'
+  const [tab, setTab] = useState<'staff' | 'owner_login' | 'owner_register'>('staff');
   
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [shopCode, setShopCode] = useState('');
   
@@ -22,31 +24,38 @@ const Login = () => {
     setSuccessMsg('');
 
     try {
-      if (isLogin) {
-        // --- LUỒNG ĐĂNG NHẬP ---
+      if (tab === 'staff') {
+        // --- LUỒNG NHÂN VIÊN ---
+        if (!shopCode || !username || !password) throw new Error('Vui lòng nhập đầy đủ thông tin');
+        const fakeEmail = `${username.toLowerCase().trim()}@${shopCode.toLowerCase().trim()}.spa.local`;
+        
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: fakeEmail,
+          password,
+        });
+
+        if (authError) {
+          if (authError.message.includes('Invalid login credentials')) {
+            throw new Error('Sai tài khoản hoặc mật khẩu (Hoặc sai Mã Shop).');
+          }
+          throw authError;
+        }
+
+        // Kiểm tra role và chuyển trang
+        checkRoleAndRedirect(authData.user.id);
+
+      } else if (tab === 'owner_login') {
+        // --- LUỒNG CHỦ TIỆM ĐĂNG NHẬP ---
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (authError) throw authError;
+        checkRoleAndRedirect(authData.user.id);
 
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
-
-        const role = profile?.role || 'staff';
-
-        if (role === 'super_admin') navigate('/superadmin/dashboard');
-        else if (role === 'shop_admin') navigate('/admin/shop');
-        else navigate('/pos/monitor');
-
-      } else {
-        // --- LUỒNG ĐĂNG KÝ (CLAIM SHOP) ---
+      } else if (tab === 'owner_register') {
+        // --- LUỒNG CHỦ TIỆM ĐĂNG KÝ (CLAIM SHOP) ---
         if (!shopCode) throw new Error('Vui lòng nhập Mã Shop do Super Admin cung cấp.');
 
         const { error: signUpError } = await supabase.auth.signUp({
@@ -62,11 +71,10 @@ const Login = () => {
         });
 
         if (rpcError) {
-          // Nếu lỗi mã Shop, báo lỗi
           throw new Error('Mã Shop không hợp lệ hoặc đã được sử dụng!');
         }
 
-        setSuccessMsg('Đăng ký thành công! Đang chuyển hướng đến trang quản trị của bạn...');
+        setSuccessMsg('Đăng ký mở tiệm thành công! Đang chuyển hướng...');
         setTimeout(() => navigate('/admin/shop'), 2000);
       }
     } catch (error: any) {
@@ -74,6 +82,27 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkRoleAndRedirect = async (userId: string) => {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('id', userId)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') throw profileError;
+
+    if (profile?.status === 'inactive') {
+      await supabase.auth.signOut();
+      throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ chủ tiệm.');
+    }
+
+    const role = profile?.role || 'staff';
+
+    if (role === 'super_admin') navigate('/superadmin/dashboard');
+    else if (role === 'shop_admin') navigate('/admin/shop');
+    else navigate('/pos/monitor');
   };
 
   return (
@@ -86,23 +115,21 @@ const Login = () => {
         </div>
         
         <h1 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Hệ thống SaaS Spa & Clinic</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-          {isLogin ? 'Đăng nhập vào không gian quản lý của bạn' : 'Mở tiệm bằng Mã Shop (Shop Code)'}
-        </p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Đăng nhập vào không gian quản lý</p>
 
         {/* TAB TOGGLE */}
         <div style={{ display: 'flex', backgroundColor: 'var(--background-light)', borderRadius: '0.5rem', padding: '0.25rem', marginBottom: '1.5rem' }}>
           <button 
-            onClick={() => { setIsLogin(true); setErrorMsg(''); }}
-            style={{ flex: 1, padding: '0.5rem', borderRadius: '0.25rem', border: 'none', background: isLogin ? 'white' : 'transparent', fontWeight: isLogin ? 600 : 400, boxShadow: isLogin ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', cursor: 'pointer' }}
+            onClick={() => { setTab('staff'); setErrorMsg(''); }}
+            style={{ flex: 1, padding: '0.5rem', borderRadius: '0.25rem', border: 'none', background: tab === 'staff' ? 'white' : 'transparent', fontWeight: tab === 'staff' ? 600 : 400, boxShadow: tab === 'staff' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', cursor: 'pointer' }}
           >
-            Đăng nhập
+            Nhân viên
           </button>
           <button 
-            onClick={() => { setIsLogin(false); setErrorMsg(''); }}
-            style={{ flex: 1, padding: '0.5rem', borderRadius: '0.25rem', border: 'none', background: !isLogin ? 'white' : 'transparent', fontWeight: !isLogin ? 600 : 400, boxShadow: !isLogin ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', cursor: 'pointer' }}
+            onClick={() => { setTab('owner_login'); setErrorMsg(''); }}
+            style={{ flex: 1, padding: '0.5rem', borderRadius: '0.25rem', border: 'none', background: tab !== 'staff' ? 'white' : 'transparent', fontWeight: tab !== 'staff' ? 600 : 400, boxShadow: tab !== 'staff' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', cursor: 'pointer' }}
           >
-            Kích hoạt Tiệm
+            Chủ tiệm
           </button>
         </div>
         
@@ -119,46 +146,99 @@ const Login = () => {
         )}
 
         <form onSubmit={handleAuth}>
-          {!isLogin && (
-            <div className="form-group" style={{ textAlign: 'left' }}>
-              <label className="form-label">Mã Shop (Do Super Admin cấp)</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="Ví dụ: XY892" 
-                value={shopCode}
-                onChange={e => setShopCode(e.target.value)}
-                required={!isLogin}
-              />
-            </div>
+          {tab === 'staff' ? (
+            // --- FORM NHÂN VIÊN ---
+            <>
+              <div className="form-group" style={{ textAlign: 'left' }}>
+                <label className="form-label">Mã Cửa Hàng (Shop Code)</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Ví dụ: XY892" 
+                  value={shopCode}
+                  onChange={e => setShopCode(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group" style={{ textAlign: 'left' }}>
+                <label className="form-label">Tên đăng nhập</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Ví dụ: lan, hoa..." 
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group" style={{ textAlign: 'left' }}>
+                <label className="form-label">Mật khẩu</label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          ) : (
+            // --- FORM CHỦ TIỆM ---
+            <>
+              {tab === 'owner_register' && (
+                <div className="form-group" style={{ textAlign: 'left' }}>
+                  <label className="form-label">Mã Shop (Do Super Admin cấp)</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="Ví dụ: XY892" 
+                    value={shopCode}
+                    onChange={e => setShopCode(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+              <div className="form-group" style={{ textAlign: 'left' }}>
+                <label className="form-label">Email Quản trị viên</label>
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  placeholder="admin@spa.com" 
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group" style={{ textAlign: 'left' }}>
+                <label className="form-label">Mật khẩu</label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div style={{ textAlign: 'right', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                {tab === 'owner_login' ? (
+                  <button type="button" onClick={() => setTab('owner_register')} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', padding: 0 }}>
+                    Lần đầu đăng nhập? Mở tiệm ngay
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => setTab('owner_login')} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', padding: 0 }}>
+                    Đã có tài khoản? Đăng nhập
+                  </button>
+                )}
+              </div>
+            </>
           )}
 
-          <div className="form-group" style={{ textAlign: 'left' }}>
-            <label className="form-label">Email</label>
-            <input 
-              type="email" 
-              className="form-input" 
-              placeholder="Nhập email..." 
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group" style={{ textAlign: 'left' }}>
-            <label className="form-label">Mật khẩu</label>
-            <input 
-              type="password" 
-              className="form-input" 
-              placeholder="••••••••" 
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          
-          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: isLogin ? 'var(--primary-color)' : 'var(--success-color)' }}>
-            {loading ? <Loader2 size={20} className="animate-spin" /> : (isLogin ? <LogIn size={20} /> : <UserPlus size={20} />)}
-            {loading ? 'Đang xử lý...' : (isLogin ? 'Đăng nhập hệ thống' : 'Mở Tiệm Ngay')}
+          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: tab === 'owner_register' ? 'var(--success-color)' : 'var(--primary-color)' }}>
+            {loading ? <Loader2 size={20} className="animate-spin" /> : (tab === 'owner_register' ? <UserPlus size={20} /> : <LogIn size={20} />)}
+            {loading ? 'Đang xử lý...' : (tab === 'owner_register' ? 'Mở Tiệm Ngay' : 'Đăng nhập')}
           </button>
         </form>
       </div>
