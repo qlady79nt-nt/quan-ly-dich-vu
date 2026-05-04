@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, UserCheck, Shield, Trash2, Loader2, Info, Users, Activity } from 'lucide-react';
+import { Save, UserCheck, Shield, Trash2, Loader2, Info, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const ManageUsers = () => {
