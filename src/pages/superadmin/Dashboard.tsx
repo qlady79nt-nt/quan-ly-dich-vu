@@ -11,7 +11,6 @@ const SuperAdminDashboard = () => {
   const [form, setForm] = useState({
     shopName: '',
     email: '',
-    password: '',
     planId: ''
   });
 
@@ -21,7 +20,7 @@ const SuperAdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const { data: plansData } = await supabase.from('plans').select('*');
+      const { data: plansData } = await supabase.from('plans').select('*').order('price', { ascending: true });
       if (plansData) {
         setPlans(plansData);
         if (plansData.length > 0) setForm(prev => ({ ...prev, planId: plansData[0].id }));
@@ -32,7 +31,8 @@ const SuperAdminDashboard = () => {
         .select(`
           id, name, shop_code, expired_at, status,
           subscriptions ( status, plans ( name ) )
-        `);
+        `)
+        .order('created_at', { ascending: false });
       if (shopsData) setShops(shopsData);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -48,8 +48,8 @@ const SuperAdminDashboard = () => {
   };
 
   const handleCreateShop = async () => {
-    if (!form.shopName || !form.email || !form.password) {
-      alert('Vui lòng điền đầy đủ thông tin');
+    if (!form.shopName || !form.email) {
+      alert('Vui lòng điền tên shop và email chủ tiệm');
       return;
     }
     
@@ -93,9 +93,9 @@ const SuperAdminDashboard = () => {
 
       if (subError) throw subError;
 
-      alert(`Khởi tạo Shop "${form.shopName}" thành công!\nMã shop: ${shopCode}\n\nLƯU Ý: Vui lòng hướng dẫn Shop Admin tự ấn "Đăng ký" bên ngoài với email ${form.email}, sau đó bạn gán shop_id của họ trong Database.`);
+      alert(`Khởi tạo Shop "${form.shopName}" thành công!\n\n🔑 MÃ SHOP CỦA KHÁCH HÀNG: ${shopCode}\n\n👉 BƯỚC TIẾP THEO: Gửi mã Shop này cho khách hàng (${form.email}). Khách hàng sẽ vào trang Đăng Ký, nhập Email, Mật khẩu và Mã Shop này để tự động trở thành Chủ Tiệm (Shop Admin).`);
       
-      setForm({ shopName: '', email: '', password: '', planId: plans[0]?.id || '' });
+      setForm({ shopName: '', email: '', planId: plans[0]?.id || '' });
       fetchData();
     } catch (error: any) {
       alert('Lỗi tạo shop: ' + error.message);
@@ -114,11 +114,11 @@ const SuperAdminDashboard = () => {
           Tạo Shop Mới (Onboarding)
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-          Cấp phát không gian riêng (Tenant) cho một khách hàng mới. Toàn bộ dữ liệu của họ sẽ bị cô lập bởi RLS.
+          Hệ thống sẽ cấp một Mã Shop (Shop Code). Chủ tiệm dùng mã này để đăng ký tài khoản.
         </p>
         
         <div className="form-group">
-          <label className="form-label">Tên cửa hàng (Shop Name)</label>
+          <label className="form-label">Tên cửa tiệm (Tên hiển thị)</label>
           <input 
             type="text" 
             className="form-input" 
@@ -128,38 +128,28 @@ const SuperAdminDashboard = () => {
           />
         </div>
         
-        <div className="grid-cols-2" style={{ marginBottom: '1rem' }}>
-          <div className="form-group">
-            <label className="form-label">Email Shop Admin</label>
-            <input 
-              type="email" 
-              className="form-input" 
-              placeholder="admin@xyz.com" 
-              value={form.email}
-              onChange={e => setForm({...form, email: e.target.value})}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Mật khẩu khởi tạo</label>
-            <input 
-              type="password" 
-              className="form-input" 
-              placeholder="••••••••" 
-              value={form.password}
-              onChange={e => setForm({...form, password: e.target.value})}
-            />
-          </div>
+        <div className="form-group">
+          <label className="form-label">Email liên hệ của Chủ Tiệm (Để quản lý)</label>
+          <input 
+            type="email" 
+            className="form-input" 
+            placeholder="admin@xyz.com" 
+            value={form.email}
+            onChange={e => setForm({...form, email: e.target.value})}
+          />
         </div>
 
         <div className="form-group">
-          <label className="form-label">Gán Gói Dịch Vụ (Subscription Plan)</label>
+          <label className="form-label">Gán Gói Dịch Vụ (SaaS Plan)</label>
           <select 
             className="form-select"
             value={form.planId}
             onChange={e => setForm({...form, planId: e.target.value})}
           >
             {plans.map(p => (
-              <option key={p.id} value={p.id}>{p.name} - {p.price === 0 ? 'Free' : p.price + 'đ'}</option>
+              <option key={p.id} value={p.id}>
+                {p.name} (Tối đa {p.max_users} User, {p.max_branches} Chi nhánh) - {p.price === 0 ? 'Miễn phí 30 ngày' : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price) + '/năm'}
+              </option>
             ))}
           </select>
         </div>
@@ -171,19 +161,19 @@ const SuperAdminDashboard = () => {
           style={{ width: '100%', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--success-color)', boxShadow: 'none' }}
         >
           {creating ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-          Khởi tạo Shop & Gán Gói
+          Khởi tạo Shop & Sinh Mã
         </button>
       </div>
 
       <div>
-        <div className="premium-card" style={{ marginBottom: '1.5rem' }}>
+        <div className="premium-card" style={{ marginBottom: '1.5rem', overflowX: 'auto' }}>
           <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             Danh sách Shop (Tenants)
           </h2>
           {shops.length === 0 ? (
             <p style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Chưa có shop nào.</p>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
                   <th style={{ padding: '0.5rem' }}>Mã Shop</th>
