@@ -1,52 +1,76 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, Loader2 } from 'lucide-react';
+import { Store, Loader2, LogIn, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [isLogin, setIsLogin] = useState(true);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [shopCode, setShopCode] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
 
     try {
-      // 1. Đăng nhập Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      if (isLogin) {
+        // --- LUỒNG ĐĂNG NHẬP ---
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (authError) throw authError;
+        if (authError) throw authError;
 
-      // 2. Lấy Role từ bảng profiles
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', authData.user.id)
-        .single();
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', authData.user.id)
+          .single();
 
-      if (profileError && profileError.code !== 'PGRST116') {
-         throw profileError;
-      }
+        if (profileError && profileError.code !== 'PGRST116') throw profileError;
 
-      const role = profile?.role || 'staff';
+        const role = profile?.role || 'staff';
 
-      // 3. Phân luồng theo Role
-      if (role === 'super_admin') {
-        navigate('/superadmin/dashboard');
-      } else if (role === 'shop_admin') {
-        navigate('/admin/shop');
+        if (role === 'super_admin') navigate('/superadmin/dashboard');
+        else if (role === 'shop_admin') navigate('/admin/shop');
+        else navigate('/pos/monitor');
+
       } else {
-        navigate('/pos/monitor');
+        // --- LUỒNG ĐĂNG KÝ (CLAIM SHOP) ---
+        if (!shopCode) throw new Error('Vui lòng nhập Mã Shop do Super Admin cung cấp.');
+
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (signUpError) throw signUpError;
+
+        // Gọi hàm RPC để nhận chủ quyền Shop
+        const { error: rpcError } = await supabase.rpc('claim_shop', { 
+          p_shop_code: shopCode 
+        });
+
+        if (rpcError) {
+          // Nếu lỗi mã Shop, báo lỗi
+          throw new Error('Mã Shop không hợp lệ hoặc đã được sử dụng!');
+        }
+
+        setSuccessMsg('Đăng ký thành công! Đang chuyển hướng đến trang quản trị của bạn...');
+        setTimeout(() => navigate('/admin/shop'), 2000);
       }
     } catch (error: any) {
-      setErrorMsg(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email/password.');
+      setErrorMsg(error.message || 'Đã có lỗi xảy ra. Vui lòng kiểm tra lại.');
     } finally {
       setLoading(false);
     }
@@ -60,8 +84,27 @@ const Login = () => {
             <Store size={32} color="var(--primary-color)" />
           </div>
         </div>
-        <h1 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Hệ thống Spa & Clinic</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Vui lòng đăng nhập bằng tài khoản Supabase</p>
+        
+        <h1 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Hệ thống SaaS Spa & Clinic</h1>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+          {isLogin ? 'Đăng nhập vào không gian quản lý của bạn' : 'Mở tiệm bằng Mã Shop (Shop Code)'}
+        </p>
+
+        {/* TAB TOGGLE */}
+        <div style={{ display: 'flex', backgroundColor: 'var(--background-light)', borderRadius: '0.5rem', padding: '0.25rem', marginBottom: '1.5rem' }}>
+          <button 
+            onClick={() => { setIsLogin(true); setErrorMsg(''); }}
+            style={{ flex: 1, padding: '0.5rem', borderRadius: '0.25rem', border: 'none', background: isLogin ? 'white' : 'transparent', fontWeight: isLogin ? 600 : 400, boxShadow: isLogin ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', cursor: 'pointer' }}
+          >
+            Đăng nhập
+          </button>
+          <button 
+            onClick={() => { setIsLogin(false); setErrorMsg(''); }}
+            style={{ flex: 1, padding: '0.5rem', borderRadius: '0.25rem', border: 'none', background: !isLogin ? 'white' : 'transparent', fontWeight: !isLogin ? 600 : 400, boxShadow: !isLogin ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', cursor: 'pointer' }}
+          >
+            Kích hoạt Tiệm
+          </button>
+        </div>
         
         {errorMsg && (
           <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-color)', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -69,7 +112,27 @@ const Login = () => {
           </div>
         )}
 
-        <form onSubmit={handleLogin}>
+        {successMsg && (
+          <div style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--success-color)', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+            {successMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleAuth}>
+          {!isLogin && (
+            <div className="form-group" style={{ textAlign: 'left' }}>
+              <label className="form-label">Mã Shop (Do Super Admin cấp)</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Ví dụ: XY892" 
+                value={shopCode}
+                onChange={e => setShopCode(e.target.value)}
+                required={!isLogin}
+              />
+            </div>
+          )}
+
           <div className="form-group" style={{ textAlign: 'left' }}>
             <label className="form-label">Email</label>
             <input 
@@ -92,8 +155,10 @@ const Login = () => {
               required
             />
           </div>
-          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            {loading ? <Loader2 size={20} /> : 'Đăng nhập'}
+          
+          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: isLogin ? 'var(--primary-color)' : 'var(--success-color)' }}>
+            {loading ? <Loader2 size={20} className="animate-spin" /> : (isLogin ? <LogIn size={20} /> : <UserPlus size={20} />)}
+            {loading ? 'Đang xử lý...' : (isLogin ? 'Đăng nhập hệ thống' : 'Mở Tiệm Ngay')}
           </button>
         </form>
       </div>
