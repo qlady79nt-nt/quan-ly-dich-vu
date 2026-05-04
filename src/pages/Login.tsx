@@ -1,19 +1,54 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store } from 'lucide-react';
+import { Store, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState('admin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (role === 'superadmin') {
-      navigate('/superadmin/dashboard');
-    } else if (role === 'admin') {
-      navigate('/admin/shop');
-    } else {
-      navigate('/pos/monitor');
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      // 1. Đăng nhập Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      // 2. Lấy Role từ bảng profiles
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+         throw profileError;
+      }
+
+      const role = profile?.role || 'staff';
+
+      // 3. Phân luồng theo Role
+      if (role === 'super_admin') {
+        navigate('/superadmin/dashboard');
+      } else if (role === 'shop_admin') {
+        navigate('/admin/shop');
+      } else {
+        navigate('/pos/monitor');
+      }
+    } catch (error: any) {
+      setErrorMsg(error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email/password.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -26,27 +61,39 @@ const Login = () => {
           </div>
         </div>
         <h1 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Hệ thống Spa & Clinic</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Vui lòng đăng nhập để tiếp tục</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Vui lòng đăng nhập bằng tài khoản Supabase</p>
         
+        {errorMsg && (
+          <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-color)', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+            {errorMsg}
+          </div>
+        )}
+
         <form onSubmit={handleLogin}>
           <div className="form-group" style={{ textAlign: 'left' }}>
-            <label className="form-label">Tài khoản</label>
-            <input type="text" className="form-input" placeholder="admin@spa.com" defaultValue="admin@spa.com" />
+            <label className="form-label">Email</label>
+            <input 
+              type="email" 
+              className="form-input" 
+              placeholder="Nhập email..." 
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
           </div>
           <div className="form-group" style={{ textAlign: 'left' }}>
             <label className="form-label">Mật khẩu</label>
-            <input type="password" className="form-input" placeholder="••••••••" defaultValue="password" />
+            <input 
+              type="password" 
+              className="form-input" 
+              placeholder="••••••••" 
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
           </div>
-          <div className="form-group" style={{ textAlign: 'left' }}>
-            <label className="form-label">Đăng nhập với vai trò</label>
-            <select className="form-select" value={role} onChange={e => setRole(e.target.value)}>
-              <option value="superadmin">Super Admin (Chủ hệ thống SaaS)</option>
-              <option value="admin">Quản lý Shop (Shop Admin)</option>
-              <option value="staff">Nhân viên / POS</option>
-            </select>
-          </div>
-          <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
-            Đăng nhập hệ thống
+          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            {loading ? <Loader2 size={20} /> : 'Đăng nhập'}
           </button>
         </form>
       </div>
