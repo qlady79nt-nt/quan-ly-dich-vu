@@ -48,6 +48,25 @@ const ManageUsers = () => {
     fetchData();
   }, []);
 
+  const handleSelectUser = async (user: any) => {
+    if (!user) return;
+    setSelectedUser(user);
+    try {
+      const { data: perms } = await supabase
+        .from('user_permissions')
+        .select('permission')
+        .eq('user_id', user.id);
+        
+      if (perms) {
+        setSelectedPerms(perms.map(p => p.permission));
+      } else {
+        setSelectedPerms([]);
+      }
+    } catch (error) {
+      console.error('Error fetching perms:', error);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -73,6 +92,11 @@ const ManageUsers = () => {
 
         setUsers(shopUsers || []);
 
+        // Tự động chọn nhân viên đầu tiên nếu chưa chọn ai
+        if (shopUsers && shopUsers.length > 0 && !selectedUser) {
+          handleSelectUser(shopUsers[0]);
+        }
+
         // Fetch Plan Limits
         const { data: shopInfo } = await supabase
           .from('shops')
@@ -88,24 +112,6 @@ const ManageUsers = () => {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSelectUser = async (user: any) => {
-    setSelectedUser(user);
-    try {
-      const { data: perms } = await supabase
-        .from('user_permissions')
-        .select('permission')
-        .eq('user_id', user.id);
-        
-      if (perms) {
-        setSelectedPerms(perms.map(p => p.permission));
-      } else {
-        setSelectedPerms([]);
-      }
-    } catch (error) {
-      console.error('Error fetching perms:', error);
     }
   };
 
