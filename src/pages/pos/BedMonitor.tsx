@@ -25,7 +25,7 @@ const BedMonitor = () => {
   const [beds, setBeds] = useState<Bed[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   useEffect(() => {
     if (shopId) fetchBeds();

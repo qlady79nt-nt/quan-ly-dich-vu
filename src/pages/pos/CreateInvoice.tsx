@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Search, ShoppingCart, PlayCircle, X, Plus, Loader2, Minus } from 'lucide-react';
+import { Search, ShoppingCart, PlayCircle, X, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 

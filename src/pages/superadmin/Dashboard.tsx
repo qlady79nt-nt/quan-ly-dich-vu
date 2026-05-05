@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Store, Plus, Loader2, Lock, Unlock, RefreshCw, Eye, Crown, MoreVertical, Search } from 'lucide-react';
+import { Store, Plus, Loader2, Lock, Unlock, RefreshCw, Search, Crown } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const SuperAdminDashboard = () => {
@@ -9,8 +9,6 @@ const SuperAdminDashboard = () => {
   const [creating, setCreating] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [selectedShop, setSelectedShop] = useState<any>(null);
-
   const [form, setForm] = useState({ shopName: '', email: '', planId: '' });
 
   useEffect(() => { fetchData(); }, []);
@@ -216,7 +214,7 @@ const SuperAdminDashboard = () => {
                 const isLoading = actionLoading === shop.id;
 
                 return (
-                  <div key={shop.id} style={{ border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', transition: 'all 0.2s', background: selectedShop?.id === shop.id ? 'rgba(109,40,217,0.03)' : 'white' }}>
+                  <div key={shop.id} style={{ border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', transition: 'all 0.2s', background: 'white' }}>
 
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: `${statusColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Store size={22} color={statusColor} />
