@@ -10,6 +10,7 @@ interface Profile {
   full_name: string;
   role: 'super_admin' | 'shop_admin' | 'manager' | 'staff';
   status: string;
+  username: string | null;
 }
 
 interface AuthContextType {
@@ -77,13 +78,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => useContext(AuthContext);
 
-export const ProtectedRoute = ({ children, allowedRoles }: { children: ReactNode; allowedRoles?: string[] }) => {
+// --- PROTECTED ROUTE ---
+interface ProtectedRouteProps {
+  children: ReactNode;
+  allowedRoles?: string[];
+}
+
+export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Đang tải...</div>;
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) return <Navigate to="/" replace />;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '1rem', color: 'var(--primary-color)', fontSize: '1.1rem' }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+          <path d="M21 12a9 9 0 11-6.219-8.56" />
+        </svg>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        Đang xác thực...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+    // Redirect based on role
+    if (profile.role === 'super_admin') return <Navigate to="/superadmin/dashboard" replace />;
+    if (profile.role === 'shop_admin' || profile.role === 'manager') return <Navigate to="/admin/shop" replace />;
+    return <Navigate to="/pos/monitor" replace />;
+  }
 
   return <>{children}</>;
 };
