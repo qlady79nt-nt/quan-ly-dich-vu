@@ -1,8 +1,11 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Store, Users, Settings, Bed, Package, Target, LogOut } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Store, Users, Bed, Package, Target, LogOut, Settings, Monitor } from 'lucide-react';
+import { useAuth } from '../lib/auth';
 
 const AdminLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
 
   const navItems = [
     { path: '/admin/shop', label: 'Cửa hàng', icon: Store },
@@ -11,6 +14,15 @@ const AdminLayout = () => {
     { path: '/admin/services', label: 'Dịch vụ & Liệu trình', icon: Package },
     { path: '/admin/reports', label: 'Báo Cáo Doanh Thu', icon: Target },
   ];
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  const initials = profile?.full_name
+    ? profile.full_name.split(' ').map(w => w[0]).slice(-2).join('').toUpperCase()
+    : 'AD';
 
   return (
     <div className="layout-container">
@@ -36,25 +48,27 @@ const AdminLayout = () => {
           })}
         </nav>
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <Link to="/pos/monitor" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-            Chuyển sang POS
+          <Link to="/pos/monitor" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>
+            <Monitor size={18} /> Chuyển sang POS
           </Link>
-          <Link to="/login" className="btn-danger" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', width: '100%' }}>
+          <button onClick={handleLogout} className="btn-danger" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>
             <LogOut size={18} /> Đăng xuất
-          </Link>
+          </button>
         </div>
       </aside>
-      
+
       <main className="main-content">
         <header className="topbar">
           <h2 style={{ fontSize: '1.25rem', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Hệ thống Quản lý Dịch vụ</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>Admin User</div>
-              <div style={{ color: 'var(--primary-light)', fontSize: '0.75rem', fontWeight: '500' }}>Quản trị viên Cấp cao</div>
+              <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>{profile?.full_name || 'Admin'}</div>
+              <div style={{ color: 'var(--primary-light)', fontSize: '0.75rem', fontWeight: '500' }}>
+                {profile?.role === 'shop_admin' ? 'Quản trị viên' : profile?.role === 'manager' ? 'Quản lý' : 'Nhân viên'}
+              </div>
             </div>
             <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', boxShadow: '0 4px 10px rgba(109, 40, 217, 0.3)' }}>
-              A
+              {initials}
             </div>
           </div>
         </header>
