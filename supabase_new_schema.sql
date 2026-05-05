@@ -1,6 +1,21 @@
 -- KHỞI TẠO DATABASE CHO HỆ THỐNG QUẢN LÝ DỊCH VỤ (SPA/CLINIC)
 -- LOGIC: DOANH THU CHỈ TÍNH KHI LÀM DỊCH VỤ, KHÔNG TÍNH KHI BÁN LIỆU TRÌNH
 
+-- RESET DATABASE (Xoá nếu đã tồn tại để chạy lại sạch)
+DROP TABLE IF EXISTS revenue_logs CASCADE;
+DROP TABLE IF EXISTS commission_logs CASCADE;
+DROP TABLE IF EXISTS package_sales CASCADE;
+DROP TABLE IF EXISTS service_sessions CASCADE;
+DROP TABLE IF EXISTS customer_packages CASCADE;
+DROP TABLE IF EXISTS service_materials CASCADE;
+DROP TABLE IF EXISTS materials CASCADE;
+DROP TABLE IF EXISTS packages CASCADE;
+DROP TABLE IF EXISTS services CASCADE;
+DROP TABLE IF EXISTS invoice_items CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+DROP TABLE IF EXISTS shops CASCADE;
+
 -- 1. DANH MỤC CỬA HÀNG (TENANTS)
 CREATE TABLE shops (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,7 +33,37 @@ CREATE TABLE profiles (
     username TEXT UNIQUE,
     role TEXT DEFAULT 'staff', -- super_admin, shop_admin, manager, staff
     staff_type TEXT DEFAULT 'both', -- technician, sales, both
+    permissions TEXT[] DEFAULT '{}', -- Danh sách quyền chi tiết
     status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2.1 BẢNG HOÁ ĐƠN (INVOICES)
+CREATE TABLE invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shop_id UUID REFERENCES shops(id),
+    customer_name TEXT,
+    customer_phone TEXT,
+    created_by UUID REFERENCES profiles(id),
+    total_amount DECIMAL(12,2) DEFAULT 0, -- Trước giảm
+    discount_amount DECIMAL(12,2) DEFAULT 0,
+    final_amount DECIMAL(12,2) DEFAULT 0, -- Sau giảm
+    payment_method TEXT DEFAULT 'cash', -- cash, transfer, card
+    status TEXT DEFAULT 'paid', -- paid, void
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2.2 CHI TIẾT HOÁ ĐƠN (INVOICE ITEMS)
+CREATE TABLE invoice_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
+    type TEXT NOT NULL, -- service, package_sale
+    ref_id UUID NOT NULL, -- ID dịch vụ hoặc liệu trình
+    staff_id UUID REFERENCES profiles(id), -- Nhân viên được hưởng hoa hồng
+    quantity INTEGER DEFAULT 1,
+    unit_price DECIMAL(12,2) NOT NULL,
+    discount DECIMAL(12,2) DEFAULT 0,
+    final_price DECIMAL(12,2) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -141,6 +186,8 @@ CREATE TABLE revenue_logs (
 -- PHÂN QUYỀN (RLS) - CƠ BẢN
 ALTER TABLE shops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE packages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE materials ENABLE ROW LEVEL SECURITY;
@@ -151,6 +198,33 @@ ALTER TABLE package_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE commission_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE revenue_logs ENABLE ROW LEVEL SECURITY;
 
--- Chính sách: Ai thuộc shop nào chỉ thấy dữ liệu shop đó
-CREATE POLICY shop_isolation_policy ON profiles FOR ALL USING (shop_id = (SELECT shop_id FROM profiles WHERE id = auth.uid()));
--- (Và tương tự cho các bảng khác...)
+-- Chính sách: Ai thuộc shop nào chỉ thấy dữ liệu shop đó (Dùng function để tối ưu)
+CREATE OR REPLACE FUNCTION get_user_shop_id() 
+RETURNS UUID AS $$
+  SELECT shop_id FROM profiles WHERE id = auth.uid();
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+-- Áp dụng cho profiles
+CREATE POLICY shop_isolation_policy ON profiles FOR ALL USING (shop_id = get_user_shop_id());
+
+-- Áp dụng cho các bảng có cột shop_id
+CREATE POLICY shop_isolation_policy ON invoices FOR ALL USING (shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_policy ON services FOR ALL USING (shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_policy ON packages FOR ALL USING (shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_policy ON materials FOR ALL USING (shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_policy ON customer_packages FOR ALL USING (shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_policy ON service_sessions FOR ALL USING (shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_policy ON package_sales FOR ALL USING (shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_policy ON commission_logs FOR ALL USING (shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_policy ON revenue_logs FOR ALL USING (shop_id = get_user_shop_id());
+
+-- Áp dụng cho các bảng quan hệ (không có shop_id trực tiếp)
+CREATE POLICY shop_isolation_policy ON invoice_items FOR ALL USING (
+    EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_id AND invoices.shop_id = get_user_shop_id())
+);
+CREATE POLICY shop_isolation_policy ON service_materials FOR ALL USING (
+    EXISTS (SELECT 1 FROM services WHERE services.id = service_id AND services.shop_id = get_user_shop_id())
+);
+
+-- Bảng shops (Admin của shop mới thấy thông tin shop mình)
+CREATE POLICY shop_isolation_policy ON shops FOR ALL USING (id = get_user_shop_id());

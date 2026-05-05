@@ -9,6 +9,7 @@ interface Profile {
   shop_id: string | null;
   full_name: string;
   role: 'super_admin' | 'shop_admin' | 'manager' | 'staff';
+  permissions: string[];
   status: string;
 }
 
@@ -17,6 +18,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  hasPermission: (perm: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   signOut: async () => {},
+  hasPermission: () => false,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -68,8 +71,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(null);
   };
 
+  const hasPermission = (perm: string) => {
+    if (profile?.role === 'shop_admin') return true; // Admin luôn có mọi quyền
+    return profile?.permissions?.includes(perm) || false;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
