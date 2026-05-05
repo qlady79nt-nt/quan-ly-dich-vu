@@ -1,17 +1,14 @@
 import { useState, useEffect } from 'react';
 import { 
-  BarChart3, 
   TrendingUp, 
   Users, 
   Wallet, 
-  Calendar,
-  ChevronRight,
   Loader2,
   DollarSign,
   ArrowUpRight
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../lib/auth';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 const Reports = () => {
   const { profile } = useAuth();
@@ -19,7 +16,6 @@ const Reports = () => {
 
   const [loading, setLoading] = useState(true);
   const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [commissionData, setCommissionData] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
   
   const [stats, setStats] = useState({
@@ -41,16 +37,16 @@ const Reports = () => {
       
       // 2. Lấy Log Tiền mặt thu về (Package Sales + Retail)
       const { data: pkgSales } = await supabase.from('package_sales').select('amount_paid').eq('shop_id', shopId);
-      const retailRev = (revLog || []).filter(r => r.type === 'retail').reduce((acc, r) => acc + Number(r.amount), 0);
-      const packageCash = (pkgSales || []).reduce((acc, p) => acc + Number(p.amount_paid), 0);
+      const retailRev = (revLog || []).filter((r: any) => r.type === 'retail').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
+      const packageCash = (pkgSales || []).reduce((acc: number, p: any) => acc + Number(p.amount_paid), 0);
 
       // 3. Lấy Log Hoa hồng
       const { data: commLog } = await supabase.from('commission_logs').select('*, profiles(full_name)').eq('shop_id', shopId);
 
       // Tính toán stats
-      const totalRev = (revLog || []).reduce((acc, r) => acc + Number(r.amount), 0);
-      const totalCost = (revLog || []).reduce((acc, r) => acc + Number(r.cost), 0);
-      const totalComm = (commLog || []).reduce((acc, c) => acc + Number(c.amount), 0);
+      const totalRev = (revLog || []).reduce((acc: number, r: any) => acc + Number(r.amount), 0);
+      const totalCost = (revLog || []).reduce((acc: number, r: any) => acc + Number(r.cost), 0);
+      const totalComm = (commLog || []).reduce((acc: number, c: any) => acc + Number(c.amount), 0);
 
       setStats({
         totalRevenue: totalRev,
@@ -60,11 +56,10 @@ const Reports = () => {
       });
 
       setRevenueData(revLog || []);
-      setCommissionData(commLog || []);
 
       // Group staff data
       const staffMap: any = {};
-      (commLog || []).forEach(c => {
+      (commLog || []).forEach((c: any) => {
         const name = c.profiles?.full_name || 'N/A';
         if (!staffMap[name]) staffMap[name] = { name, execution: 0, sales: 0 };
         if (c.type === 'service_execution') staffMap[name].execution += Number(c.amount);

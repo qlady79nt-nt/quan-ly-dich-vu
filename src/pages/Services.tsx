@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Scissors, Trash2, Edit2, Loader2, DollarSign, Percent } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../lib/auth';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 const Services = () => {
   const { profile } = useAuth();

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, UserPlus, Trash2, Edit2, Loader2, CheckCircle2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../lib/auth';
+import { Search, UserPlus, Trash2, Edit2, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 const Staff = () => {
   const { profile } = useAuth();

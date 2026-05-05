@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Package as PackageIcon, Trash2, Edit2, Loader2, Link2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../lib/auth';
+import { Plus, Package as PackageIcon, Trash2, Edit2, Loader2, Link2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 const Packages = () => {
   const { profile } = useAuth();

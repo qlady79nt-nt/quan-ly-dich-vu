@@ -2,19 +2,15 @@ import { useState, useEffect } from 'react';
 import { 
   ShoppingCart, 
   Search, 
-  User, 
-  CreditCard, 
-  Calendar, 
   Plus, 
   Trash2, 
-  CheckCircle2, 
   Loader2,
   Package as PackageIcon,
   Zap,
-  ArrowRight
+  Calendar
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../lib/auth';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 const POS = () => {
   const { profile } = useAuth();
@@ -74,9 +70,6 @@ const POS = () => {
     
     setLoading(true);
     try {
-      const subtotal = cart.reduce((acc, curr) => acc + Number(curr.price), 0);
-      const total = subtotal - retailDiscount;
-
       // 1. Tạo các Service Session (1:1 staff)
       for (const item of cart) {
         // Tính hoa hồng
