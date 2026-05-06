@@ -41,6 +41,12 @@ const Services = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!shopId) {
+      alert('Lỗi: Không tìm thấy ID cửa hàng. Vui lòng đăng nhập lại.');
+      return;
+    }
+
     setSaving(true);
     
     const { error } = await supabase
@@ -52,7 +58,8 @@ const Services = () => {
       setIsModalOpen(false);
       setFormData({ name: '', price: 0, duration_minutes: 60, commission_type: 'percent', commission_value: 0, status: 'active' });
     } else {
-      alert('Lỗi: ' + error.message);
+      console.error('Service creation error:', error);
+      alert('Lỗi khi tạo dịch vụ: ' + error.message);
     }
     setSaving(false);
   };

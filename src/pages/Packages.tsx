@@ -64,6 +64,12 @@ const Packages = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.service_id) return alert('Vui lòng chọn dịch vụ gắn kèm');
+    
+    if (!shopId) {
+      alert('Lỗi: Không tìm thấy ID cửa hàng. Vui lòng đăng nhập lại.');
+      return;
+    }
+
     setSaving(true);
     
     const { error } = await supabase
@@ -75,7 +81,8 @@ const Packages = () => {
       setIsModalOpen(false);
       setFormData({ name: '', service_id: '', total_sessions: 10, original_price: 0, discount_type: 'none', discount_value: 0, sale_price: 0, commission_sale_type: 'percent', commission_sale_value: 5 });
     } else {
-      alert('Lỗi: ' + error.message);
+      console.error('Package creation error:', error);
+      alert('Lỗi khi tạo liệu trình: ' + error.message);
     }
     setSaving(false);
   };

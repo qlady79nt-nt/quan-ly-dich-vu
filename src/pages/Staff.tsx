@@ -63,6 +63,12 @@ const Staff = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!shopId) {
+      alert('Lỗi: Không tìm thấy ID cửa hàng. Vui lòng đăng nhập lại.');
+      return;
+    }
+
     setSaving(true);
     
     const payload = { ...formData, shop_id: shopId };
@@ -80,7 +86,8 @@ const Staff = () => {
       fetchStaff();
       closeModal();
     } else {
-      alert('Lỗi: ' + error.message);
+      console.error('Staff save error:', error);
+      alert('Lỗi khi lưu nhân viên: ' + error.message);
     }
     setSaving(false);
   };

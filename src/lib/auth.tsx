@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasPermission = (perm: string) => {
-    if (profile?.role === 'shop_admin') return true; // Admin luôn có mọi quyền
+    if (profile?.role === 'super_admin' || profile?.role === 'shop_admin') return true; 
     return profile?.permissions?.includes(perm) || false;
   };
 

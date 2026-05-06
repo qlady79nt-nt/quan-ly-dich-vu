@@ -183,7 +183,7 @@ CREATE TABLE revenue_logs (
     recorded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- PHÂN QUYỀN (RLS) - CƠ BẢN
+-- PHÂN QUYỀN (RLS) - NÂNG CAO & AN TOÀN
 ALTER TABLE shops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
@@ -198,33 +198,45 @@ ALTER TABLE package_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE commission_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE revenue_logs ENABLE ROW LEVEL SECURITY;
 
--- Chính sách: Ai thuộc shop nào chỉ thấy dữ liệu shop đó (Dùng function để tối ưu)
+-- 1. Hàm kiểm tra super_admin (Bypass RLS)
+CREATE OR REPLACE FUNCTION is_super_admin() 
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE id = auth.uid() AND role = 'super_admin'
+  );
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+-- 2. Hàm lấy shop_id của user hiện tại
 CREATE OR REPLACE FUNCTION get_user_shop_id() 
 RETURNS UUID AS $$
   SELECT shop_id FROM profiles WHERE id = auth.uid();
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
--- Áp dụng cho profiles
-CREATE POLICY shop_isolation_policy ON profiles FOR ALL USING (shop_id = get_user_shop_id());
+-- 2. Chính sách cho bảng profiles
+CREATE POLICY profile_self_access ON profiles FOR ALL USING (auth.uid() = id);
+CREATE POLICY profile_super_admin_access ON profiles FOR ALL USING (is_super_admin());
+CREATE POLICY profile_shop_isolation ON profiles FOR SELECT USING (shop_id = get_user_shop_id());
 
--- Áp dụng cho các bảng có cột shop_id
-CREATE POLICY shop_isolation_policy ON invoices FOR ALL USING (shop_id = get_user_shop_id());
-CREATE POLICY shop_isolation_policy ON services FOR ALL USING (shop_id = get_user_shop_id());
-CREATE POLICY shop_isolation_policy ON packages FOR ALL USING (shop_id = get_user_shop_id());
-CREATE POLICY shop_isolation_policy ON materials FOR ALL USING (shop_id = get_user_shop_id());
-CREATE POLICY shop_isolation_policy ON customer_packages FOR ALL USING (shop_id = get_user_shop_id());
-CREATE POLICY shop_isolation_policy ON service_sessions FOR ALL USING (shop_id = get_user_shop_id());
-CREATE POLICY shop_isolation_policy ON package_sales FOR ALL USING (shop_id = get_user_shop_id());
-CREATE POLICY shop_isolation_policy ON commission_logs FOR ALL USING (shop_id = get_user_shop_id());
-CREATE POLICY shop_isolation_policy ON revenue_logs FOR ALL USING (shop_id = get_user_shop_id());
+-- 3. Chính sách cho các bảng dữ liệu theo shop_id
+CREATE POLICY shop_isolation_services ON services FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_packages ON packages FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_invoices ON invoices FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_materials ON materials FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_customer_packages ON customer_packages FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_service_sessions ON service_sessions FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_package_sales ON package_sales FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_commission_logs ON commission_logs FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
+CREATE POLICY shop_isolation_revenue_logs ON revenue_logs FOR ALL USING (is_super_admin() OR shop_id = get_user_shop_id());
 
--- Áp dụng cho các bảng quan hệ (không có shop_id trực tiếp)
-CREATE POLICY shop_isolation_policy ON invoice_items FOR ALL USING (
-    EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_id AND invoices.shop_id = get_user_shop_id())
+-- 4. Chính sách cho các bảng quan hệ phụ thuộc
+CREATE POLICY shop_isolation_invoice_items ON invoice_items FOR ALL USING (
+    is_super_admin() OR EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_id AND invoices.shop_id = get_user_shop_id())
 );
-CREATE POLICY shop_isolation_policy ON service_materials FOR ALL USING (
-    EXISTS (SELECT 1 FROM services WHERE services.id = service_id AND services.shop_id = get_user_shop_id())
+CREATE POLICY shop_isolation_service_materials ON service_materials FOR ALL USING (
+    is_super_admin() OR EXISTS (SELECT 1 FROM services WHERE services.id = service_id AND services.shop_id = get_user_shop_id())
 );
 
--- Bảng shops (Admin của shop mới thấy thông tin shop mình)
-CREATE POLICY shop_isolation_policy ON shops FOR ALL USING (id = get_user_shop_id());
+-- 5. Bảng shops
+CREATE POLICY shop_super_admin_access ON shops FOR ALL USING (is_super_admin());
+CREATE POLICY shop_self_access ON shops FOR SELECT USING (id = get_user_shop_id());
