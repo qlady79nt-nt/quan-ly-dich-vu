@@ -117,8 +117,8 @@ const Staff = () => {
   };
 
   const filteredStaff = staff.filter(s => 
-    s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.username?.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.username || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -161,7 +161,7 @@ const Staff = () => {
             <div key={s.id} className="premium-card" style={{ borderTop: s.role === 'shop_admin' ? '4px solid var(--secondary)' : '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
-                  {s.full_name.charAt(0)}
+                  {(s.full_name || '?').charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ marginBottom: '0.25rem' }}>{s.full_name}</h4>

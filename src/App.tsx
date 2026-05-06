@@ -35,14 +35,14 @@ const MainLayout = () => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { path: '/pos', label: 'Bán hàng (POS)', icon: ShoppingCart },
-    { path: '/beds', label: 'Giường & Phòng', icon: LayoutGrid },
-    { path: '/staff', label: 'Nhân viên', icon: Users },
-    { path: '/services', label: 'Dịch vụ', icon: Scissors },
-    { path: '/customers', label: 'Khách hàng', icon: UserCircle },
-    { path: '/packages', label: 'Liệu trình', icon: Package },
-    { path: '/reports', label: 'Báo cáo', icon: BarChart3 },
-    ...(profile?.role === 'super_admin' ? [{ path: '/shops', label: 'Cửa hàng', icon: LayoutGrid }] : []),
+    { path: '/app/pos', label: 'Bán hàng (POS)', icon: ShoppingCart },
+    { path: '/app/beds', label: 'Giường & Phòng', icon: LayoutGrid },
+    { path: '/app/staff', label: 'Nhân viên', icon: Users },
+    { path: '/app/services', label: 'Dịch vụ', icon: Scissors },
+    { path: '/app/customers', label: 'Khách hàng', icon: UserCircle },
+    { path: '/app/packages', label: 'Liệu trình', icon: Package },
+    { path: '/app/reports', label: 'Báo cáo', icon: BarChart3 },
+    ...(profile?.role === 'super_admin' ? [{ path: '/app/shops', label: 'Cửa hàng', icon: LayoutGrid }] : []),
   ];
 
   const handleSignOut = async () => {
