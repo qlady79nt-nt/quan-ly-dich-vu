@@ -10,7 +10,8 @@ import {
   UserCircle,
   LayoutGrid,
   ShieldAlert,
-  Calendar
+  Calendar,
+  LayoutDashboard
 } from 'lucide-react';
 import { AuthProvider, useAuth, ProtectedRoute } from './lib/auth';
 
@@ -34,16 +35,25 @@ const MainLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuItems = [
-    { path: '/app/pos', label: 'Bán hàng (POS)', icon: ShoppingCart },
-    { path: '/app/beds', label: 'Giường & Phòng', icon: LayoutGrid },
-    { path: '/app/staff', label: 'Nhân viên', icon: Users },
-    { path: '/app/services', label: 'Dịch vụ', icon: Scissors },
-    { path: '/app/customers', label: 'Khách hàng', icon: UserCircle },
-    { path: '/app/packages', label: 'Liệu trình', icon: Package },
-    { path: '/app/reports', label: 'Báo cáo', icon: BarChart3 },
-    ...(profile?.role === 'super_admin' ? [{ path: '/app/shops', label: 'Cửa hàng', icon: LayoutGrid }] : []),
-  ];
+  let menuItems = [];
+
+  if (profile?.role === 'super_admin') {
+    menuItems = [
+      { path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+      { path: '/app/shops', label: 'Quản lý Cửa hàng', icon: LayoutGrid }
+    ];
+  } else {
+    menuItems = [
+      { path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+      { path: '/app/pos', label: 'Bán hàng (POS)', icon: ShoppingCart },
+      { path: '/app/beds', label: 'Giường & Phòng', icon: LayoutGrid },
+      { path: '/app/staff', label: 'Nhân viên', icon: Users },
+      { path: '/app/services', label: 'Dịch vụ', icon: Scissors },
+      { path: '/app/customers', label: 'Khách hàng', icon: UserCircle },
+      { path: '/app/packages', label: 'Liệu trình', icon: Package },
+      { path: '/app/reports', label: 'Báo cáo', icon: BarChart3 },
+    ];
+  }
 
   const handleSignOut = async () => {
     await signOut();
