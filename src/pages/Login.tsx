@@ -34,7 +34,7 @@ const Login = () => {
       });
 
       if (loginErr) throw loginErr;
-      navigate('/');
+      navigate('/app/dashboard');
     } catch (err: any) {
       setError('Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại Shop Code hoặc Username.');
       console.error(err);
