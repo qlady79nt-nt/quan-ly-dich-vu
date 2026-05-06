@@ -26,6 +26,7 @@ import Shops from './pages/Shops';
 import Beds from './pages/Beds';
 import Customers from './pages/Customers';
 import Register from './pages/Register';
+import Landing from './pages/Landing';
 
 // --- LAYOUT COMPONENT ---
 const MainLayout = () => {
@@ -151,10 +152,11 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/app" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+            <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="staff" element={<Staff />} />
             <Route path="services" element={<Services />} />
@@ -165,6 +167,8 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="shops" element={<ProtectedRoute allowedRoles={['super_admin']}><Shops /></ProtectedRoute>} />
           </Route>
+          {/* Redirect old dashboard path if needed */}
+          <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

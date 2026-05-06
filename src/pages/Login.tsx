@@ -115,7 +115,10 @@ const Login = () => {
         </form>
 
         <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-light)' }}>
-          <p>Quên mật khẩu? Vui lòng liên hệ Quản lý hoặc Super Admin.</p>
+          <p style={{ marginBottom: '0.5rem' }}>Quên mật khẩu? Vui lòng liên hệ Quản lý.</p>
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+            Bạn là chủ cửa hàng mới? <Link to="/register" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'none' }}>Đăng ký dùng thử miễn phí</Link>
+          </div>
         </div>
       </div>
     </div>
