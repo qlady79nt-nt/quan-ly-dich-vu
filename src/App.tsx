@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -112,6 +113,14 @@ const MainLayout = () => {
             align-items: center;
             justify-content: center;
           }
+          .user-info {
+            display: none !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .user-info {
+            display: block !important;
+          }
         }
       `}</style>
 
@@ -183,7 +192,7 @@ const MainLayout = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
+            <div className="user-info" style={{ textAlign: 'right' }}>
               <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{profile?.full_name || 'Admin User'}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{profile?.role || 'Shop Admin'}</div>
             </div>
