@@ -36,17 +36,22 @@ const Staff = () => {
   });
 
   useEffect(() => {
-    if (shopId) fetchStaff();
-  }, [shopId]);
+    if (profile) fetchStaff();
+  }, [profile]);
 
   const fetchStaff = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('shop_id', shopId)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
 
+    if (profile?.role !== 'super_admin') {
+      if (!shopId) {
+        setLoading(false);
+        return;
+      }
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data, error } = await query;
     if (!error) setStaff(data || []);
     setLoading(false);
   };

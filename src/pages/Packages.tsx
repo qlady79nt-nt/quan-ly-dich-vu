@@ -27,26 +27,38 @@ const Packages = () => {
   });
 
   useEffect(() => {
-    if (shopId) {
+    if (profile) {
       fetchPackages();
       fetchServices();
     }
-  }, [shopId]);
+  }, [profile]);
 
   const fetchPackages = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('packages')
-      .select('*, services(name)')
-      .eq('shop_id', shopId)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('packages').select('*, services(name)').order('created_at', { ascending: false });
 
+    if (profile?.role !== 'super_admin') {
+      if (!shopId) {
+        setLoading(false);
+        return;
+      }
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data, error } = await query;
     if (!error) setPackages(data || []);
     setLoading(false);
   };
 
   const fetchServices = async () => {
-    const { data } = await supabase.from('services').select('id, name, price').eq('shop_id', shopId);
+    let query = supabase.from('services').select('id, name, price');
+    
+    if (profile?.role !== 'super_admin') {
+      if (!shopId) return;
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data } = await query;
     if (data) setServices(data);
   };
 

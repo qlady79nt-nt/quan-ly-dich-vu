@@ -24,17 +24,23 @@ const Services = () => {
   });
 
   useEffect(() => {
-    if (shopId) fetchServices();
-  }, [shopId]);
+    if (profile) fetchServices();
+  }, [profile]);
 
   const fetchServices = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('services')
-      .select('*')
-      .eq('shop_id', shopId)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('services').select('*').order('created_at', { ascending: false });
+    
+    // Nếu không phải super_admin thì mới lọc theo shop_id
+    if (profile?.role !== 'super_admin') {
+      if (!shopId) {
+        setLoading(false);
+        return;
+      }
+      query = query.eq('shop_id', shopId);
+    }
 
+    const { data, error } = await query;
     if (!error) setServices(data || []);
     setLoading(false);
   };
