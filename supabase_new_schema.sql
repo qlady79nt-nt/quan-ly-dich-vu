@@ -193,7 +193,15 @@ RETURNS BOOLEAN AS $$
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
 
 -- Chính sách RLS chuẩn
-CREATE POLICY shop_isolation ON shops FOR ALL USING (id = auth_user_shop_id() OR is_super_admin());
+-- Bảng Shops: 
+-- 1. Cho phép tạo mới nếu đã đăng nhập
+CREATE POLICY shop_insert_policy ON shops FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+-- 2. Tách riêng SELECT, UPDATE, DELETE (Postgres không hỗ trợ dấu phẩy trong FOR)
+CREATE POLICY shop_select_policy ON shops FOR SELECT USING (id = auth_user_shop_id() OR is_super_admin());
+CREATE POLICY shop_update_policy ON shops FOR UPDATE USING (id = auth_user_shop_id() OR is_super_admin());
+CREATE POLICY shop_delete_policy ON shops FOR DELETE USING (id = auth_user_shop_id() OR is_super_admin());
+
+-- Các bảng khác dùng FOR ALL
 CREATE POLICY profile_isolation ON profiles FOR ALL USING (shop_id = auth_user_shop_id() OR id = auth.uid() OR is_super_admin());
 CREATE POLICY data_isolation_services ON services FOR ALL USING (shop_id = auth_user_shop_id() OR is_super_admin());
 CREATE POLICY data_isolation_beds ON beds FOR ALL USING (shop_id = auth_user_shop_id() OR is_super_admin());
@@ -203,6 +211,7 @@ CREATE POLICY data_isolation_invoices ON invoices FOR ALL USING (shop_id = auth_
 CREATE POLICY data_isolation_commissions ON commissions FOR ALL USING (shop_id = auth_user_shop_id() OR is_super_admin());
 CREATE POLICY data_isolation_materials ON materials FOR ALL USING (shop_id = auth_user_shop_id() OR is_super_admin());
 CREATE POLICY data_isolation_notifications ON notifications FOR ALL USING (shop_id = auth_user_shop_id() OR is_super_admin());
+CREATE POLICY user_permissions_isolation ON user_permissions FOR ALL USING (user_id = auth.uid() OR is_super_admin());
 
 -- 5. DỮ LIỆU MẪU (PLANS)
 INSERT INTO plans (name, price, max_users) VALUES 
