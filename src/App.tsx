@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -9,9 +8,7 @@ import {
   BarChart3, 
   LogOut,
   ChevronRight,
-  UserCircle,
-  Menu,
-  X
+  UserCircle
 } from 'lucide-react';
 import { AuthProvider, useAuth, ProtectedRoute } from './lib/auth';
 
@@ -44,101 +41,15 @@ const MainLayout = () => {
     navigate('/login');
   };
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   return (
-    <div className="layout-container">
-      <style>{`
-        .layout-container {
-          display: flex;
-          min-height: 100vh;
-          background-color: var(--bg-main);
-        }
-        .sidebar {
-          width: 260px;
-          background: white;
-          border-right: 1px solid var(--border);
-          display: flex;
-          flex-direction: column;
-          position: fixed;
-          height: 100vh;
-          transition: all 0.3s ease;
-          z-index: 1001;
-        }
-        .main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          margin-left: 260px;
-          transition: all 0.3s ease;
-          min-width: 0;
-        }
-        .menu-toggle {
-          display: none;
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: var(--text-primary);
-          padding: 0.5rem;
-          border-radius: 0.5rem;
-        }
-        .menu-toggle:hover {
-          background: var(--bg-main);
-        }
-        .sidebar-overlay {
-          display: none;
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.5);
-          z-index: 1000;
-        }
-        @media (max-width: 1024px) {
-          .sidebar {
-            transform: translateX(-100%);
-          }
-          .main-content {
-            margin-left: 0;
-          }
-          .sidebar.open {
-            transform: translateX(0);
-          }
-          .sidebar-overlay.open {
-            display: block;
-          }
-          .menu-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .user-info {
-            display: none !important;
-          }
-        }
-        @media (min-width: 769px) {
-          .user-info {
-            display: block !important;
-          }
-        }
-      `}</style>
-
-      {/* Sidebar Overlay */}
-      <div className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`} onClick={() => setIsSidebarOpen(false)} />
-
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
       {/* Sidebar */}
-      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+      <aside style={{ width: '260px', background: 'white', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', height: '100vh' }}>
         <div style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
             <Scissors size={24} />
           </div>
-          <div style={{ flex: 1 }}>
-            <h1 className="text-gradient" style={{ fontSize: '1.25rem' }}>Spa & POS</h1>
-          </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="menu-toggle">
-            <X size={20} />
-          </button>
+          <h1 className="text-gradient" style={{ fontSize: '1.25rem' }}>Spa & POS</h1>
         </div>
 
         <nav style={{ flex: 1, padding: '0 1rem' }}>
@@ -149,7 +60,6 @@ const MainLayout = () => {
               <Link 
                 key={item.path} 
                 to={item.path} 
-                onClick={() => setIsSidebarOpen(false)}
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -180,19 +90,14 @@ const MainLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="main-content">
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '260px' }}>
         <header style={{ height: '70px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 100 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button onClick={() => setIsSidebarOpen(true)} className="menu-toggle">
-              <Menu size={24} />
-            </button>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              Trang chủ <ChevronRight size={14} /> {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
-            </div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Trang chủ <ChevronRight size={14} /> {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div className="user-info" style={{ textAlign: 'right' }}>
+            <div style={{ textAlign: 'right' }}>
               <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{profile?.full_name || 'Admin User'}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{profile?.role || 'Shop Admin'}</div>
             </div>
@@ -202,8 +107,10 @@ const MainLayout = () => {
           </div>
         </header>
 
-        <div style={{ flex: 1, padding: '2rem', overflowY: 'auto', width: '100%' }}>
-          <Outlet />
+        <div style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+          <div className="animate-fade">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>
