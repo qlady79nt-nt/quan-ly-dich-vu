@@ -84,9 +84,12 @@ const Packages = () => {
 
     setSaving(true);
     
+    // Ánh xạ price = sale_price để thoả mãn database constraint
+    const payload = { ...formData, shop_id: shopId, price: formData.sale_price };
+
     const { error } = await supabase
       .from('packages')
-      .insert([{ ...formData, shop_id: shopId }]);
+      .insert([payload]);
 
     if (!error) {
       fetchPackages();
