@@ -25,6 +25,7 @@ import Login from './pages/Login';
 import Shops from './pages/Shops';
 import Beds from './pages/Beds';
 import Customers from './pages/Customers';
+import Register from './pages/Register';
 
 // --- LAYOUT COMPONENT ---
 const MainLayout = () => {
@@ -151,6 +152,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
