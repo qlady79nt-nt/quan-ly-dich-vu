@@ -33,23 +33,28 @@ const Register = () => {
       if (!authData.user) throw new Error('Không thể tạo tài khoản xác thực.');
 
       // 3. Tạo dữ liệu Shop
-      // Lấy plan FREE
+      console.log('--- Đang tạo Shop ---');
       const { data: plan } = await supabase.from('plans').select('id').eq('name', 'FREE').single();
       
       const expiredAt = new Date();
-      expiredAt.setDate(expiredAt.getDate() + 30); // 30 ngày dùng thử
+      expiredAt.setDate(expiredAt.getDate() + 30);
 
       const { data: shop, error: shopErr } = await supabase.from('shops').insert([{
         name: shopName,
         shop_code: shopCode,
-        plan_id: plan?.id,
+        plan_id: plan?.id || null,
         expired_at: expiredAt.toISOString(),
         status: 'active'
       }]).select().single();
 
-      if (shopErr) throw shopErr;
+      if (shopErr) {
+        console.error('Lỗi tạo Shop:', shopErr);
+        throw new Error(`Lỗi tạo Shop: ${shopErr.message}`);
+      }
+      console.log('Tạo Shop thành công:', shop.id);
 
       // 4. Tạo Profile Admin cho Shop
+      console.log('--- Đang tạo Profile ---');
       const { error: profErr } = await supabase.from('profiles').insert([{
         id: authData.user.id,
         shop_id: shop.id,
@@ -59,14 +64,24 @@ const Register = () => {
         status: 'active'
       }]);
 
-      if (profErr) throw profErr;
+      if (profErr) {
+        console.error('Lỗi tạo Profile:', profErr);
+        throw new Error(`Lỗi tạo Profile: ${profErr.message}`);
+      }
+      console.log('Tạo Profile thành công');
 
       // 5. Cấp quyền mặc định cho Admin
-      await supabase.from('user_permissions').insert([
+      console.log('--- Đang gán quyền ---');
+      const { error: permErr } = await supabase.from('user_permissions').insert([
         { user_id: authData.user.id, permission: 'sale.create' },
         { user_id: authData.user.id, permission: 'sale.discount' },
         { user_id: authData.user.id, permission: 'report.view' }
       ]);
+
+      if (permErr) {
+        console.error('Lỗi gán quyền:', permErr);
+        // Không throw lỗi ở đây để vẫn cho phép login nếu chỉ lỗi gán quyền
+      }
 
       // 6. Thành công
       setSuccessData({ shopCode, username });
