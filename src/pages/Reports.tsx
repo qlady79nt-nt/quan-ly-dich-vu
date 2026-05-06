@@ -192,7 +192,11 @@ const Reports = () => {
                     <td>{new Date(inv.created_at).toLocaleString()}</td>
                     <td>{inv.profiles?.full_name}</td>
                     <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(inv.final_amount).toLocaleString()}đ</td>
-                    <td><span className="badge badge-success">{inv.status}</span></td>
+                    <td>
+                      <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
+                        {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ thanh toán'}
+                      </span>
+                    </td>
                     <td><button onClick={() => alert('Chức năng xem chi tiết hoá đơn đang được phát triển')} className="btn" style={{ padding: '0.4rem', background: 'var(--bg-main)' }}><FileText size={14} /></button></td>
                   </tr>
                 ))}
