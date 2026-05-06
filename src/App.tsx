@@ -8,7 +8,10 @@ import {
   BarChart3, 
   LogOut,
   ChevronRight,
-  UserCircle
+  UserCircle,
+  LayoutGrid,
+  ShieldAlert,
+  Calendar
 } from 'lucide-react';
 import { AuthProvider, useAuth, ProtectedRoute } from './lib/auth';
 
@@ -20,20 +23,25 @@ import Packages from './pages/Packages';
 import POS from './pages/POS';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
+import Shops from './pages/Shops';
+import Beds from './pages/Beds';
+import Customers from './pages/Customers';
 
 // --- LAYOUT COMPONENT ---
 const MainLayout = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, shopStatus } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   const menuItems = [
-    { path: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
     { path: '/pos', label: 'Bán hàng (POS)', icon: ShoppingCart },
+    { path: '/beds', label: 'Giường & Phòng', icon: LayoutGrid },
     { path: '/staff', label: 'Nhân viên', icon: Users },
     { path: '/services', label: 'Dịch vụ', icon: Scissors },
+    { path: '/customers', label: 'Khách hàng', icon: UserCircle },
     { path: '/packages', label: 'Liệu trình', icon: Package },
     { path: '/reports', label: 'Báo cáo', icon: BarChart3 },
+    ...(profile?.role === 'super_admin' ? [{ path: '/shops', label: 'Cửa hàng', icon: LayoutGrid }] : []),
   ];
 
   const handleSignOut = async () => {
@@ -110,6 +118,25 @@ const MainLayout = () => {
         </header>
 
         <div style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+          {shopStatus.status !== 'active' && (
+            <div className="premium-card" style={{ marginBottom: '1.5rem', background: shopStatus.status === 'locked' ? '#fee2e2' : '#fef3c7', border: shopStatus.status === 'locked' ? '1px solid #ef4444' : '1px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '1rem', color: shopStatus.status === 'locked' ? '#991b1b' : '#92400e' }}>
+              <ShieldAlert size={24} />
+              <div>
+                <div style={{ fontWeight: '700' }}>{shopStatus.status === 'locked' ? 'Tài khoản đã bị khóa' : 'Gói dịch vụ đã hết hạn'}</div>
+                <div style={{ fontSize: '0.875rem' }}>{shopStatus.status === 'locked' ? 'Vui lòng liên hệ quản trị viên hệ thống để mở lại tài khoản.' : 'Vui lòng gia hạn gói dịch vụ để tiếp tục sử dụng đầy đủ các tính năng.'}</div>
+              </div>
+            </div>
+          )}
+
+          {shopStatus.status === 'active' && shopStatus.daysLeft !== null && shopStatus.daysLeft <= 14 && (
+            <div className="premium-card" style={{ marginBottom: '1.5rem', background: '#fffbeb', border: '1px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '1rem', color: '#92400e' }}>
+                <Calendar size={20} />
+                <div style={{ fontSize: '0.875rem' }}>
+                  ⚠️ Gói dịch vụ của bạn sẽ hết hạn sau <strong>{shopStatus.daysLeft} ngày</strong>. Vui lòng gia hạn để không bị gián đoạn hoạt động.
+                </div>
+            </div>
+          )}
+
           <div className="animate-fade">
             <Outlet />
           </div>
@@ -130,9 +157,12 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="staff" element={<Staff />} />
             <Route path="services" element={<Services />} />
+            <Route path="beds" element={<Beds />} />
+            <Route path="customers" element={<Customers />} />
             <Route path="packages" element={<Packages />} />
             <Route path="pos" element={<POS />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="shops" element={<ProtectedRoute allowedRoles={['super_admin']}><Shops /></ProtectedRoute>} />
           </Route>
         </Routes>
       </Router>

@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 const Services = () => {
-  const { profile } = useAuth();
+  const { profile, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
 
   const [services, setServices] = useState<any[]>([]);
@@ -81,7 +81,12 @@ const Services = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Dịch vụ</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Thiết lập bảng giá và hoa hồng cho kỹ thuật viên</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
+        <button 
+          onClick={() => setIsModalOpen(true)} 
+          className="btn btn-primary"
+          disabled={isRestricted()}
+          title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
+        >
           <Plus size={18} />
           Tạo dịch vụ
         </button>

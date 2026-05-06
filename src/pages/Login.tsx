@@ -1,77 +1,121 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Lock, Mail, Loader2, Scissors } from 'lucide-react';
+import { Shield, Lock, User, Building2, Loader2, Scissors } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [shopCode, setShopCode] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert('Đăng nhập thất bại: ' + error.message);
-    } else {
-      navigate('/dashboard');
+    setError(null);
+
+    try {
+      // Logic: Ghép shop_code + username thành email ảo
+      // Ví dụ: lan@abc123.spa.local
+      // Nếu là Super Admin (không có shop code), dùng email thật hoặc quy ước riêng
+      let email = `${username.toLowerCase()}@${shopCode.toLowerCase()}.spa.local`;
+      
+      // Trường hợp đăng nhập Super Admin (có thể nhập trực tiếp email hoặc username đặc biệt)
+      if (!shopCode && username.includes('@')) {
+        email = username;
+      }
+
+      const { error: loginErr } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (loginErr) throw loginErr;
+      navigate('/');
+    } catch (err: any) {
+      setError('Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại Shop Code hoặc Username.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)', padding: '1rem' }}>
-      <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '400px', padding: '2.5rem' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', padding: '1rem' }}>
+      <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '420px', padding: '2.5rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'white', marginBottom: '1rem', boxShadow: '0 8px 16px rgba(109, 40, 217, 0.2)' }}>
+          <div style={{ width: '64px', height: '64px', background: 'var(--primary)', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', margin: '0 auto 1.5rem' }}>
             <Scissors size={32} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', color: 'var(--text-primary)' }}>Chào mừng trở lại</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.5rem' }}>Hệ thống quản lý Spa & Service chuẩn POS</p>
+          <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Đăng nhập</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>Chào mừng bạn đến với hệ thống Spa & Salon</p>
         </div>
+
+        {error && (
+          <div style={{ background: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.75rem', fontSize: '0.875rem', marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'start' }}>
+            <Shield size={18} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Email / Tên đăng nhập</label>
+            <label className="form-label">Mã cửa hàng (Shop Code)</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+              <Building2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
               <input 
-                type="email" 
+                type="text" 
                 className="form-input" 
-                required 
-                placeholder="admin@example.com"
-                style={{ paddingLeft: '2.75rem' }} 
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                placeholder="ABC123" 
+                style={{ paddingLeft: '2.75rem' }}
+                value={shopCode}
+                onChange={(e) => setShopCode(e.target.value.toUpperCase())}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Mật khẩu</label>
+            <label className="form-label">Tên đăng nhập (Username)</label>
+            <div style={{ position: 'relative' }}>
+              <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="lan.tran" 
+                required
+                style={{ paddingLeft: '2.75rem' }}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="form-label">Mật khẩu</label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
               <input 
                 type="password" 
                 className="form-input" 
-                required 
-                placeholder="••••••••"
-                style={{ paddingLeft: '2.75rem' }} 
+                placeholder="••••••••" 
+                required
+                style={{ paddingLeft: '2.75rem' }}
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '48px', marginTop: '1rem', fontSize: '1rem' }} disabled={loading}>
-            {loading ? <Loader2 className="animate-spin" /> : 'Đăng nhập hệ thống'}
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '1rem', marginTop: '1rem' }} disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" /> : 'Đăng nhập ngay'}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-          <a href="#" style={{ fontSize: '0.875rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: '600' }}>Quên mật khẩu?</a>
+        <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-light)' }}>
+          <p>Quên mật khẩu? Vui lòng liên hệ Quản lý hoặc Super Admin.</p>
         </div>
       </div>
     </div>

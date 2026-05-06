@@ -14,7 +14,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 const POS = () => {
-  const { profile, hasPermission } = useAuth();
+  const { profile, hasPermission, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
 
   const [activeTab, setActiveTab] = useState<'retail' | 'sell_package' | 'use_package'>('retail');
@@ -60,11 +60,13 @@ const POS = () => {
   };
 
   const addToCart = (svc: any) => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán hàng');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền tạo đơn hàng');
     setCart([...cart, { ...svc, cartId: Math.random() }]);
   };
 
   const handleRetailCheckout = async () => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện thanh toán');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thanh toán');
     if (cart.length === 0) return alert('Giỏ hàng trống');
     if (!retailStaffId) return alert('Vui lòng chọn nhân viên thực hiện');
@@ -127,6 +129,7 @@ const POS = () => {
   };
 
   const handleSellPackage = async () => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán gói');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thực hiện');
     if (!customerPhone || !selectedPkgId || !sellerId) return alert('Thiếu thông tin');
     
@@ -193,6 +196,7 @@ const POS = () => {
   };
 
   const handleUseSession = async () => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện trừ buổi');
     if (!selectedCustPkgId || !technicianId) return alert('Vui lòng chọn gói và KTV');
     setLoading(true);
     try {
@@ -272,7 +276,15 @@ const POS = () => {
                   {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
                 </select>
               </div>
-              <button onClick={handleSellPackage} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px' }}>{loading ? <Loader2 className="animate-spin" /> : 'Xác nhận bán'}</button>
+              <button 
+                onClick={handleSellPackage} 
+                disabled={loading || isRestricted()} 
+                className="btn btn-primary" 
+                style={{ width: '100%', height: '50px' }}
+                title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để thực hiện tính năng này' : ''}
+              >
+                {loading ? <Loader2 className="animate-spin" /> : 'Xác nhận bán'}
+              </button>
             </div>
           </div>
         )}

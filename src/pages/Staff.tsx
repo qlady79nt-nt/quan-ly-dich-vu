@@ -16,7 +16,7 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 const Staff = () => {
-  const { profile } = useAuth();
+  const { profile, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
 
   const [staff, setStaff] = useState<any[]>([]);
@@ -128,7 +128,12 @@ const Staff = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Nhân sự & Phân quyền</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Cấp quyền chi tiết cho từng vai trò trong cửa hàng</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
+        <button 
+          onClick={() => setIsModalOpen(true)} 
+          className="btn btn-primary"
+          disabled={isRestricted()}
+          title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
+        >
           <UserPlus size={18} />
           Thêm thành viên
         </button>

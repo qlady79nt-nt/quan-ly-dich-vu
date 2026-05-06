@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 const Packages = () => {
-  const { profile } = useAuth();
+  const { profile, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
 
   const [packages, setPackages] = useState<any[]>([]);
@@ -106,7 +106,12 @@ const Packages = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Liệu trình (Gói)</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Tạo các gói liệu trình nhiều buổi gắn liền với dịch vụ</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
+        <button 
+          onClick={() => setIsModalOpen(true)} 
+          className="btn btn-primary"
+          disabled={isRestricted()}
+          title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
+        >
           <Plus size={18} />
           Tạo liệu trình
         </button>

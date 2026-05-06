@@ -6,11 +6,17 @@ import { supabase } from './supabase';
 
 interface Profile {
   id: string;
-  shop_id: string | null;
+  shop_id: string;
+  username: string;
   full_name: string;
-  role: 'super_admin' | 'shop_admin' | 'manager' | 'staff';
-  permissions: string[];
+  role: 'super_admin' | 'shop_admin' | 'staff';
   status: string;
+  permissions: string[];
+  shop?: {
+    status: string;
+    expired_at: string;
+    shop_code: string;
+  };
 }
 
 interface AuthContextType {
@@ -19,6 +25,8 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   hasPermission: (perm: string) => boolean;
+  isRestricted: () => boolean;
+  shopStatus: { status: string; daysLeft: number | null };
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,6 +35,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   hasPermission: () => false,
+  isRestricted: () => false,
+  shopStatus: { status: 'active', daysLeft: null }
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -35,12 +45,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    setProfile(data || null);
+    try {
+      const { data: prof, error: profErr } = await supabase
+        .from('profiles')
+        .select('*, shops(status, expired_at, shop_code)')
+        .eq('id', userId)
+        .single();
+
+      if (profErr) throw profErr;
+
+      const { data: perms } = await supabase
+        .from('user_permissions')
+        .select('permission')
+        .eq('user_id', userId);
+
+      const shopData = Array.isArray(prof.shops) ? prof.shops[0] : prof.shops;
+      
+      setProfile({
+        ...prof,
+        shop: shopData,
+        permissions: perms?.map(p => p.permission) || []
+      });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setProfile(null);
+    }
   };
 
   useEffect(() => {
@@ -59,6 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
+        setLoading(false);
       }
     });
 
@@ -76,8 +106,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return profile?.permissions?.includes(perm) || false;
   };
 
+  const isRestricted = () => {
+    if (profile?.role === 'super_admin') return false;
+    const status = profile?.shop?.status;
+    return status === 'expired' || status === 'locked';
+  };
+
+  const getShopStatusInfo = () => {
+    if (!profile?.shop) return { status: 'active', daysLeft: null };
+    const status = profile.shop.status;
+    let daysLeft = null;
+    if (profile.shop.expired_at) {
+      const diff = new Date(profile.shop.expired_at).getTime() - new Date().getTime();
+      daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    }
+    return { status, daysLeft };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut, hasPermission }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      loading, 
+      signOut, 
+      hasPermission, 
+      isRestricted,
+      shopStatus: getShopStatusInfo()
+    }}>
       {children}
     </AuthContext.Provider>
   );
