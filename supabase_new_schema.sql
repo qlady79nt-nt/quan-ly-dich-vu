@@ -27,7 +27,7 @@ CREATE TABLE shops (
 
 -- 2. HỒ SƠ NGƯỜI DÙNG / NHÂN VIÊN
 CREATE TABLE profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Cho phép tạo nhân viên "ảo" không cần login, hoặc dùng auth.uid() cho admin
     shop_id UUID REFERENCES shops(id),
     full_name TEXT NOT NULL,
     username TEXT UNIQUE,
