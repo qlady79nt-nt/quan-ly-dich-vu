@@ -204,7 +204,7 @@ const POS = () => {
       const svc = cp.packages.services;
       const unitPrice = cp.sale_price / cp.total_sessions;
 
-      const comm = svc.commission_type === 'percent' ? (unitPrice * svc.commission_value) / 100 : svc.commission_value;
+      const comm = svc.commission_type === 'percent' ? (svc.price * svc.commission_value) / 100 : svc.commission_value;
       const { data: sess } = await supabase.from('service_sessions').insert([{ shop_id: shopId, service_id: svc.id, staff_id: technicianId, customer_package_id: cp.id, revenue_amount: unitPrice, commission_amount: comm }]).select().single();
 
       await supabase.from('customer_packages').update({ used_sessions: cp.used_sessions + 1, status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' }).eq('id', cp.id);

@@ -190,6 +190,9 @@ const Services = () => {
                       {formData.commission_type === 'percent' ? <Percent size={14} /> : <DollarSign size={14} />}
                     </div>
                   </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                    {formData.commission_type === 'percent' ? 'Nhập số từ 1-100 (VD: 10 = 10% giá lẻ)' : 'Nhập số tiền mặt (VD: 50000 = 50.000đ)'}
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>

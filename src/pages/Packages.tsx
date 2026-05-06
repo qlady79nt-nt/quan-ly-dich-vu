@@ -240,6 +240,9 @@ const Packages = () => {
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá trị HH bán</label>
                   <input type="number" className="form-input" value={formData.commission_sale_value} onChange={(e) => setFormData({...formData, commission_sale_value: Number(e.target.value)})} />
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                    {formData.commission_sale_type === 'percent' ? 'Nhập số từ 1-100 (VD: 10 = 10% giá bán gói)' : 'Nhập số tiền mặt (VD: 50000 = 50.000đ)'}
+                  </div>
                 </div>
               </div>
 
