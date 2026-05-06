@@ -11,8 +11,12 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (shopId) fetchCustomers();
-  }, [shopId]);
+    if (shopId) {
+      fetchCustomers();
+    } else if (profile?.role === 'super_admin') {
+      setLoading(false);
+    }
+  }, [shopId, profile]);
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -23,6 +27,29 @@ const Customers = () => {
       .order('created_at', { ascending: false });
     setCustomers(data || []);
     setLoading(false);
+  };
+
+  const handleAddCustomer = async () => {
+    if (isRestricted()) {
+      alert('Vui lòng gia hạn gói dịch vụ!');
+      return;
+    }
+    if (!shopId) {
+      alert('Lỗi: Super Admin không thể tạo khách hàng.');
+      return;
+    }
+
+    const name = window.prompt('Nhập tên khách hàng mới:');
+    if (!name?.trim()) return;
+
+    const phone = window.prompt('Nhập số điện thoại (có thể bỏ qua):');
+
+    const { error } = await supabase.from('customers').insert([{ shop_id: shopId, name: name.trim(), phone: phone?.trim() || null }]);
+    if (error) {
+      alert('Lỗi khi thêm khách: ' + error.message);
+    } else {
+      fetchCustomers();
+    }
   };
 
   const filteredCustomers = customers.filter(c => 
@@ -37,7 +64,7 @@ const Customers = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Khách hàng</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Lưu trữ thông tin và lịch sử dịch vụ của khách</p>
         </div>
-        <button className="btn btn-primary" disabled={isRestricted()}>
+        <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddCustomer}>
           <Plus size={18} /> Thêm Khách hàng
         </button>
       </div>

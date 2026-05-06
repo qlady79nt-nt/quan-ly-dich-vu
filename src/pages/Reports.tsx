@@ -193,7 +193,7 @@ const Reports = () => {
                     <td>{inv.profiles?.full_name}</td>
                     <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(inv.final_amount).toLocaleString()}đ</td>
                     <td><span className="badge badge-success">{inv.status}</span></td>
-                    <td><button className="btn" style={{ padding: '0.4rem', background: 'var(--bg-main)' }}><FileText size={14} /></button></td>
+                    <td><button onClick={() => alert('Chức năng xem chi tiết hoá đơn đang được phát triển')} className="btn" style={{ padding: '0.4rem', background: 'var(--bg-main)' }}><FileText size={14} /></button></td>
                   </tr>
                 ))}
               </tbody>

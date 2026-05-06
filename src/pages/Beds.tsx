@@ -10,8 +10,12 @@ const Beds = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (shopId) fetchBeds();
-  }, [shopId]);
+    if (shopId) {
+      fetchBeds();
+    } else if (profile?.role === 'super_admin') {
+      setLoading(false); // Ngăn super admin bị kẹt loading
+    }
+  }, [shopId, profile]);
 
   const fetchBeds = async () => {
     setLoading(true);
@@ -22,6 +26,27 @@ const Beds = () => {
       .order('name');
     setBeds(data || []);
     setLoading(false);
+  };
+
+  const handleAddBed = async () => {
+    if (isRestricted()) {
+      alert('Vui lòng gia hạn gói dịch vụ!');
+      return;
+    }
+    if (!shopId) {
+      alert('Lỗi: Super Admin không thể tạo giường. Vui lòng chọn một cửa hàng cụ thể (tính năng đang phát triển).');
+      return;
+    }
+
+    const name = window.prompt('Nhập tên giường/phòng mới:');
+    if (!name?.trim()) return;
+
+    const { error } = await supabase.from('beds').insert([{ shop_id: shopId, name: name.trim(), status: 'available' }]);
+    if (error) {
+      alert('Lỗi khi tạo giường: ' + error.message);
+    } else {
+      fetchBeds();
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -40,7 +65,7 @@ const Beds = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Giường & Phòng</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Theo dõi trạng thái giường trống và giường đang phục vụ</p>
         </div>
-        <button className="btn btn-primary" disabled={isRestricted()}>
+        <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddBed}>
           <Plus size={18} /> Thêm Giường
         </button>
       </div>

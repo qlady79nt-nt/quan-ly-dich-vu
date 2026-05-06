@@ -99,6 +99,24 @@ const Packages = () => {
     setSaving(false);
   };
 
+  const handleDelete = async (id: string) => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
+    if (!window.confirm('Bạn có chắc chắn muốn xoá liệu trình này?')) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from('packages').delete().eq('id', id);
+    if (!error) {
+      fetchPackages();
+    } else {
+      alert('Lỗi khi xoá: ' + error.message);
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = () => {
+    alert('Tính năng chỉnh sửa đang được phát triển. Vui lòng xoá và tạo lại liệu trình mới.');
+  };
+
   return (
     <div className="animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -147,8 +165,8 @@ const Packages = () => {
                   <div>HH Bán: <strong>{p.commission_sale_type === 'percent' ? `${p.commission_sale_value}%` : `${p.commission_sale_value}đ`}</strong></div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
-                  <button className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={14} /></button>
+                  <button onClick={handleEdit} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
+                  <button onClick={() => handleDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={14} /></button>
                 </div>
               </div>
             </div>

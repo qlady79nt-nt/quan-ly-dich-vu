@@ -116,6 +116,20 @@ const Staff = () => {
     setFormData({ full_name: '', username: '', role: 'staff', staff_type: 'both', permissions: [], status: 'active' });
   };
 
+  const handleDelete = async (id: string) => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
+    if (!window.confirm('Bạn có chắc chắn muốn xoá nhân viên này? Các dữ liệu hoa hồng liên quan có thể bị ảnh hưởng.')) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (!error) {
+      fetchStaff();
+    } else {
+      alert('Lỗi khi xoá: ' + error.message);
+      setLoading(false);
+    }
+  };
+
   const filteredStaff = staff.filter(s => 
     (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (s.username || '').toLowerCase().includes(searchTerm.toLowerCase())
@@ -180,7 +194,7 @@ const Staff = () => {
                 <button onClick={() => openEdit(s)} className="btn btn-secondary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}>
                   <ShieldCheck size={14} /> Phân quyền
                 </button>
-                <button className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
+                <button onClick={() => handleDelete(s.id)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
               </div>
             </div>
           ))}

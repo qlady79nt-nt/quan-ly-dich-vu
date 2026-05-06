@@ -70,6 +70,24 @@ const Services = () => {
     setSaving(false);
   };
 
+  const handleDelete = async (id: string) => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
+    if (!window.confirm('Bạn có chắc chắn muốn xoá dịch vụ này? Dữ liệu liên quan sẽ bị xoá.')) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from('services').delete().eq('id', id);
+    if (!error) {
+      fetchServices();
+    } else {
+      alert('Lỗi khi xoá: ' + error.message);
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = () => {
+    alert('Tính năng chỉnh sửa đang được phát triển. Vui lòng xoá và tạo lại nếu cần thiết lập sai.');
+  };
+
   const filteredServices = services.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -130,8 +148,8 @@ const Services = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={16} /></button>
-                <button className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
+                <button onClick={handleEdit} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={16} /></button>
+                <button onClick={() => handleDelete(s.id)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
               </div>
             </div>
           ))}
