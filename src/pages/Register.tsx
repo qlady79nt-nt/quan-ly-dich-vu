@@ -39,25 +39,29 @@ const Register = () => {
       const expiredAt = new Date();
       expiredAt.setDate(expiredAt.getDate() + 30);
 
-      const { data: shop, error: shopErr } = await supabase.from('shops').insert([{
+      // Tự sinh UUID cho Shop để không cần gọi .select() (tránh lỗi RLS SELECT policy)
+      const newShopId = crypto.randomUUID();
+
+      const { error: shopErr } = await supabase.from('shops').insert([{
+        id: newShopId,
         name: shopName,
         shop_code: shopCode,
         plan_id: plan?.id || null,
         expired_at: expiredAt.toISOString(),
         status: 'active'
-      }]).select().single();
+      }]); // Bỏ .select().single() ở đây
 
       if (shopErr) {
         console.error('Lỗi tạo Shop:', shopErr);
         throw new Error(`Lỗi tạo Shop: ${shopErr.message}`);
       }
-      console.log('Tạo Shop thành công:', shop.id);
+      console.log('Tạo Shop thành công:', newShopId);
 
       // 4. Tạo Profile Admin cho Shop
       console.log('--- Đang tạo Profile ---');
       const { error: profErr } = await supabase.from('profiles').insert([{
         id: authData.user.id,
-        shop_id: shop.id,
+        shop_id: newShopId,
         username: username,
         full_name: 'Chủ cửa hàng',
         role: 'shop_admin',
