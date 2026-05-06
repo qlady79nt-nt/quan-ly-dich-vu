@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
   Users, 
   Scissors, 
   Package, 
