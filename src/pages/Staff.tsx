@@ -41,7 +41,7 @@ const Staff = () => {
 
   const fetchStaff = async () => {
     setLoading(true);
-    let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('profiles').select('*, user_permissions(permission)').order('created_at', { ascending: false });
 
     if (profile?.role !== 'super_admin') {
       if (!shopId) {
@@ -76,23 +76,36 @@ const Staff = () => {
 
     setSaving(true);
     
-    const payload = { ...formData, shop_id: shopId };
+    // Loại bỏ các trường không có trong bảng profiles
+    const { permissions, staff_type, ...profileData } = formData;
+    const payload = { ...profileData, shop_id: shopId };
     
     let error;
+    let userId = editingId;
+
     if (editingId) {
       const { error: err } = await supabase.from('profiles').update(payload).eq('id', editingId);
       error = err;
     } else {
-      const { error: err } = await supabase.from('profiles').insert([payload]);
+      const { data, error: err } = await supabase.from('profiles').insert([payload]).select().single();
       error = err;
+      if (data) userId = data.id;
     }
 
-    if (!error) {
+    if (!error && userId) {
+      // Cập nhật permissions vào bảng user_permissions
+      await supabase.from('user_permissions').delete().eq('user_id', userId);
+      
+      if (permissions && permissions.length > 0) {
+        const permInserts = permissions.map((p: string) => ({ user_id: userId, permission: p }));
+        await supabase.from('user_permissions').insert(permInserts);
+      }
+      
       fetchStaff();
       closeModal();
     } else {
       console.error('Staff save error:', error);
-      alert('Lỗi khi lưu nhân viên: ' + error.message);
+      alert('Lỗi khi lưu nhân viên: ' + (error?.message || 'Không xác định'));
     }
     setSaving(false);
   };
@@ -103,8 +116,8 @@ const Staff = () => {
       full_name: s.full_name,
       username: s.username || '',
       role: s.role,
-      staff_type: s.staff_type,
-      permissions: s.permissions || [],
+      staff_type: 'both', // Default fallback vì không lưu trong DB
+      permissions: s.user_permissions?.map((p: any) => p.permission) || [],
       status: s.status
     });
     setIsModalOpen(true);
@@ -187,7 +200,7 @@ const Staff = () => {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem', minHeight: '40px' }}>
-                <strong>Quyền hạn:</strong> {s.role === 'shop_admin' ? 'Toàn quyền hệ thống' : (s.permissions?.length > 0 ? `${s.permissions.length} quyền đã cấp` : 'Chưa cấp quyền')}
+                <strong>Quyền hạn:</strong> {s.role === 'shop_admin' ? 'Toàn quyền hệ thống' : (s.user_permissions?.length > 0 ? `${s.user_permissions.length} quyền đã cấp` : 'Chưa cấp quyền')}
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
