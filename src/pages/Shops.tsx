@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 const Shops = () => {
-  const { isRestricted } = useAuth();
+  useAuth();
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
