@@ -167,8 +167,9 @@ const Reports = () => {
       }
     } catch (e: any) {
       alert('Lỗi: ' + e.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (loading && !detailModal) return <div style={{ textAlign: 'center', padding: '5rem' }}><Loader2 className="animate-spin" size={40} /></div>;
