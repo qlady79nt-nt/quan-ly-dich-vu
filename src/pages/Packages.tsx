@@ -80,7 +80,10 @@ const Packages = () => {
       query = query.eq('shop_id', shopId);
     }
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching customer packages:', error);
+    }
     if (data) setCustomerPackages(data);
     setLoading(false);
   };
@@ -239,10 +242,13 @@ const Packages = () => {
                 </tr>
               </thead>
               <tbody>
-                {customerPackages.filter(cp => 
-                  cp.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                  cp.customer_phone?.includes(searchTerm)
-                ).map(cp => (
+                {customerPackages.filter(cp => {
+                  const s = searchTerm.toLowerCase();
+                  if (!s) return true;
+                  const nameMatch = cp.customer_name ? cp.customer_name.toLowerCase().includes(s) : false;
+                  const phoneMatch = cp.customer_phone ? cp.customer_phone.includes(s) : false;
+                  return nameMatch || phoneMatch;
+                }).map(cp => (
                   <tr key={cp.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ fontWeight: '600' }}>{cp.customer_name || 'Khách lẻ'}</div>
