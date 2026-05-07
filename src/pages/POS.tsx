@@ -111,7 +111,14 @@ const POS = () => {
       discount: pkg.original_price - finalSalePrice,
       finalTotal: finalSalePrice,
       customerName: pkgCustomerName || 'Khách lẻ',
-      customerPhone: customerPhone
+      customerPhone: customerPhone,
+      selectedPkgId,
+      sellerId,
+      total_sessions: pkg.total_sessions,
+      original_price: pkg.original_price,
+      commission_sale_type: pkg.commission_sale_type,
+      commission_sale_value: pkg.commission_sale_value,
+      pkg_name: pkg.name
     });
   };
 
@@ -139,14 +146,16 @@ const POS = () => {
 
         // 2. Tạo Invoice Items & Sessions & Logs
         for (const item of cart) {
-          await supabase.from('invoice_items').insert([{
+          const { error: itemErr } = await supabase.from('invoice_items').insert([{
             invoice_id: inv.id,
             type: 'service',
             ref_id: item.id,
             staff_id: retailStaffId,
             unit_price: item.price,
-            final_price: item.price
+            final_price: item.price,
+            price: item.price // required column
           }]);
+          if (itemErr) throw new Error(`Lỗi lưu invoice_item: ${itemErr.message}`);
 
           const comm = item.commission_type === 'percent' ? (item.price * item.commission_value) / 100 : item.commission_value;
           const { data: sess } = await supabase.from('service_sessions').insert([{
@@ -167,8 +176,7 @@ const POS = () => {
         setRetailDiscountValue(0);
         setRetailCustomerName('');
       } else if (previewInvoiceData.type === 'sell_package') {
-        const pkg = packages.find(p => p.id === selectedPkgId);
-        const { subtotal, discount, finalTotal, customerName, customerPhone } = previewInvoiceData;
+        const { subtotal, discount, finalTotal, customerName, customerPhone, selectedPkgId, sellerId, total_sessions, original_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
         
         const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
           shop_id: shopId,
@@ -180,32 +188,45 @@ const POS = () => {
           final_amount: finalTotal,
           status: 'paid'
         }]).select().single();
-        if (invErr) throw invErr;
+        if (invErr) throw new Error(`Lỗi tạo hoá đơn: ${invErr.message}`);
 
-        const { data: custPkg } = await supabase.from('customer_packages').insert([{
+        const { data: custPkg, error: cpErr } = await supabase.from('customer_packages').insert([{
           shop_id: shopId,
           package_id: selectedPkgId,
           customer_name: customerName,
           customer_phone: customerPhone,
-          total_sessions: pkg.total_sessions,
+          total_sessions: total_sessions,
           used_sessions: 0,
-          sale_price: finalTotal
+          sale_price: finalTotal,
+          status: 'active'
         }]).select().single();
+        if (cpErr || !custPkg) throw new Error(`Lỗi tạo dữ liệu liệu trình: ${cpErr?.message || 'Không có dữ liệu'}`);
 
-        await supabase.from('invoice_items').insert([{
+        const { error: itemErr } = await supabase.from('invoice_items').insert([{
           invoice_id: inv.id,
           type: 'package_sale',
           ref_id: selectedPkgId,
           staff_id: sellerId,
-          unit_price: pkg.original_price,
-          final_price: finalTotal
+          unit_price: original_price,
+          final_price: finalTotal,
+          price: finalTotal // required column
         }]);
+        if (itemErr) console.error('Lỗi lưu invoice_item:', itemErr.message);
 
-        const salesComm = pkg.commission_sale_type === 'percent' ? (finalTotal * pkg.commission_sale_value) / 100 : pkg.commission_sale_value;
-        const { data: sale } = await supabase.from('package_sales').insert([{ shop_id: shopId, customer_package_id: custPkg.id, seller_id: sellerId, amount_paid: finalTotal, commission_amount: salesComm }]).select().single();
-        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: sellerId, amount: salesComm, type: 'package_sale', reference_id: sale.id, note: `Bán gói: ${pkg.name}` }]);
+        const salesComm = commission_sale_type === 'percent' ? (finalTotal * commission_sale_value) / 100 : commission_sale_value;
+        const { data: sale, error: saleErr } = await supabase.from('package_sales').insert([{ 
+          shop_id: shopId, 
+          customer_package_id: custPkg.id, 
+          seller_id: sellerId, 
+          amount_paid: finalTotal, 
+          commission_amount: salesComm 
+        }]).select().single();
+        if (saleErr || !sale) throw new Error(`Lỗi tạo giao dịch bán gói: ${saleErr?.message || 'Không có dữ liệu'}`);
 
-        setCompletedInvoice({ ...inv, items: [{ name: pkg.name, price: pkg.original_price }] });
+        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: sellerId, amount: salesComm, type: 'package_sale', reference_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
+        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', reference_id: sale.id }]);
+
+        setCompletedInvoice({ ...inv, items: [{ name: pkg_name, price: original_price }] });
         setCustomerPhone('');
         setPkgCustomerName('');
         setSelectedPkgId('');
