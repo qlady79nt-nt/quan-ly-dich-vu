@@ -106,7 +106,13 @@ const Invoices = () => {
       let totalSessions = 0;
       let isPackageSale = items.some(i => i.type === 'package_sale');
 
-      // 1. Nếu không có items (do lỗi DB uuid ""), ta vẫn có thể khôi phục nếu đây là bán gói
+      // Hook directly from invoice_items first
+      const firstItemWithStaff = items.find(i => i.staff_id);
+      if (firstItemWithStaff && firstItemWithStaff.staff_id) {
+         const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', firstItemWithStaff.staff_id).single();
+         if (stf) realStaffName = stf.full_name;
+      }
+
       if (items.length === 0) {
         const { data: psArray, error: psErr } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
         if (psErr) console.error('Error fetching package_sales:', psErr);
@@ -115,20 +121,17 @@ const Invoices = () => {
           const ps = psArray[0];
           isPackageSale = true;
 
-          // Manual Join: get seller profile
           if (ps.seller_id) {
              const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
              if (stf) realStaffName = stf.full_name;
           }
 
-          // Manual Join: get customer_packages
           if (ps.customer_package_id) {
              const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
              if (cp) {
                 totalSessions = cp.total_sessions || 0;
                 if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
 
-                // Manual Join: get package name
                 let pkgName = 'Gói liệu trình';
                 if (cp.package_id) {
                    const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
@@ -143,24 +146,8 @@ const Invoices = () => {
           }
         }
       } else if (isPackageSale) {
-        // Có items và là bán gói
-        const { data: psArray } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
-        if (psArray && psArray.length > 0) {
-          const ps = psArray[0];
-          if (ps.seller_id) {
-             const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
-             if (stf) realStaffName = stf.full_name;
-          }
-          if (ps.customer_package_id) {
-             const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
-             if (cp) totalSessions = cp.total_sessions || 0;
-          }
-        }
-      } else if (isPackageSale) {
-        // Có items và là bán gói
         let { data: psArray } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
         
-        // Auto-heal cho các hoá đơn cũ bị lỗi thiếu invoice_id trong package_sales
         if (!psArray || psArray.length === 0) {
            const createdTime = new Date(inv.created_at).getTime();
            const startTime = new Date(createdTime - 15000).toISOString();
@@ -180,7 +167,8 @@ const Invoices = () => {
 
         if (psArray && psArray.length > 0) {
           const ps = psArray[0];
-          if (ps.seller_id) {
+          // Nếu invoice_items không có staff_id, lấy bù từ package_sales
+          if (!firstItemWithStaff && ps.seller_id) {
              const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
              if (stf) realStaffName = stf.full_name;
           }
@@ -191,13 +179,6 @@ const Invoices = () => {
                 if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
              }
           }
-        }
-      } else {
-        // Bán lẻ
-        const firstRetail = items.find(i => i.staff_id);
-        if (firstRetail && firstRetail.staff_id) {
-           const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', firstRetail.staff_id).single();
-           if (stf) realStaffName = stf.full_name;
         }
       }
 
