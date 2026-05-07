@@ -49,7 +49,7 @@ const Reports = () => {
         const { data } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId);
         revLog = data || [];
         
-        const { data: ps } = await supabase.from('package_sales').select('amount_paid').eq('shop_id', shopId);
+        const { data: ps } = await supabase.from('package_sales').select('*').eq('shop_id', shopId);
         pkgSales = ps || [];
       }
 
@@ -94,18 +94,30 @@ const Reports = () => {
         }
       }
 
+      // Fetch retail items for staff revenue calculation
+      let retailItems: any[] = [];
+      if (canViewRevenue && invList.length > 0) {
+         const invIds = invList.map(i => i.id);
+         const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIds).eq('type', 'retail');
+         if (items) retailItems = items;
+      }
+
       // Calculations
       const retailRev = revLog.filter((r: any) => r.type === 'retail').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
-      const packageCash = pkgSales.reduce((acc: number, p: any) => acc + Number(p.amount_paid), 0);
-      const totalRev = revLog.reduce((acc: number, r: any) => acc + Number(r.amount), 0);
-      const totalCost = revLog.reduce((acc: number, r: any) => acc + Number(r.cost), 0);
+      const packageSessionRev = revLog.filter((r: any) => r.type === 'package_session').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
+      const packageSaleCash = revLog.filter((r: any) => r.type === 'package_sale').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
+
+      const totalRev = retailRev + packageSessionRev;
+      const totalCashFlow = retailRev + packageSaleCash;
+      
+      const totalCost = revLog.reduce((acc: number, r: any) => acc + Number(r.cost || 0), 0);
       const totalComm = commLog.reduce((acc: number, c: any) => acc + Number(c.amount), 0);
 
       setStats({
         totalRevenue: totalRev,
         totalProfit: totalRev - totalCost - totalComm,
         totalComm: totalComm,
-        totalCashFlow: retailRev + packageCash
+        totalCashFlow: totalCashFlow
       });
 
       setRevenueData(revLog);
@@ -114,11 +126,23 @@ const Reports = () => {
       commLog.forEach((c: any) => {
         const id = c.staff_id;
         const name = c.profiles?.full_name || 'N/A';
-        if (!staffMap[id]) staffMap[id] = { id, name, execution: 0, sales: 0, logs: [] };
+        if (!staffMap[id]) staffMap[id] = { id, name, execution: 0, sales: 0, logs: [], revenueGenerated: 0 };
         if (c.type === 'service_execution') staffMap[id].execution += Number(c.amount);
-        if (c.type === 'package_sale') staffMap[id].sales += Number(c.amount);
+        if (c.type === 'package_sale' || c.type === 'retail') staffMap[id].sales += Number(c.amount);
         staffMap[id].logs.push(c);
       });
+      
+      pkgSales.forEach((ps: any) => {
+        if (ps.seller_id && staffMap[ps.seller_id]) {
+          staffMap[ps.seller_id].revenueGenerated += Number(ps.amount_paid);
+        }
+      });
+      retailItems.forEach((ri: any) => {
+        if (ri.staff_id && staffMap[ri.staff_id]) {
+          staffMap[ri.staff_id].revenueGenerated += Number(ri.final_price || ri.price);
+        }
+      });
+
       setStaffData(Object.values(staffMap));
 
     } catch (e) {
@@ -199,13 +223,13 @@ const Reports = () => {
           {hasPermission('report.revenue.view') ? (
             <>
               <div className="grid grid-cols-3" style={{ marginBottom: '2rem' }}>
-                <div className="premium-card" style={{ borderLeft: '4px solid var(--primary)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Doanh thu thực tế</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '800', marginTop: '0.25rem' }}>{stats.totalRevenue.toLocaleString()}đ</div>
-                </div>
                 <div className="premium-card" style={{ borderLeft: '4px solid var(--secondary)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Cashflow (Tiền mặt)</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Thực thu (Tiền mặt Cashflow)</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '800', marginTop: '0.25rem' }}>{stats.totalCashFlow.toLocaleString()}đ</div>
+                </div>
+                <div className="premium-card" style={{ borderLeft: '4px solid var(--primary)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Doanh thu dịch vụ (Nhận diện)</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', marginTop: '0.25rem' }}>{stats.totalRevenue.toLocaleString()}đ</div>
                 </div>
                 <div className="premium-card" style={{ borderLeft: '4px solid var(--success)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Lợi nhuận ròng</div>
@@ -271,7 +295,12 @@ const Reports = () => {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                         <span>Thực hiện: {s.execution.toLocaleString()}đ</span>
-                        <span>Bán gói: {s.sales.toLocaleString()}đ</span>
+                        <span>Bán hàng: {s.sales.toLocaleString()}đ</span>
+                      </div>
+                      <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--success)', fontWeight: '600' }}>
+                        <span>Doanh số Thực thu:</span>
+                        <span>{Number(s.revenueGenerated || 0).toLocaleString()}đ</span>
                       </div>
                       <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', textAlign: 'right', color: 'var(--text-light)' }}>
                         <FileText size={12} style={{ display: 'inline', marginRight: '4px' }} /> Xem {s.logs.length} lượt
