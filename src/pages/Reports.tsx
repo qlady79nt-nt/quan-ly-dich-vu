@@ -21,8 +21,7 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [view, setView] = useState<'revenue' | 'commission' | 'invoices'>('revenue');
+  const [view, setView] = useState<'revenue' | 'commission'>('revenue');
   const [detailModal, setDetailModal] = useState<any>(null);
   
   const [stats, setStats] = useState({
@@ -42,12 +41,10 @@ const Reports = () => {
       // Check Permissions before fetching
       const canViewRevenue = hasPermission('report.revenue.view');
       const canViewCommissions = hasPermission('report.commission.view');
-      const canViewInvoices = hasPermission('report.invoice.view');
 
       let revLog: any[] = [];
       let pkgSales: any[] = [];
       let commLog: any[] = [];
-      let invList: any[] = [];
 
       const start = `${startDate}T00:00:00.000Z`;
       const end = `${endDate}T23:59:59.999Z`;
@@ -80,26 +77,7 @@ const Reports = () => {
         }
       }
 
-      if (canViewInvoices) {
-        const { data: invData, error } = await supabase.from('invoices').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Lỗi tải hoá đơn:', error);
-        } else if (invData && invData.length > 0) {
-          const creatorIds = [...new Set(invData.map(i => i.created_by).filter(Boolean))];
-          let profilesData: any[] = [];
-          if (creatorIds.length > 0) {
-            const { data: profs } = await supabase.from('profiles').select('id, full_name').in('id', creatorIds);
-            if (profs) profilesData = profs;
-          }
-          
-          invList = invData.map(i => ({
-            ...i,
-            profiles: profilesData.find(p => p.id === i.created_by) || { full_name: 'Nhân viên (Đã xoá)' }
-          }));
-          setInvoices(invList);
-        }
-      }
+
 
       // Fetch retail items for staff revenue calculation
       let retailItems: any[] = [];
