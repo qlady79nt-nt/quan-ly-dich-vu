@@ -23,6 +23,7 @@ const Reports = () => {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
   const [view, setView] = useState<'revenue' | 'commission'>('revenue');
+  const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'package_sale' | 'package_session'>('all');
   const [detailModal, setDetailModal] = useState<any>(null);
   
   const [stats, setStats] = useState({
@@ -264,29 +265,52 @@ const Reports = () => {
               </div>
 
               <div className="premium-card">
-                <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}><TrendingUp size={20} /> Nhật ký Doanh thu</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={20} /> Nhật ký Doanh thu</h3>
+                </div>
+
+                {/* Sub-tabs cho Doanh thu */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                  <button onClick={() => setRevenueTab('all')} className="btn" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Tất cả</button>
+                  <button onClick={() => setRevenueTab('retail')} className="btn" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Dịch vụ lẻ</button>
+                  <button onClick={() => setRevenueTab('package_sale')} className="btn" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Bán liệu trình</button>
+                  <button onClick={() => setRevenueTab('package_session')} className="btn" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Sử dụng liệu trình (Trừ buổi)</button>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {revenueData.slice(0, 20).map((r, idx) => (
-                    <div 
-                      key={idx} 
-                      onClick={() => openRevenueDetail(r)}
-                      style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s', borderRadius: '0.5rem' }}
-                      onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                         <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>
-                           {r.type === 'retail' ? 'Lẻ' : r.type === 'package_sale' ? 'Bán gói' : 'Dùng gói'} 
-                           {r.mapped_invoice_id ? ` #${r.mapped_invoice_id.slice(0,8)}` : ''}
-                         </span>
-                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(r.recorded_at).toLocaleDateString()}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <strong style={{ color: 'var(--success)' }}>+{Number(r.amount).toLocaleString()}đ</strong>
-                        <FileText size={14} style={{ color: 'var(--text-secondary)' }} />
-                      </div>
+                  {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)', background: 'var(--bg-main)', borderRadius: '0.75rem' }}>
+                      Không có phát sinh doanh thu loại này.
                     </div>
-                  ))}
+                  ) : (
+                    revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).slice(0, 50).map((r, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => openRevenueDetail(r)}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '0.75rem', background: 'var(--bg-main)' }}
+                        onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                        onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: r.type === 'retail' ? 'rgba(59, 130, 246, 0.1)' : r.type === 'package_sale' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'retail' ? '#3b82f6' : r.type === 'package_sale' ? 'var(--secondary)' : '#10b981' }}>
+                            <FileText size={20} />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
+                              {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
+                              {r.mapped_invoice_id ? ` #${r.mapped_invoice_id.slice(0,6)}` : ''}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{new Date(r.recorded_at).toLocaleString('vi-VN')}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <strong style={{ fontSize: '1.1rem', color: r.type === 'package_session' ? 'var(--primary)' : 'var(--success)' }}>
+                            +{Number(r.amount).toLocaleString()}đ
+                          </strong>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </>
