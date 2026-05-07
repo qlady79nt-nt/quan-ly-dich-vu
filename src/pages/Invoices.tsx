@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FileText, Loader2, Search, Filter } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -12,6 +13,7 @@ const Invoices = () => {
   const [sessions, setSessions] = useState<any[]>([]);
   const [view, setView] = useState<'retail' | 'session'>('retail');
   const [searchTerm, setSearchTerm] = useState('');
+  const [detailModal, setDetailModal] = useState<any>(null);
 
   useEffect(() => {
     if (shopId) fetchData();
@@ -94,6 +96,29 @@ const Invoices = () => {
     (sess.customer_packages?.customer_phone && sess.customer_packages.customer_phone.includes(searchTerm))
   );
 
+  const handleViewInvoice = async (inv: any) => {
+    setLoading(true);
+    try {
+      const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id);
+      setDetailModal({
+        type: 'invoice',
+        data: { ...inv, items: items || [] },
+        title: 'Chi tiết Hoá đơn'
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
+  const handleViewSession = (sess: any) => {
+    setDetailModal({
+      type: 'session',
+      data: sess,
+      title: 'Chi tiết Phiếu trừ buổi'
+    });
+  };
+
   if (!hasPermission('report.invoice.view')) {
     return <div style={{ textAlign: 'center', padding: '5rem' }}>Bạn không có quyền xem danh sách hoá đơn</div>;
   }
@@ -145,7 +170,13 @@ const Invoices = () => {
             </thead>
             <tbody>
               {filteredInvoices.map(inv => (
-                <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
+                <tr 
+                  key={inv.id} 
+                  onClick={() => handleViewInvoice(inv)}
+                  style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
+                  onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
+                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                >
                   <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.id.slice(0,8)}</td>
                   <td>{inv.customer_name || 'Khách lẻ'}</td>
                   <td>{new Date(inv.created_at).toLocaleString()}</td>
@@ -179,7 +210,13 @@ const Invoices = () => {
             </thead>
             <tbody>
               {filteredSessions.map(sess => (
-                <tr key={sess.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
+                <tr 
+                  key={sess.id} 
+                  onClick={() => handleViewSession(sess)}
+                  style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
+                  onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
+                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                >
                   <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.id.slice(0,8)}</td>
                   <td>
                     <div style={{ fontWeight: '600' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
@@ -198,6 +235,106 @@ const Invoices = () => {
           </table>
         </div>
       )}
+
+      {detailModal && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+              {detailModal.title}
+            </h3>
+            
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1.5rem' }}>
+              {detailModal.type === 'invoice' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Mã Hoá Đơn:</span>
+                    <span style={{ fontWeight: '600' }}>#{detailModal.data.id.slice(0,8)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_name || 'Khách lẻ'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Số điện thoại:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_phone || 'Không có'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên thu ngân:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.profiles?.full_name || 'Hệ thống'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Ngày tạo:</span>
+                    <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
+                  </div>
+                  
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Sản phẩm / Dịch vụ</h4>
+                  <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
+                    {detailModal.data.items?.map((item: any, idx: number) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span>{item.name || item.service_name || 'Dịch vụ'}</span>
+                        <span>{Number(item.price || item.unit_price).toLocaleString()}đ</span>
+                      </div>
+                    ))}
+                    <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                      <span>Tổng cộng:</span>
+                      <span>{Number(detailModal.data.final_amount).toLocaleString()}đ</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {detailModal.type === 'session' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Mã Phiếu:</span>
+                    <span style={{ fontWeight: '600' }}>#{detailModal.data.id.slice(0,8)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_packages?.customer_name || 'Khách lẻ'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Số điện thoại:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_packages?.customer_phone || 'Không có'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Kỹ thuật viên:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.profiles?.full_name || 'KTV'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Ngày dùng:</span>
+                    <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
+                  </div>
+                  
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Thông tin Gói</h4>
+                  <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: '600' }}>{detailModal.data.customer_packages?.packages?.name || 'Gói liệu trình'}</span>
+                      <span style={{ color: 'var(--primary)', fontWeight: '600' }}>- 1 Buổi</span>
+                    </div>
+                    <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                      <span>Tổng số buổi:</span>
+                      <span>{detailModal.data.customer_packages?.total_sessions} buổi</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                      <span>Đã sử dụng:</span>
+                      <span>{detailModal.data.customer_packages?.used_sessions} buổi</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: 'var(--success)', marginTop: '0.5rem' }}>
+                      <span>Còn lại:</span>
+                      <span>{(detailModal.data.customer_packages?.total_sessions || 0) - (detailModal.data.customer_packages?.used_sessions || 0)} buổi</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <button onClick={() => setDetailModal(null)} className="btn" style={{ background: 'var(--bg-main)', width: '100%' }}>Đóng</button>
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 };
