@@ -165,7 +165,7 @@ const POS = () => {
             final_price: item.price,
             price: item.price
           }]);
-          if (itemErr) console.error('Lỗi lưu invoice_item:', itemErr.message);
+          if (itemErr) throw new Error(`Lỗi lưu dịch vụ lẻ: ${itemErr.message}`);
 
           const comm = item.commission_type === 'percent' ? (item.price * item.commission_value) / 100 : item.commission_value;
           const { data: sess } = await supabase.from('service_sessions').insert([{
@@ -231,7 +231,7 @@ const POS = () => {
           final_price: finalTotal,
           price: finalTotal
         }]);
-        if (itemErr) console.error('Lỗi lưu invoice_item:', itemErr.message);
+        if (itemErr) throw new Error(`Lỗi lưu dịch vụ gói: ${itemErr.message}`);
 
         const salesComm = commission_sale_type === 'percent' ? (finalTotal * commission_sale_value) / 100 : commission_sale_value;
         const validSellerId = sellerId || profile?.id || null;
