@@ -100,9 +100,34 @@ const Invoices = () => {
     setLoading(true);
     try {
       const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id);
+      
+      let realStaffName = inv.profiles?.full_name || 'Hệ thống';
+      let totalSessions = 0;
+      const isPackageSale = items?.some(i => i.type === 'package_sale');
+
+      if (isPackageSale) {
+        const { data: ps } = await supabase.from('package_sales').select('*, profiles:seller_id(full_name), customer_packages(total_sessions)').eq('invoice_id', inv.id).single();
+        if (ps) {
+          realStaffName = ps.profiles?.full_name || realStaffName;
+          totalSessions = ps.customer_packages?.total_sessions || 0;
+        }
+      } else {
+        const firstRetail = items?.find(i => i.staff_id);
+        if (firstRetail && firstRetail.staff_id) {
+           const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', firstRetail.staff_id).single();
+           if (stf) realStaffName = stf.full_name;
+        }
+      }
+
       setDetailModal({
         type: 'invoice',
-        data: { ...inv, items: items || [] },
+        data: { 
+          ...inv, 
+          items: items || [], 
+          real_staff_name: realStaffName,
+          total_sessions: totalSessions,
+          is_package_sale: isPackageSale
+        },
         title: 'Chi tiết Hoá đơn'
       });
     } catch (e) {
@@ -256,11 +281,17 @@ const Invoices = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Số điện thoại:</span>
-                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_phone || 'Không có'}</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_phone ? `***${detailModal.data.customer_phone.slice(-3)}` : 'Không có'}</span>
                   </div>
+                  {detailModal.data.card_code && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Mã liệu trình:</span>
+                      <span style={{ fontWeight: '600' }}>***{detailModal.data.card_code.slice(-2)}</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên thu ngân:</span>
-                    <span style={{ fontWeight: '600' }}>{detailModal.data.profiles?.full_name || 'Hệ thống'}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên bán hàng:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.real_staff_name}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày tạo:</span>
@@ -275,6 +306,14 @@ const Invoices = () => {
                         <span>{Number(item.price || item.unit_price).toLocaleString()}đ</span>
                       </div>
                     ))}
+                    
+                    {detailModal.data.is_package_sale && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Tổng số buổi mua:</span>
+                        <span style={{ fontWeight: '600' }}>{detailModal.data.total_sessions} buổi</span>
+                      </div>
+                    )}
+
                     <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>
                       <span>Tổng cộng:</span>
@@ -296,8 +335,14 @@ const Invoices = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Số điện thoại:</span>
-                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_packages?.customer_phone || 'Không có'}</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_packages?.customer_phone ? `***${detailModal.data.customer_packages.customer_phone.slice(-3)}` : 'Không có'}</span>
                   </div>
+                  {detailModal.data.customer_packages?.card_code && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Mã liệu trình:</span>
+                      <span style={{ fontWeight: '600' }}>***{detailModal.data.customer_packages.card_code.slice(-2)}</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Kỹ thuật viên:</span>
                     <span style={{ fontWeight: '600' }}>{detailModal.data.profiles?.full_name || 'KTV'}</span>
