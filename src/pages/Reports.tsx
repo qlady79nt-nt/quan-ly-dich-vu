@@ -80,21 +80,24 @@ const Reports = () => {
 
 
 
-      // Fetch related entities by IDs found in revLog (TRÁNH LỖI LỆCH NGÀY GIỜ)
+      let retailItems: any[] = [];
+      
+      // Fetch related entities by IDs found in revLog (TRÁNH LỖI LỆCH NGÀY GIỜ VÀ HỖ TRỢ DỮ LIỆU CŨ)
       let relatedInvoices: any[] = [];
       let relatedPkgSales: any[] = [];
       let relatedSessions: any[] = [];
-      let retailItems: any[] = [];
       
-      const retailInvIds = [...new Set(revLog.filter((r: any) => r.type === 'retail').map((r: any) => r.invoice_id || r.reference_id).filter(Boolean))];
-      const psIds = [...new Set(revLog.filter((r: any) => r.type === 'package_sale').map((r: any) => r.package_sale_id || r.reference_id).filter(Boolean))];
+      // Lấy danh sách ID Hóa đơn cần fetch:
+      // Bao gồm 'retail' và cả 'package_sale' cũ (trước kia dùng reference_id lưu invoice_id)
+      const invIdsToFetch = [...new Set(revLog.filter((r: any) => r.type === 'retail' || (r.type === 'package_sale' && !r.package_sale_id)).map((r: any) => r.invoice_id || r.reference_id).filter(Boolean))];
+      const psIds = [...new Set(revLog.filter((r: any) => r.type === 'package_sale' && r.package_sale_id).map((r: any) => r.package_sale_id).filter(Boolean))];
       const ssIds = [...new Set(revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean))];
 
-      if (retailInvIds.length > 0) {
-         const { data: invs } = await supabase.from('invoices').select('id, customer_id, customers(name)').in('id', retailInvIds);
+      if (invIdsToFetch.length > 0) {
+         const { data: invs } = await supabase.from('invoices').select('id, customer_id, customers(name)').in('id', invIdsToFetch);
          if (invs) {
             relatedInvoices = invs;
-            const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', retailInvIds).eq('type', 'retail');
+            const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIdsToFetch).eq('type', 'retail');
             if (items) retailItems = items;
          }
       }
@@ -138,11 +141,19 @@ const Reports = () => {
            const inv = relatedInvoices.find(i => i.id === invId);
            if (inv && inv.customers?.name) cName = inv.customers.name;
         } else if (r.type === 'package_sale') {
-           const idToLook = r.package_sale_id || r.reference_id;
-           const ps = relatedPkgSales.find((p: any) => p.id === idToLook);
-           if (ps) {
-             invId = ps.invoice_id;
-             if (ps.customer_packages?.customer_name) cName = ps.customer_packages.customer_name;
+           if (r.package_sale_id) {
+               // Dữ liệu mới (sử dụng package_sale_id chuẩn)
+               const ps = relatedPkgSales.find((p: any) => p.id === r.package_sale_id);
+               if (ps) {
+                 invId = ps.invoice_id;
+                 if (ps.customer_packages?.customer_name) cName = ps.customer_packages.customer_name;
+               }
+           } else if (r.reference_id) {
+               // Dữ liệu cũ (reference_id đang lưu invoice_id)
+               invId = r.reference_id;
+               const inv = relatedInvoices.find(i => i.id === invId);
+               if (inv && inv.customers?.name) cName = inv.customers.name;
+               else cName = 'Khách mua thẻ liệu trình';
            }
         } else if (r.type === 'package_session') {
            sessId = r.service_session_id || r.reference_id;
