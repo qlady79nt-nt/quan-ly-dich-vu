@@ -34,9 +34,10 @@ const POS = () => {
   const [customerName, setRetailCustomerName] = useState('');
 
   // --- SELL PACKAGE STATE ---
+  const generateCardCode = () => 'PKG-' + Math.random().toString(36).substring(2, 8).toUpperCase();
   const [customerPhone, setCustomerPhone] = useState('');
   const [pkgCustomerName, setPkgCustomerName] = useState('');
-  const [pkgCardCode, setPkgCardCode] = useState('');
+  const [pkgCardCode, setPkgCardCode] = useState(generateCardCode());
   const [selectedPkgId, setSelectedPkgId] = useState('');
   const [sellerId, setSellerId] = useState('');
   const [pkgDiscountType, setPkgDiscountType] = useState<'amount' | 'percent'>('amount');
@@ -232,7 +233,7 @@ const POS = () => {
         setCompletedInvoice({ ...inv, items: [{ name: pkg_name, price: original_price }] });
         setCustomerPhone('');
         setPkgCustomerName('');
-        setPkgCardCode('');
+        setPkgCardCode(generateCardCode());
         setSelectedPkgId('');
         setPkgDiscountValue(0);
       }
