@@ -49,16 +49,19 @@ const Reports = () => {
       let commLog: any[] = [];
       let invList: any[] = [];
 
+      const start = `${startDate}T00:00:00.000Z`;
+      const end = `${endDate}T23:59:59.999Z`;
+
       if (canViewRevenue) {
-        const { data } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId);
+        const { data } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
         revLog = data || [];
         
-        const { data: ps } = await supabase.from('package_sales').select('*').eq('shop_id', shopId);
+        const { data: ps } = await supabase.from('package_sales').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
         pkgSales = ps || [];
       }
 
       if (canViewCommissions) {
-        const { data: commData, error } = await supabase.from('commission_logs').select('*').eq('shop_id', shopId);
+        const { data: commData, error } = await supabase.from('commission_logs').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false });
         
         if (error) {
           console.error('Lỗi tải hoa hồng:', error);
@@ -216,16 +219,30 @@ const Reports = () => {
     <div className="animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Báo cáo & Hoá đơn</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Thống kê hiệu quả kinh doanh</p>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Báo cáo Tổng hợp</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Theo dõi dòng tiền, doanh thu và hiệu suất</p>
         </div>
-        <div className="premium-card" style={{ padding: '0.25rem', display: 'flex', gap: '0.25rem' }}>
-          <button onClick={() => setView('revenue')} className="btn" style={{ background: view === 'revenue' ? 'var(--primary)' : 'transparent', color: view === 'revenue' ? 'white' : 'var(--text-secondary)', fontSize: '0.75rem' }}>Báo cáo Doanh thu</button>
-          <button onClick={() => setView('commission')} className="btn" style={{ background: view === 'commission' ? 'var(--primary)' : 'transparent', color: view === 'commission' ? 'white' : 'var(--text-secondary)', fontSize: '0.75rem' }}>Báo cáo Hoa hồng</button>
-          <button onClick={() => setView('invoices')} className="btn" style={{ background: view === 'invoices' ? 'var(--primary)' : 'transparent', color: view === 'invoices' ? 'white' : 'var(--text-secondary)', fontSize: '0.75rem' }}>Danh sách hoá đơn</button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Từ:</span>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Đến:</span>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
+          </div>
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+        <button onClick={() => setView('revenue')} className="btn" style={{ background: view === 'revenue' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'revenue' ? 'white' : 'inherit' }}>
+          <TrendingUp size={18} /> Doanh thu
+        </button>
+        <button onClick={() => setView('commission')} className="btn" style={{ background: view === 'commission' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'commission' ? 'white' : 'inherit' }}>
+          <Users size={18} /> Hoa hồng nhân viên
+        </button>
+      </div>
+      
       {view === 'revenue' && (
         <>
           {hasPermission('report.revenue.view') ? (
@@ -359,45 +376,6 @@ const Reports = () => {
             </div>
           )}
         </>
-      )}
-
-      {view === 'invoices' && (
-        <div className="premium-card animate-fade">
-          {hasPermission('report.invoice.view') ? (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                  <th style={{ padding: '1rem' }}>Mã HĐ</th>
-                  <th>Khách hàng</th>
-                  <th>Ngày tạo</th>
-                  <th>Người tạo</th>
-                  <th>Tổng tiền</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map(inv => (
-                  <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
-                    <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.id.slice(0,8)}</td>
-                    <td>{inv.customer_name || 'Khách lẻ'}</td>
-                    <td>{new Date(inv.created_at).toLocaleString()}</td>
-                    <td>{inv.profiles?.full_name}</td>
-                    <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(inv.final_amount).toLocaleString()}đ</td>
-                    <td>
-                      <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
-                        {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ thanh toán'}
-                      </span>
-                    </td>
-                    <td><button onClick={() => openRevenueDetail({ type: 'retail', reference_id: inv.id })} className="btn" style={{ padding: '0.4rem', background: 'var(--bg-main)' }}><FileText size={14} /></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '3rem' }}>Bạn không có quyền xem danh sách hoá đơn</div>
-          )}
-        </div>
       )}
 
       {/* DETAIL MODAL */}
