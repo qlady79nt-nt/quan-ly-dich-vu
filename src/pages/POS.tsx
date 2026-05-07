@@ -234,16 +234,18 @@ const POS = () => {
         if (itemErr) console.error('Lỗi lưu invoice_item:', itemErr.message);
 
         const salesComm = commission_sale_type === 'percent' ? (finalTotal * commission_sale_value) / 100 : commission_sale_value;
+        const validSellerId = sellerId || profile?.id || null;
+
         const { data: sale, error: saleErr } = await supabase.from('package_sales').insert([{ 
           shop_id: shopId, 
           customer_package_id: custPkg.id, 
-          seller_id: sellerId, 
+          seller_id: validSellerId, 
           amount_paid: finalTotal, 
           commission_amount: salesComm 
         }]).select().single();
         if (saleErr || !sale) throw new Error(`Lỗi tạo giao dịch bán gói: ${saleErr?.message || 'Không có dữ liệu'}`);
 
-        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: sellerId, amount: salesComm, type: 'package_sale', reference_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
+        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: validSellerId, amount: salesComm, type: 'package_sale', reference_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
         await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', reference_id: sale.id }]);
 
         setCompletedInvoice({ 

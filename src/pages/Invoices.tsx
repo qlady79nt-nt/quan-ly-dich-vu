@@ -156,6 +156,20 @@ const Invoices = () => {
              if (cp) totalSessions = cp.total_sessions || 0;
           }
         }
+      } else if (isPackageSale) {
+        // Có items và là bán gói
+        const { data: psArray } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
+        if (psArray && psArray.length > 0) {
+          const ps = psArray[0];
+          if (ps.seller_id) {
+             const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
+             if (stf) realStaffName = stf.full_name;
+          }
+          if (ps.customer_package_id) {
+             const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
+             if (cp) totalSessions = cp.total_sessions || 0;
+          }
+        }
       } else {
         // Bán lẻ
         const firstRetail = items.find(i => i.staff_id);
@@ -163,6 +177,37 @@ const Invoices = () => {
            const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', firstRetail.staff_id).single();
            if (stf) realStaffName = stf.full_name;
         }
+      }
+
+      // 1.5. Ultimate Fallback Recovery: Nếu items VẪN rỗng (lỗi cả invoice_items và package_sales)
+      if (items.length === 0) {
+         const createdTime = new Date(inv.created_at).getTime();
+         const startTime = new Date(createdTime - 15000).toISOString();
+         const endTime = new Date(createdTime + 15000).toISOString();
+         
+         const { data: cpArray } = await supabase.from('customer_packages')
+           .select('*')
+           .gte('created_at', startTime)
+           .lte('created_at', endTime)
+           .eq('customer_phone', inv.customer_phone);
+           
+         if (cpArray && cpArray.length > 0) {
+            isPackageSale = true;
+            const cp = cpArray[0];
+            totalSessions = cp.total_sessions || 0;
+            if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
+            
+            let pkgName = 'Gói liệu trình';
+            if (cp.package_id) {
+               const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
+               if (pkg) pkgName = pkg.name;
+            }
+            
+            items.push({ 
+              name: pkgName, 
+              price: cp.sale_price 
+            });
+         }
       }
 
       // 2. Resolve real names for items that only have ref_id
