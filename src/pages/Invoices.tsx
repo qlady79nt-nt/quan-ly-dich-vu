@@ -99,23 +99,51 @@ const Invoices = () => {
   const handleViewInvoice = async (inv: any) => {
     setLoading(true);
     try {
-      const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id);
+      let { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id);
+      items = items || [];
       
       let realStaffName = inv.profiles?.full_name || 'Hệ thống';
       let totalSessions = 0;
-      const isPackageSale = items?.some(i => i.type === 'package_sale');
+      let isPackageSale = items.some(i => i.type === 'package_sale');
 
-      if (isPackageSale) {
+      // 1. Nếu không có items (do lỗi DB uuid ""), ta vẫn có thể khôi phục nếu đây là bán gói
+      if (items.length === 0) {
+        const { data: ps } = await supabase.from('package_sales').select('*, profiles:seller_id(full_name), customer_packages(total_sessions, packages(name))').eq('invoice_id', inv.id).single();
+        if (ps) {
+          isPackageSale = true;
+          realStaffName = ps.profiles?.full_name || realStaffName;
+          totalSessions = ps.customer_packages?.total_sessions || 0;
+          items.push({ 
+            name: ps.customer_packages?.packages?.name || 'Gói liệu trình', 
+            price: ps.amount_paid 
+          });
+        }
+      } else if (isPackageSale) {
+        // Có items và là bán gói
         const { data: ps } = await supabase.from('package_sales').select('*, profiles:seller_id(full_name), customer_packages(total_sessions)').eq('invoice_id', inv.id).single();
         if (ps) {
           realStaffName = ps.profiles?.full_name || realStaffName;
           totalSessions = ps.customer_packages?.total_sessions || 0;
         }
       } else {
-        const firstRetail = items?.find(i => i.staff_id);
+        // Bán lẻ
+        const firstRetail = items.find(i => i.staff_id);
         if (firstRetail && firstRetail.staff_id) {
            const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', firstRetail.staff_id).single();
            if (stf) realStaffName = stf.full_name;
+        }
+      }
+
+      // 2. Resolve real names for items that only have ref_id
+      for (let i = 0; i < items.length; i++) {
+        if (!items[i].name) {
+          if (items[i].type === 'package_sale' || items[i].type === 'package') {
+            const { data: pkg } = await supabase.from('packages').select('name').eq('id', items[i].ref_id).single();
+            if (pkg) items[i].name = pkg.name;
+          } else if (items[i].type === 'service') {
+            const { data: svc } = await supabase.from('services').select('name').eq('id', items[i].ref_id).single();
+            if (svc) items[i].name = svc.name;
+          }
         }
       }
 
@@ -123,7 +151,7 @@ const Invoices = () => {
         type: 'invoice',
         data: { 
           ...inv, 
-          items: items || [], 
+          items: items, 
           real_staff_name: realStaffName,
           total_sessions: totalSessions,
           is_package_sale: isPackageSale

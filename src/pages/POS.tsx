@@ -160,12 +160,12 @@ const POS = () => {
             invoice_id: inv.id,
             type: 'service',
             ref_id: item.id,
-            staff_id: retailStaffId,
+            staff_id: retailStaffId || profile?.id || null,
             unit_price: item.price,
             final_price: item.price,
-            price: item.price // required column
+            price: item.price
           }]);
-          if (itemErr) throw new Error(`Lỗi lưu invoice_item: ${itemErr.message}`);
+          if (itemErr) console.error('Lỗi lưu invoice_item:', itemErr.message);
 
           const comm = item.commission_type === 'percent' ? (item.price * item.commission_value) / 100 : item.commission_value;
           const { data: sess } = await supabase.from('service_sessions').insert([{
@@ -226,10 +226,10 @@ const POS = () => {
           invoice_id: inv.id,
           type: 'package_sale',
           ref_id: selectedPkgId,
-          staff_id: sellerId,
+          staff_id: sellerId || profile?.id || null,
           unit_price: original_price,
           final_price: finalTotal,
-          price: finalTotal // required column
+          price: finalTotal
         }]);
         if (itemErr) console.error('Lỗi lưu invoice_item:', itemErr.message);
 
