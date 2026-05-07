@@ -67,7 +67,7 @@ const POS = () => {
     const [svc, pkg, stf, custs] = await Promise.all([
       supabase.from('services').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
-      supabase.from('profiles').select('*').eq('shop_id', shopId).eq('status', 'active'),
+      supabase.from('staffs').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('customers').select('*').eq('shop_id', shopId).is('deleted_at', null)
     ]);
     setServices(svc.data || []);

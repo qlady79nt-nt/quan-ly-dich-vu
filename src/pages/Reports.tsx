@@ -67,13 +67,13 @@ const Reports = () => {
           const staffIds = [...new Set(commData.map(c => c.staff_id).filter(Boolean))];
           let profilesData: any[] = [];
           if (staffIds.length > 0) {
-            const { data: profs } = await supabase.from('profiles').select('id, full_name').in('id', staffIds);
+            const { data: profs } = await supabase.from('staffs').select('id, full_name').in('id', staffIds);
             if (profs) profilesData = profs;
           }
           
           commLog = commData.map(c => ({
             ...c,
-            profiles: profilesData.find(p => p.id === c.staff_id) || { full_name: 'Nhân viên (Đã xoá)' }
+            staffs: profilesData.find(p => p.id === c.staff_id) || { full_name: 'Nhân viên (Đã xoá)' }
           }));
         }
       }
@@ -172,7 +172,7 @@ const Reports = () => {
       const staffMap: any = {};
       commLog.forEach((c: any) => {
         const id = c.staff_id;
-        const name = c.profiles?.full_name || 'N/A';
+        const name = c.staffs?.full_name || 'N/A';
         if (!staffMap[id]) staffMap[id] = { id, name, execution: 0, sales: 0, logs: [], revenueGenerated: 0 };
         if (c.type === 'service_execution') staffMap[id].execution += Number(c.amount);
         if (c.type === 'package_sale' || c.type === 'retail') staffMap[id].sales += Number(c.amount);
