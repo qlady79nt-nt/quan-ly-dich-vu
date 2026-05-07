@@ -94,7 +94,7 @@ const Reports = () => {
       const ssIds = [...new Set(revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean))];
 
       if (invIdsToFetch.length > 0) {
-         const { data: invs } = await supabase.from('invoices').select('id, customer_id, customers(name)').in('id', invIdsToFetch);
+         const { data: invs } = await supabase.from('invoices').select('id, customer_id, customer_name, customers(name)').in('id', invIdsToFetch);
          if (invs) {
             relatedInvoices = invs;
             const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIdsToFetch).eq('type', 'retail');
@@ -139,7 +139,7 @@ const Reports = () => {
         if (r.type === 'retail') {
            invId = r.invoice_id || r.reference_id;
            const inv = relatedInvoices.find(i => i.id === invId);
-           if (inv && inv.customers?.name) cName = inv.customers.name;
+           if (inv) cName = inv.customers?.name || inv.customer_name || 'Khách lẻ';
         } else if (r.type === 'package_sale') {
            if (r.package_sale_id) {
                // Dữ liệu mới (sử dụng package_sale_id chuẩn)
@@ -152,8 +152,7 @@ const Reports = () => {
                // Dữ liệu cũ (reference_id đang lưu invoice_id)
                invId = r.reference_id;
                const inv = relatedInvoices.find(i => i.id === invId);
-               if (inv && inv.customers?.name) cName = inv.customers.name;
-               else cName = 'Khách mua thẻ liệu trình';
+               if (inv) cName = inv.customers?.name || inv.customer_name || 'Khách mua thẻ liệu trình';
            }
         } else if (r.type === 'package_session') {
            sessId = r.service_session_id || r.reference_id;
