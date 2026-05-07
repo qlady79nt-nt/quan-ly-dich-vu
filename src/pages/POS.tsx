@@ -36,6 +36,7 @@ const POS = () => {
   // --- SELL PACKAGE STATE ---
   const [customerPhone, setCustomerPhone] = useState('');
   const [pkgCustomerName, setPkgCustomerName] = useState('');
+  const [pkgCardCode, setPkgCardCode] = useState('');
   const [selectedPkgId, setSelectedPkgId] = useState('');
   const [sellerId, setSellerId] = useState('');
   const [pkgDiscountType, setPkgDiscountType] = useState<'amount' | 'percent'>('amount');
@@ -95,7 +96,7 @@ const POS = () => {
   const handleSellPackageClick = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán gói');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thực hiện');
-    if (!customerPhone || !selectedPkgId || !sellerId) return alert('Thiếu thông tin');
+    if (!customerPhone || !selectedPkgId || !sellerId || !pkgCardCode) return alert('Vui lòng nhập đầy đủ SĐT, Mã thẻ, chọn gói và KTV bán');
     
     const pkg = packages.find(p => p.id === selectedPkgId);
     if (!pkg) return;
@@ -112,6 +113,7 @@ const POS = () => {
       finalTotal: finalSalePrice,
       customerName: pkgCustomerName || 'Khách lẻ',
       customerPhone: customerPhone,
+      cardCode: pkgCardCode,
       selectedPkgId,
       sellerId,
       total_sessions: pkg.total_sessions,
@@ -176,7 +178,7 @@ const POS = () => {
         setRetailDiscountValue(0);
         setRetailCustomerName('');
       } else if (previewInvoiceData.type === 'sell_package') {
-        const { subtotal, discount, finalTotal, customerName, customerPhone, selectedPkgId, sellerId, total_sessions, original_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
+        const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
         
         const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
           shop_id: shopId,
@@ -195,6 +197,7 @@ const POS = () => {
           package_id: selectedPkgId,
           customer_name: customerName,
           customer_phone: customerPhone,
+          card_code: cardCode,
           total_sessions: total_sessions,
           used_sessions: 0,
           sale_price: finalTotal,
@@ -229,6 +232,7 @@ const POS = () => {
         setCompletedInvoice({ ...inv, items: [{ name: pkg_name, price: original_price }] });
         setCustomerPhone('');
         setPkgCustomerName('');
+        setPkgCardCode('');
         setSelectedPkgId('');
         setPkgDiscountValue(0);
       }
@@ -250,7 +254,7 @@ const POS = () => {
       .from('customer_packages')
       .select('*')
       .eq('shop_id', shopId)
-      .or(`customer_phone.ilike.%${searchPhone}%,customer_name.ilike.%${searchPhone}%`)
+      .or(`customer_phone.ilike.%${searchPhone}%,customer_name.ilike.%${searchPhone}%,card_code.ilike.%${searchPhone}%`)
       .eq('status', 'active');
 
     if (error) {
@@ -347,8 +351,20 @@ const POS = () => {
           <div className="premium-card animate-fade">
             <h3 style={{ marginBottom: '1.5rem' }}>Thông tin bán gói</h3>
             <div className="grid" style={{ gap: '1.25rem' }}>
-              <div><label className="form-label" style={{ fontWeight: '600' }}>SĐT Khách *</label><input type="tel" className="form-input" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} /></div>
-              <div><label className="form-label" style={{ fontWeight: '600' }}>Tên khách</label><input type="text" className="form-input" value={pkgCustomerName} onChange={e => setPkgCustomerName(e.target.value)} /></div>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontWeight: '600' }}>Tên khách</label>
+                  <input type="text" className="form-input" value={pkgCustomerName} onChange={e => setPkgCustomerName(e.target.value)} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontWeight: '600' }}>SĐT Khách *</label>
+                  <input type="tel" className="form-input" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <label className="form-label" style={{ fontWeight: '600' }}>Mã thẻ liệu trình *</label>
+                <input type="text" className="form-input" value={pkgCardCode} onChange={e => setPkgCardCode(e.target.value)} />
+              </div>
               <div>
                 <label className="form-label" style={{ fontWeight: '600' }}>Chọn gói</label>
                 <select className="form-select" value={selectedPkgId} onChange={e => setSelectedPkgId(e.target.value)}>
@@ -394,8 +410,9 @@ const POS = () => {
         {activeTab === 'use_package' && (
           <div className="animate-fade">
             <div className="premium-card" style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Tìm thẻ liệu trình</h3>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input type="text" className="form-input" placeholder="Tìm SĐT hoặc Tên khách..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
+                <input type="text" className="form-input" placeholder="Nhập SĐT, Tên hoặc Mã Thẻ..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearchPackage()} />
                 <button onClick={handleSearchPackage} className="btn btn-primary"><Search size={18} /></button>
               </div>
             </div>
@@ -403,7 +420,16 @@ const POS = () => {
               <div className="grid">
                 {foundPackages.map(cp => (
                   <div key={cp.id} onClick={() => setSelectedCustPkgId(cp.id)} className="premium-card" style={{ border: selectedCustPkgId === cp.id ? '2px solid var(--primary)' : '1px solid var(--border)', cursor: 'pointer' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><h4>{cp.packages.name}</h4><span className="badge badge-primary">Còn {cp.total_sessions - cp.used_sessions} buổi</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{cp.packages?.name}</div>
+                      <span className="badge badge-primary">Còn {cp.total_sessions - cp.used_sessions} buổi</span>
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-light)' }}>
+                      Khách: {cp.customer_name || 'Khách lẻ'} - SĐT: {cp.customer_phone}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      Mã thẻ: <strong>{cp.card_code || 'Không có'}</strong>
+                    </div>
                   </div>
                 ))}
                 {selectedCustPkgId && (
@@ -519,6 +545,12 @@ const POS = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>SĐT:</span>
                   <span style={{ fontWeight: '600' }}>{previewInvoiceData.customerPhone}</span>
+                </div>
+              )}
+              {previewInvoiceData.cardCode && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Mã thẻ:</span>
+                  <span style={{ fontWeight: '600' }}>{previewInvoiceData.cardCode}</span>
                 </div>
               )}
               

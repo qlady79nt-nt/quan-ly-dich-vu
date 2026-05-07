@@ -272,12 +272,14 @@ const Packages = () => {
                   if (!s) return true;
                   const nameMatch = cp.customer_name ? cp.customer_name.toLowerCase().includes(s) : false;
                   const phoneMatch = cp.customer_phone ? cp.customer_phone.includes(s) : false;
-                  return nameMatch || phoneMatch;
+                  const cardMatch = cp.card_code ? cp.card_code.toLowerCase().includes(s) : false;
+                  return nameMatch || phoneMatch || cardMatch;
                 }).map(cp => (
                   <tr key={cp.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ fontWeight: '600' }}>{cp.customer_name || 'Khách lẻ'}</div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{cp.customer_phone}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>SĐT: {cp.customer_phone}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Mã thẻ: <strong>{cp.card_code || 'Không có'}</strong></div>
                     </td>
                     <td>
                       <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{cp.packages?.name}</div>
