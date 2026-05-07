@@ -45,7 +45,6 @@ const Reports = () => {
       const canViewCommissions = hasPermission('report.commission.view');
 
       let revLog: any[] = [];
-      let pkgSales: any[] = [];
       let commLog: any[] = [];
 
       const startObj = new Date(startDate + 'T00:00:00');
@@ -57,9 +56,6 @@ const Reports = () => {
         const { data, error } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('recorded_at', start).lte('recorded_at', end);
         if (error) console.error('Lỗi tải revenue_logs:', error);
         revLog = data || [];
-        
-        const { data: ps } = await supabase.from('package_sales').select('*, customer_packages(customer_name)').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
-        pkgSales = ps || [];
       }
 
       if (canViewCommissions) {
@@ -84,27 +80,36 @@ const Reports = () => {
 
 
 
+      // Fetch related entities by IDs found in revLog (TRÁNH LỖI LỆCH NGÀY GIỜ)
+      let relatedInvoices: any[] = [];
+      let relatedPkgSales: any[] = [];
+      let relatedSessions: any[] = [];
       let retailItems: any[] = [];
       
-      // Fetch retail items and related invoices for mapping (bỏ lọc theo date để đảm bảo không bị hụt hóa đơn)
-      let relatedInvoices: any[] = [];
       const retailInvIds = [...new Set(revLog.filter((r: any) => r.type === 'retail').map((r: any) => r.invoice_id || r.reference_id).filter(Boolean))];
-      
+      const psIds = [...new Set(revLog.filter((r: any) => r.type === 'package_sale').map((r: any) => r.package_sale_id || r.reference_id).filter(Boolean))];
+      const ssIds = [...new Set(revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean))];
+
       if (retailInvIds.length > 0) {
          const { data: invs } = await supabase.from('invoices').select('id, customer_id, customers(name)').in('id', retailInvIds);
-         if (invs) relatedInvoices = invs;
+         if (invs) {
+            relatedInvoices = invs;
+            const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', retailInvIds).eq('type', 'retail');
+            if (items) retailItems = items;
+         }
       }
-
-      // Fetch related sessions for 'package_session'
-      let relatedSessions: any[] = [];
-      const sessionIds = [...new Set(revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean))];
       
-      if (sessionIds.length > 0) {
-         const { data: sess } = await supabase.from('service_sessions').select('id, customer_package_id, customer_packages(customer_name)').in('id', sessionIds);
-         if (sess) relatedSessions = sess;
+      if (psIds.length > 0) {
+         const { data: psData } = await supabase.from('package_sales').select('*, customer_packages(customer_name)').in('id', psIds);
+         if (psData) relatedPkgSales = psData;
       }
 
-      // Calculations
+      if (ssIds.length > 0) {
+         const { data: ssData } = await supabase.from('service_sessions').select('id, customer_package_id, customer_packages(customer_name)').in('id', ssIds);
+         if (ssData) relatedSessions = ssData;
+      }
+
+      // Calculations (dùng revLog gốc)
       const retailRev = revLog.filter((r: any) => r.type === 'retail').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
       const packageSessionRev = revLog.filter((r: any) => r.type === 'package_session').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
       const packageSaleCash = revLog.filter((r: any) => r.type === 'package_sale').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
@@ -134,7 +139,7 @@ const Reports = () => {
            if (inv && inv.customers?.name) cName = inv.customers.name;
         } else if (r.type === 'package_sale') {
            const idToLook = r.package_sale_id || r.reference_id;
-           const ps = pkgSales.find((p: any) => p.id === idToLook);
+           const ps = relatedPkgSales.find((p: any) => p.id === idToLook);
            if (ps) {
              invId = ps.invoice_id;
              if (ps.customer_packages?.customer_name) cName = ps.customer_packages.customer_name;
@@ -144,8 +149,8 @@ const Reports = () => {
            const sess = relatedSessions.find(s => s.id === sessId);
            if (sess && sess.customer_packages) {
               cName = sess.customer_packages.customer_name || 'Khách thẻ';
-              // Tìm invoice gốc thông qua pkgSales
-              const ps = pkgSales.find((p: any) => p.customer_package_id === sess.customer_package_id);
+              // Tìm invoice gốc thông qua relatedPkgSales hoặc fetch thêm nếu cần
+              const ps = relatedPkgSales.find((p: any) => p.customer_package_id === sess.customer_package_id);
               if (ps) invId = ps.invoice_id;
            }
         }
@@ -164,7 +169,7 @@ const Reports = () => {
         staffMap[id].logs.push(c);
       });
       
-      pkgSales.forEach((ps: any) => {
+      relatedPkgSales.forEach((ps: any) => {
         if (ps.seller_id && staffMap[ps.seller_id]) {
           staffMap[ps.seller_id].revenueGenerated += Number(ps.amount_paid);
         }
