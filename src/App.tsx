@@ -11,7 +11,8 @@ import {
   LayoutGrid,
   ShieldAlert,
   Calendar,
-  LayoutDashboard
+  LayoutDashboard,
+  FileText
 } from 'lucide-react';
 import { AuthProvider, useAuth, ProtectedRoute } from './lib/auth';
 
@@ -20,6 +21,7 @@ import Dashboard from './pages/Dashboard';
 import Staff from './pages/Staff';
 import Services from './pages/Services';
 import Packages from './pages/Packages';
+import Invoices from './pages/Invoices';
 import POS from './pages/POS';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
@@ -51,6 +53,7 @@ const MainLayout = () => {
       { path: '/app/services', label: 'Dịch vụ', icon: Scissors },
       { path: '/app/customers', label: 'Khách hàng', icon: UserCircle },
       { path: '/app/packages', label: 'Liệu trình', icon: Package },
+      { path: '/app/invoices', label: 'Hoá đơn', icon: FileText },
       { path: '/app/reports', label: 'Báo cáo', icon: BarChart3 },
     ];
   }
@@ -173,6 +176,7 @@ function App() {
             <Route path="beds" element={<Beds />} />
             <Route path="customers" element={<Customers />} />
             <Route path="packages" element={<Packages />} />
+            <Route path="invoices" element={<Invoices />} />
             <Route path="pos" element={<POS />} />
             <Route path="reports" element={<Reports />} />
             <Route path="shops" element={<ProtectedRoute allowedRoles={['super_admin']}><Shops /></ProtectedRoute>} />

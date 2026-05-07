@@ -14,6 +14,10 @@ const Reports = () => {
   const { hasPermission, profile } = useAuth();
   const shopId = profile?.shop_id;
 
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+
   const [loading, setLoading] = useState(true);
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
@@ -30,7 +34,7 @@ const Reports = () => {
 
   useEffect(() => {
     if (shopId) fetchReportData();
-  }, [shopId]);
+  }, [shopId, startDate, endDate]);
 
   const fetchReportData = async () => {
     setLoading(true);
@@ -74,7 +78,7 @@ const Reports = () => {
       }
 
       if (canViewInvoices) {
-        const { data: invData, error } = await supabase.from('invoices').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
+        const { data: invData, error } = await supabase.from('invoices').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false });
         
         if (error) {
           console.error('Lỗi tải hoá đơn:', error);
@@ -96,10 +100,14 @@ const Reports = () => {
 
       // Fetch retail items for staff revenue calculation
       let retailItems: any[] = [];
-      if (canViewRevenue && invList.length > 0) {
-         const invIds = invList.map(i => i.id);
-         const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIds).eq('type', 'retail');
-         if (items) retailItems = items;
+      if (canViewRevenue) {
+         // Because we no longer fetch all invoices by default if we removed the invoices tab, we need to explicitly fetch them for the date range
+         const { data: invs } = await supabase.from('invoices').select('id').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
+         if (invs && invs.length > 0) {
+            const invIds = invs.map(i => i.id);
+            const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIds).eq('type', 'retail');
+            if (items) retailItems = items;
+         }
       }
 
       // Calculations
@@ -279,34 +287,68 @@ const Reports = () => {
               </div>
 
               <div className="premium-card">
-                <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}><Users size={20} /> Bảng thống kê Hoa hồng Nhân viên</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-                  {staffData.map((s, idx) => (
-                    <div 
-                      key={idx} 
-                      onClick={() => setDetailModal({ type: 'staff_comm', data: s, title: `Hoa hồng: ${s.name}` })}
-                      style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)', cursor: 'pointer', transition: 'border-color 0.2s' }}
-                      onMouseOver={e => e.currentTarget.style.borderColor = 'var(--primary)'}
-                      onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: '700' }}>
-                        <span>{s.name}</span>
-                        <span style={{ color: 'var(--primary)' }}>{(s.execution + s.sales).toLocaleString()}đ</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        <span>Thực hiện: {s.execution.toLocaleString()}đ</span>
-                        <span>Bán hàng: {s.sales.toLocaleString()}đ</span>
-                      </div>
-                      <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--success)', fontWeight: '600' }}>
-                        <span>Doanh số Thực thu:</span>
-                        <span>{Number(s.revenueGenerated || 0).toLocaleString()}đ</span>
-                      </div>
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', textAlign: 'right', color: 'var(--text-light)' }}>
-                        <FileText size={12} style={{ display: 'inline', marginRight: '4px' }} /> Xem {s.logs.length} lượt
-                      </div>
+                <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}><Users size={20} /> Chi tiết Hoa hồng Nhân viên</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  {staffData.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)', background: 'var(--bg-main)', borderRadius: '1rem' }}>
+                      Không có dữ liệu hoa hồng trong khoảng thời gian này
                     </div>
-                  ))}
+                  ) : (
+                    staffData.map(s => (
+                      <div key={s.id} style={{ background: 'var(--bg-main)', borderRadius: '0.75rem', padding: '1.5rem', border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+                          <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--primary)', marginBottom: '0.5rem' }}>{s.name}</h3>
+                            <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                              <span>Thực hiện: <strong>{s.execution.toLocaleString()}đ</strong></span>
+                              <span>Bán hàng: <strong>{s.sales.toLocaleString()}đ</strong></span>
+                              <span style={{ color: 'var(--success)' }}>Doanh số Thực thu: <strong>{Number(s.revenueGenerated || 0).toLocaleString()}đ</strong></span>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Tổng hoa hồng</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary)' }}>{(s.execution + s.sales).toLocaleString()}đ</div>
+                          </div>
+                        </div>
+
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
+                              <th style={{ padding: '0.75rem 0.5rem', width: '20%' }}>Ngày/Giờ</th>
+                              <th style={{ padding: '0.75rem 0.5rem', width: '30%' }}>Nghiệp vụ / Dịch vụ</th>
+                              <th style={{ padding: '0.75rem 0.5rem', width: '20%' }}>Mã Phiếu/HĐ</th>
+                              <th style={{ padding: '0.75rem 0.5rem', width: '15%' }}>Loại</th>
+                              <th style={{ padding: '0.75rem 0.5rem', width: '15%', textAlign: 'right' }}>Hoa hồng nhận</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {s.logs.map((log: any, idx: number) => (
+                              <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                                <td style={{ padding: '0.75rem 0.5rem' }}>{new Date(log.created_at).toLocaleString()}</td>
+                                <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>{log.note || 'Thực hiện dịch vụ'}</td>
+                                <td style={{ padding: '0.75rem 0.5rem' }}>
+                                  <button 
+                                    onClick={() => openRevenueDetail(log)}
+                                    style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                  >
+                                    #{log.reference_id?.slice(0,8)} <FileText size={12} />
+                                  </button>
+                                </td>
+                                <td style={{ padding: '0.75rem 0.5rem' }}>
+                                  <span className={`badge ${log.type === 'package_sale' || log.type === 'retail' ? 'badge-primary' : 'badge-success'}`}>
+                                    {log.type === 'package_sale' || log.type === 'retail' ? 'Bán hàng' : 'Thực hiện'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>
+                                  +{Number(log.amount).toLocaleString()}đ
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </>
