@@ -241,12 +241,42 @@ const Invoices = () => {
     setLoading(false);
   };
 
-  const handleViewSession = (sess: any) => {
+  const handleViewSession = async (sess: any) => {
+    setLoading(true);
+    let invoiceCode = '';
+    try {
+      if (sess.customer_package_id) {
+         // Try fetching from package_sales first
+         const { data: ps } = await supabase.from('package_sales').select('invoice_id').eq('customer_package_id', sess.customer_package_id).single();
+         if (ps && ps.invoice_id) {
+            invoiceCode = ps.invoice_id;
+         } else if (sess.customer_packages?.customer_phone && sess.customer_packages?.created_at) {
+            // Ultimate fallback for corrupted invoices
+            const createdTime = new Date(sess.customer_packages.created_at).getTime();
+            const startTime = new Date(createdTime - 15000).toISOString();
+            const endTime = new Date(createdTime + 15000).toISOString();
+            
+            const { data: invArray } = await supabase.from('invoices')
+              .select('id')
+              .gte('created_at', startTime)
+              .lte('created_at', endTime)
+              .eq('customer_phone', sess.customer_packages.customer_phone);
+              
+            if (invArray && invArray.length > 0) {
+               invoiceCode = invArray[0].id;
+            }
+         }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    
     setDetailModal({
       type: 'session',
-      data: sess,
+      data: { ...sess, original_invoice_code: invoiceCode },
       title: 'Chi tiết Phiếu trừ buổi'
     });
+    setLoading(false);
   };
 
   if (!hasPermission('report.invoice.view')) {
@@ -442,6 +472,12 @@ const Invoices = () => {
                     <span style={{ color: 'var(--text-secondary)' }}>Mã Phiếu:</span>
                     <span style={{ fontWeight: '600' }}>#{detailModal.data.id.slice(0,8)}</span>
                   </div>
+                  {detailModal.data.original_invoice_code && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Mã hoá đơn (Gốc):</span>
+                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.original_invoice_code.slice(0,8)}</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
                     <span style={{ fontWeight: '600' }}>{detailModal.data.customer_packages?.customer_name || 'Khách lẻ'}</span>
