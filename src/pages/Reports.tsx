@@ -142,11 +142,12 @@ const Reports = () => {
         const { data: sale } = await supabase.from('package_sales').select('*').eq('id', log.reference_id).single();
         if (sale && sale.customer_package_id) {
           const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', sale.customer_package_id).single();
+          const { data: prof } = sale.seller_id ? await supabase.from('profiles').select('full_name').eq('id', sale.seller_id).single() : { data: null };
           if (cp) {
             const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
             setDetailModal({ 
               type: 'package_sale', 
-              data: { ...sale, customer: cp, packageName: pkg?.name || 'Gói không xác định' }, 
+              data: { ...sale, customer: cp, packageName: pkg?.name || 'Gói không xác định', staff_name: prof?.full_name || 'Thu ngân / Người bán' }, 
               title: `Chi tiết Bán liệu trình` 
             });
             return;
@@ -157,11 +158,12 @@ const Reports = () => {
         const { data: sess } = await supabase.from('service_sessions').select('*').eq('id', log.reference_id).single();
         if (sess && sess.customer_package_id) {
           const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', sess.customer_package_id).single();
+          const { data: prof } = sess.staff_id ? await supabase.from('profiles').select('full_name').eq('id', sess.staff_id).single() : { data: null };
           if (cp) {
             const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
             setDetailModal({ 
               type: 'package_session', 
-              data: { ...sess, customer: cp, packageName: pkg?.name || 'Gói không xác định' }, 
+              data: { ...sess, customer: cp, packageName: pkg?.name || 'Gói không xác định', staff_name: prof?.full_name || 'Kỹ thuật viên' }, 
               title: `Chi tiết Trừ buổi liệu trình` 
             });
             return;
@@ -413,7 +415,7 @@ const Reports = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Nhân viên:</span>
-                    <span style={{ fontWeight: '600' }}>Thu ngân / Người bán</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.staff_name}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày mua:</span>
@@ -455,7 +457,7 @@ const Reports = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Nhân viên:</span>
-                    <span style={{ fontWeight: '600' }}>Kỹ thuật viên</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.staff_name}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày dùng:</span>
