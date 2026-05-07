@@ -243,6 +243,34 @@ const POS = () => {
         setPkgCardCode(generateCardCode());
         setSelectedPkgId('');
         setPkgDiscountValue(0);
+      } else if (previewInvoiceData.type === 'use_package') {
+        const { cp, technicianId, customerName, customerPhone, cardCode, items, total_sessions, used_sessions } = previewInvoiceData;
+        const svc = cp.packages.services;
+        const unitPrice = cp.sale_price / cp.total_sessions;
+
+        const comm = svc.commission_type === 'percent' ? (svc.price * svc.commission_value) / 100 : svc.commission_value;
+        const { data: sess, error: sessErr } = await supabase.from('service_sessions').insert([{ shop_id: shopId, service_id: svc.id, staff_id: technicianId, customer_package_id: cp.id, revenue_amount: unitPrice, commission_amount: comm }]).select().single();
+        if (sessErr || !sess) throw new Error(`Lỗi trừ buổi: ${sessErr?.message || ''}`);
+
+        await supabase.from('customer_packages').update({ used_sessions: cp.used_sessions + 1, status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' }).eq('id', cp.id);
+        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: unitPrice, type: 'package_session', reference_id: sess.id }]);
+        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: technicianId, amount: comm, type: 'service_execution', reference_id: sess.id, note: `Dùng liệu trình: ${cp.packages.name}` }]);
+
+        setCompletedInvoice({
+          id: sess.id,
+          created_at: new Date().toISOString(),
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          card_code: cardCode,
+          is_use_package: true,
+          used_sessions: used_sessions + 1,
+          total_sessions: total_sessions,
+          items: items
+        });
+
+        setSearchPhone('');
+        setFoundPackages([]);
+        setSelectedCustPkgId('');
       }
       
       setPreviewInvoiceData(null);
@@ -294,45 +322,26 @@ const POS = () => {
     setLoading(false);
   };
 
-  const handleUseSession = async () => {
+  const handleUseSessionClick = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện trừ buổi');
     if (!selectedCustPkgId || !technicianId) return alert('Vui lòng chọn gói và KTV');
-    setLoading(true);
-    try {
-      const cp = foundPackages.find(p => p.id === selectedCustPkgId);
-      const svc = cp.packages.services;
-      const unitPrice = cp.sale_price / cp.total_sessions;
+    
+    const cp = foundPackages.find(p => p.id === selectedCustPkgId);
+    if (!cp) return;
 
-      const comm = svc.commission_type === 'percent' ? (svc.price * svc.commission_value) / 100 : svc.commission_value;
-      const { data: sess } = await supabase.from('service_sessions').insert([{ shop_id: shopId, service_id: svc.id, staff_id: technicianId, customer_package_id: cp.id, revenue_amount: unitPrice, commission_amount: comm }]).select().single();
+    const maskInfo = (str: string) => str ? '*'.repeat(Math.max(0, str.length - 2)) + str.slice(-2) : '';
 
-      await supabase.from('customer_packages').update({ used_sessions: cp.used_sessions + 1, status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' }).eq('id', cp.id);
-      await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: unitPrice, type: 'package_session', reference_id: sess.id }]);
-      await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: technicianId, amount: comm, type: 'service_execution', reference_id: sess.id, note: `Dùng liệu trình: ${cp.packages.name}` }]);
-
-      const maskInfo = (str: string) => str ? '*'.repeat(Math.max(0, str.length - 2)) + str.slice(-2) : '';
-
-      setCompletedInvoice({
-        id: sess.id,
-        created_at: new Date().toISOString(),
-        customer_name: cp.customer_name || 'Khách lẻ',
-        customer_phone: maskInfo(cp.customer_phone),
-        card_code: maskInfo(cp.card_code),
-        is_use_package: true,
-        used_sessions: cp.used_sessions + 1,
-        total_sessions: cp.total_sessions,
-        items: [{ name: `Dùng 1 buổi: ${cp.packages.name}`, price: '-' }]
-      });
-
-      setSearchPhone('');
-      setFoundPackages([]);
-
-      setTimeout(() => {
-        window.print();
-      }, 500);
-
-    } catch (e: any) { alert('Lỗi: ' + e.message); }
-    setLoading(false);
+    setPreviewInvoiceData({
+      type: 'use_package',
+      cp,
+      technicianId,
+      customerName: cp.customer_name || 'Khách lẻ',
+      customerPhone: maskInfo(cp.customer_phone),
+      cardCode: maskInfo(cp.card_code),
+      total_sessions: cp.total_sessions,
+      used_sessions: cp.used_sessions,
+      items: [{ name: `Dùng 1 buổi: ${cp.packages?.name}`, price: '-' }]
+    });
   };
 
   const handlePrint = () => {
@@ -461,7 +470,7 @@ const POS = () => {
                 {selectedCustPkgId && (
                   <div className="premium-card" style={{ background: 'rgba(16, 185, 129, 0.05)' }}>
                     <select className="form-select" value={technicianId} onChange={e => setTechnicianId(e.target.value)}><option value="">-- Kỹ thuật viên --</option>{staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
-                    <button onClick={handleUseSession} disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--success)' }}>{loading ? <Loader2 className="animate-spin" /> : 'Xác nhận trừ buổi'}</button>
+                    <button onClick={handleUseSessionClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--success)' }}>{loading ? <Loader2 className="animate-spin" /> : 'Xác nhận trừ buổi'}</button>
                   </div>
                 )}
               </div>
@@ -599,24 +608,43 @@ const POS = () => {
               {previewInvoiceData.items.map((item: any, idx: number) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>{item.name}</span>
-                  <span>{Number(item.price).toLocaleString()}đ</span>
+                  <span>{item.price === '-' ? '-' : `${Number(item.price).toLocaleString()}đ`}</span>
                 </div>
               ))}
               
               <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Tạm tính:</span>
-                <span>{Number(previewInvoiceData.subtotal).toLocaleString()}đ</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Giảm giá:</span>
-                <span>{Number(previewInvoiceData.discount).toLocaleString()}đ</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
-                <span>TỔNG CỘNG:</span>
-                <span>{Number(previewInvoiceData.finalTotal).toLocaleString()}đ</span>
-              </div>
+              {previewInvoiceData.type === 'use_package' ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Tổng số buổi gói:</span>
+                    <span style={{ fontWeight: '600' }}>{previewInvoiceData.total_sessions}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Đã dùng (Bao gồm lần này):</span>
+                    <span style={{ fontWeight: '600' }}>{previewInvoiceData.used_sessions + 1}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
+                    <span>CÒN LẠI:</span>
+                    <span>{previewInvoiceData.total_sessions - (previewInvoiceData.used_sessions + 1)} buổi</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Tạm tính:</span>
+                    <span>{Number(previewInvoiceData.subtotal).toLocaleString()}đ</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Giảm giá:</span>
+                    <span>{Number(previewInvoiceData.discount).toLocaleString()}đ</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
+                    <span>TỔNG CỘNG:</span>
+                    <span>{Number(previewInvoiceData.finalTotal).toLocaleString()}đ</span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
