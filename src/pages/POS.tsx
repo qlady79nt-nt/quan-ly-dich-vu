@@ -246,13 +246,39 @@ const POS = () => {
   const handleSearchPackage = async () => {
     if (!searchPhone) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data: cpData, error } = await supabase
       .from('customer_packages')
-      .select('*, packages(name, service_id, services(*))')
+      .select('*')
       .eq('shop_id', shopId)
       .or(`customer_phone.ilike.%${searchPhone}%,customer_name.ilike.%${searchPhone}%`)
       .eq('status', 'active');
-    setFoundPackages(data || []);
+
+    if (error) {
+      console.error('Lỗi tìm kiếm gói:', error);
+      alert('Lỗi tìm kiếm gói: ' + error.message);
+      setLoading(false);
+      return;
+    }
+
+    if (cpData && cpData.length > 0) {
+      const packageIds = [...new Set(cpData.map(cp => cp.package_id).filter(Boolean))];
+      let packagesData: any[] = [];
+      if (packageIds.length > 0) {
+        const { data: pkgs } = await supabase.from('packages')
+          .select('id, name, service_id, services(*)')
+          .in('id', packageIds);
+        if (pkgs) packagesData = pkgs;
+      }
+
+      const finalData = cpData.map(cp => ({
+        ...cp,
+        packages: packagesData.find(p => p.id === cp.package_id) || { name: 'Gói không xác định' }
+      }));
+      setFoundPackages(finalData);
+    } else {
+      setFoundPackages([]);
+    }
+    
     setLoading(false);
   };
 
