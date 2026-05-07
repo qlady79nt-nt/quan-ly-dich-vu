@@ -4,7 +4,8 @@ import {
   Users, 
   Loader2,
   FileText,
-  Lock
+  Lock,
+  Search
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -33,7 +34,7 @@ const Reports = () => {
 
   useEffect(() => {
     if (shopId) fetchReportData();
-  }, [shopId, startDate, endDate]);
+  }, [shopId]);
 
   const fetchReportData = async () => {
     setLoading(true);
@@ -224,6 +225,9 @@ const Reports = () => {
             <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Đến:</span>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
           </div>
+          <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Search size={16} /> Tìm kiếm
+          </button>
         </div>
       </div>
 
