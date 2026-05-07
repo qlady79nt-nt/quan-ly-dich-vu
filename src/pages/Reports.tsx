@@ -58,7 +58,7 @@ const Reports = () => {
         if (error) console.error('Lỗi tải revenue_logs:', error);
         revLog = data || [];
         
-        const { data: ps } = await supabase.from('package_sales').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
+        const { data: ps } = await supabase.from('package_sales').select('*, customer_packages(customer_name)').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
         pkgSales = ps || [];
       }
 
@@ -84,12 +84,13 @@ const Reports = () => {
 
 
 
-      // Fetch retail items for staff revenue calculation
+      // Fetch retail items and related invoices for mapping
       let retailItems: any[] = [];
+      let relatedInvoices: any[] = [];
       if (canViewRevenue) {
-         // Because we no longer fetch all invoices by default if we removed the invoices tab, we need to explicitly fetch them for the date range
-         const { data: invs } = await supabase.from('invoices').select('id').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
+         const { data: invs } = await supabase.from('invoices').select('id, customer_id, customers(name)').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
          if (invs && invs.length > 0) {
+            relatedInvoices = invs;
             const invIds = invs.map(i => i.id);
             const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIds).eq('type', 'retail');
             if (items) retailItems = items;
@@ -114,17 +115,27 @@ const Reports = () => {
         totalCashFlow: totalCashFlow
       });
 
-      // Gắn invoice_id vào revenue_logs để hiển thị trực tiếp trên danh sách
+      // Gắn invoice_id và customer_name vào revenue_logs để hiển thị trực tiếp trên danh sách
       const mappedRevLogs = revLog.map((r: any) => {
-        let invId = null;
+        let invId: string | null = null;
+        let cName = 'Khách lẻ';
+        
         if (r.type === 'retail') {
            invId = r.invoice_id || r.reference_id;
+           const inv = relatedInvoices.find(i => i.id === invId);
+           if (inv && inv.customers?.name) cName = inv.customers.name;
         } else if (r.type === 'package_sale') {
            const idToLook = r.package_sale_id || r.reference_id;
            const ps = pkgSales.find((p: any) => p.id === idToLook);
-           if (ps) invId = ps.invoice_id;
+           if (ps) {
+             invId = ps.invoice_id;
+             if (ps.customer_packages?.customer_name) cName = ps.customer_packages.customer_name;
+           }
+        } else if (r.type === 'package_session') {
+           // Not mapping customer for session directly here to save queries, can be fetched if needed
+           cName = 'Khách dùng liệu trình';
         }
-        return { ...r, mapped_invoice_id: invId };
+        return { ...r, mapped_invoice_id: invId, customer_name: cName };
       });
 
       setRevenueData(mappedRevLogs);
@@ -298,9 +309,13 @@ const Reports = () => {
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
                               {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
-                              {r.mapped_invoice_id ? ` #${r.mapped_invoice_id.slice(0,6)}` : ''}
+                              {r.mapped_invoice_id && (r.type === 'retail' || r.type === 'package_sale') ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>#{r.mapped_invoice_id.slice(0,6)}</span> : ''}
                             </span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{new Date(r.recorded_at).toLocaleString('vi-VN')}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{r.customer_name}</span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--border)' }}>•</span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(r.recorded_at).toLocaleString('vi-VN')}</span>
+                            </div>
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
