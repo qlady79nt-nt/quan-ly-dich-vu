@@ -84,17 +84,24 @@ const Reports = () => {
 
 
 
-      // Fetch retail items and related invoices for mapping
       let retailItems: any[] = [];
+      
+      // Fetch retail items and related invoices for mapping (bỏ lọc theo date để đảm bảo không bị hụt hóa đơn)
       let relatedInvoices: any[] = [];
-      if (canViewRevenue) {
-         const { data: invs } = await supabase.from('invoices').select('id, customer_id, customers(name)').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
-         if (invs && invs.length > 0) {
-            relatedInvoices = invs;
-            const invIds = invs.map(i => i.id);
-            const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIds).eq('type', 'retail');
-            if (items) retailItems = items;
-         }
+      const retailInvIds = [...new Set(revLog.filter((r: any) => r.type === 'retail').map((r: any) => r.invoice_id || r.reference_id).filter(Boolean))];
+      
+      if (retailInvIds.length > 0) {
+         const { data: invs } = await supabase.from('invoices').select('id, customer_id, customers(name)').in('id', retailInvIds);
+         if (invs) relatedInvoices = invs;
+      }
+
+      // Fetch related sessions for 'package_session'
+      let relatedSessions: any[] = [];
+      const sessionIds = [...new Set(revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean))];
+      
+      if (sessionIds.length > 0) {
+         const { data: sess } = await supabase.from('service_sessions').select('id, customer_package_id, customer_packages(customer_name)').in('id', sessionIds);
+         if (sess) relatedSessions = sess;
       }
 
       // Calculations
@@ -119,6 +126,7 @@ const Reports = () => {
       const mappedRevLogs = revLog.map((r: any) => {
         let invId: string | null = null;
         let cName = 'Khách lẻ';
+        let sessId: string | null = null;
         
         if (r.type === 'retail') {
            invId = r.invoice_id || r.reference_id;
@@ -132,10 +140,16 @@ const Reports = () => {
              if (ps.customer_packages?.customer_name) cName = ps.customer_packages.customer_name;
            }
         } else if (r.type === 'package_session') {
-           // Not mapping customer for session directly here to save queries, can be fetched if needed
-           cName = 'Khách dùng liệu trình';
+           sessId = r.service_session_id || r.reference_id;
+           const sess = relatedSessions.find(s => s.id === sessId);
+           if (sess && sess.customer_packages) {
+              cName = sess.customer_packages.customer_name || 'Khách thẻ';
+              // Tìm invoice gốc thông qua pkgSales
+              const ps = pkgSales.find((p: any) => p.customer_package_id === sess.customer_package_id);
+              if (ps) invId = ps.invoice_id;
+           }
         }
-        return { ...r, mapped_invoice_id: invId, customer_name: cName };
+        return { ...r, mapped_invoice_id: invId, mapped_session_id: sessId, customer_name: cName };
       });
 
       setRevenueData(mappedRevLogs);
@@ -309,7 +323,12 @@ const Reports = () => {
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
                               {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
-                              {r.mapped_invoice_id && (r.type === 'retail' || r.type === 'package_sale') ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>#{r.mapped_invoice_id.slice(0,6)}</span> : ''}
+                              
+                              {/* Mã hóa đơn cho cả 3 loại */}
+                              {r.mapped_invoice_id ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_id.slice(0,6)}</span> : ''}
+                              
+                              {/* Mã phiếu trừ buổi riêng cho Sử dụng liệu trình */}
+                              {r.type === 'package_session' && r.mapped_session_id ? <span style={{ color: 'var(--success)', marginLeft: '0.25rem' }}>Phiếu: #{r.mapped_session_id.slice(0,6)}</span> : ''}
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
                               <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{r.customer_name}</span>
