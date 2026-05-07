@@ -112,7 +112,19 @@ const Reports = () => {
         totalCashFlow: totalCashFlow
       });
 
-      setRevenueData(revLog);
+      // Gắn invoice_id vào revenue_logs để hiển thị trực tiếp trên danh sách
+      const mappedRevLogs = revLog.map((r: any) => {
+        let invId = null;
+        if (r.type === 'retail') {
+           invId = r.reference_id;
+        } else if (r.type === 'package_sale') {
+           const ps = pkgSales.find((p: any) => p.id === r.reference_id);
+           if (ps) invId = ps.invoice_id;
+        }
+        return { ...r, mapped_invoice_id: invId };
+      });
+
+      setRevenueData(mappedRevLogs);
 
       const staffMap: any = {};
       commLog.forEach((c: any) => {
@@ -164,7 +176,7 @@ const Reports = () => {
             setDetailModal({ 
               type: 'package_sale', 
               data: { ...sale, customer: cp, packageName: pkg?.name || 'Gói không xác định', staff_name: prof?.full_name || 'Thu ngân / Người bán' }, 
-              title: `Chi tiết Bán liệu trình` 
+              title: sale.invoice_id ? `Chi tiết Bán liệu trình #${sale.invoice_id.slice(0,8)}` : `Chi tiết Bán liệu trình` 
             });
             return;
           }
@@ -254,7 +266,13 @@ const Reports = () => {
                       onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                       onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      <span style={{ fontSize: '0.875rem' }}>{r.type === 'retail' ? 'Lẻ' : r.type === 'package_sale' ? 'Bán gói' : 'Dùng gói'} - {new Date(r.recorded_at).toLocaleDateString()}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                         <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>
+                           {r.type === 'retail' ? 'Lẻ' : r.type === 'package_sale' ? 'Bán gói' : 'Dùng gói'} 
+                           {r.mapped_invoice_id ? ` #${r.mapped_invoice_id.slice(0,8)}` : ''}
+                         </span>
+                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(r.recorded_at).toLocaleDateString()}</span>
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <strong style={{ color: 'var(--success)' }}>+{Number(r.amount).toLocaleString()}đ</strong>
                         <FileText size={14} style={{ color: 'var(--text-secondary)' }} />
@@ -431,6 +449,12 @@ const Reports = () => {
 
               {detailModal.type === 'package_sale' && (
                 <div>
+                  {detailModal.data.invoice_id && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Mã Hóa Đơn:</span>
+                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.invoice_id.slice(0,8)}</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
                     <span style={{ fontWeight: '600' }}>{detailModal.data.customer?.customer_name || 'Khách lẻ'}</span>
