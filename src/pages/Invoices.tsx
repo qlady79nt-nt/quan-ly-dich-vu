@@ -214,15 +214,21 @@ const Invoices = () => {
          }
       }
 
-      // 2. Resolve real names for items that only have ref_id
+      // 2. Resolve real names for items
       for (let i = 0; i < items.length; i++) {
         if (!items[i].name) {
           if (items[i].type === 'package_sale' || items[i].type === 'package') {
-            const { data: pkg } = await supabase.from('packages').select('name').eq('id', items[i].ref_id).single();
-            if (pkg) items[i].name = pkg.name;
+            const idToLook = items[i].package_id || items[i].ref_id;
+            if (idToLook) {
+                const { data: pkg } = await supabase.from('packages').select('name').eq('id', idToLook).single();
+                if (pkg) items[i].name = pkg.name;
+            }
           } else if (items[i].type === 'service') {
-            const { data: svc } = await supabase.from('services').select('name').eq('id', items[i].ref_id).single();
-            if (svc) items[i].name = svc.name;
+            const idToLook = items[i].service_id || items[i].ref_id;
+            if (idToLook) {
+                const { data: svc } = await supabase.from('services').select('name').eq('id', idToLook).single();
+                if (svc) items[i].name = svc.name;
+            }
           }
         }
       }

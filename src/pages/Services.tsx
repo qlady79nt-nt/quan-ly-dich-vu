@@ -29,7 +29,7 @@ const Services = () => {
 
   const fetchServices = async () => {
     setLoading(true);
-    let query = supabase.from('services').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('services').select('*').is('deleted_at', null).order('created_at', { ascending: false });
     
     // Nếu không phải super_admin thì mới lọc theo shop_id
     if (profile?.role !== 'super_admin') {
@@ -75,7 +75,7 @@ const Services = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xoá dịch vụ này? Dữ liệu liên quan sẽ bị xoá.')) return;
     
     setLoading(true);
-    const { error } = await supabase.from('services').delete().eq('id', id);
+    const { error } = await supabase.from('services').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     if (!error) {
       fetchServices();
     } else {

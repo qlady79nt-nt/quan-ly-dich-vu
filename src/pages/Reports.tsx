@@ -117,9 +117,10 @@ const Reports = () => {
       const mappedRevLogs = revLog.map((r: any) => {
         let invId = null;
         if (r.type === 'retail') {
-           invId = r.reference_id;
+           invId = r.invoice_id || r.reference_id;
         } else if (r.type === 'package_sale') {
-           const ps = pkgSales.find((p: any) => p.id === r.reference_id);
+           const idToLook = r.package_sale_id || r.reference_id;
+           const ps = pkgSales.find((p: any) => p.id === idToLook);
            if (ps) invId = ps.invoice_id;
         }
         return { ...r, mapped_invoice_id: invId };
@@ -160,15 +161,17 @@ const Reports = () => {
     setLoading(true);
     try {
       if (log.type === 'retail') {
-        const { data: inv } = await supabase.from('invoices').select('*, profiles:created_by(full_name)').eq('id', log.reference_id).single();
-        const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', log.reference_id);
+        const idToLook = log.invoice_id || log.reference_id;
+        const { data: inv } = await supabase.from('invoices').select('*, profiles:created_by(full_name)').eq('id', idToLook).single();
+        const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', idToLook);
         setDetailModal({ 
           type: 'invoice', 
           data: { ...inv, staff_name: inv?.profiles?.full_name || 'Thu ngân', items: items || [] }, 
-          title: `Hoá đơn #${log.reference_id?.slice(0,8) || 'N/A'}` 
+          title: `Hoá đơn #${idToLook?.slice(0,8) || 'N/A'}` 
         });
       } else if (log.type === 'package_sale') {
-        const { data: sale } = await supabase.from('package_sales').select('*').eq('id', log.reference_id).single();
+        const idToLook = log.package_sale_id || log.reference_id;
+        const { data: sale } = await supabase.from('package_sales').select('*').eq('id', idToLook).single();
         if (sale && sale.customer_package_id) {
           const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', sale.customer_package_id).single();
           const { data: prof } = sale.seller_id ? await supabase.from('profiles').select('full_name').eq('id', sale.seller_id).single() : { data: null };
@@ -184,7 +187,8 @@ const Reports = () => {
         }
         setDetailModal({ type: 'generic', data: sale || { message: 'Không tìm thấy dữ liệu' }, title: `Chi tiết Bán gói` });
       } else if (log.type === 'package_session') {
-        const { data: sess } = await supabase.from('service_sessions').select('*').eq('id', log.reference_id).single();
+        const idToLook = log.service_session_id || log.reference_id;
+        const { data: sess } = await supabase.from('service_sessions').select('*').eq('id', idToLook).single();
         if (sess && sess.customer_package_id) {
           const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', sess.customer_package_id).single();
           const { data: prof } = sess.staff_id ? await supabase.from('profiles').select('full_name').eq('id', sess.staff_id).single() : { data: null };

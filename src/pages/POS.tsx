@@ -159,7 +159,7 @@ const POS = () => {
           const { error: itemErr } = await supabase.from('invoice_items').insert([{
             invoice_id: inv.id,
             type: 'service',
-            ref_id: item.id,
+            service_id: item.id,
             staff_id: retailStaffId || profile?.id || null,
             unit_price: item.price,
             final_price: item.price,
@@ -177,11 +177,11 @@ const POS = () => {
             status: 'completed'
           }]).select().single();
 
-          await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: retailStaffId, amount: comm, type: 'service_execution', reference_id: sess.id, note: `Dịch vụ lẻ: ${item.name}` }]);
+          await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: retailStaffId, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dịch vụ lẻ: ${item.name}` }]);
         }
         
         // Chỉ lưu 1 revenue_log tổng cho cả hoá đơn bán lẻ
-        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'retail', reference_id: inv.id }]);
+        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id }]);
 
         setCompletedInvoice({
           id: inv.id,
@@ -227,7 +227,7 @@ const POS = () => {
         const { error: itemErr } = await supabase.from('invoice_items').insert([{
           invoice_id: inv.id,
           type: 'package_sale',
-          ref_id: selectedPkgId,
+          package_id: selectedPkgId,
           staff_id: sellerId || profile?.id || null,
           unit_price: original_price,
           final_price: finalTotal,
@@ -248,8 +248,8 @@ const POS = () => {
         }]).select().single();
         if (saleErr || !sale) throw new Error(`Lỗi tạo giao dịch bán gói: ${saleErr?.message || 'Không có dữ liệu'}`);
 
-        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: validSellerId, amount: salesComm, type: 'package_sale', reference_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
-        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', reference_id: sale.id }]);
+        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: validSellerId, amount: salesComm, type: 'package_sale', package_sale_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
+        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', package_sale_id: sale.id }]);
 
         setCompletedInvoice({ 
           ...inv, 
@@ -271,8 +271,8 @@ const POS = () => {
         if (sessErr || !sess) throw new Error(`Lỗi trừ buổi: ${sessErr?.message || ''}`);
 
         await supabase.from('customer_packages').update({ used_sessions: cp.used_sessions + 1, status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' }).eq('id', cp.id);
-        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: unitPrice, type: 'package_session', reference_id: sess.id }]);
-        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: technicianId, amount: comm, type: 'service_execution', reference_id: sess.id, note: `Dùng liệu trình: ${cp.packages.name}` }]);
+        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: unitPrice, type: 'package_session', service_session_id: sess.id }]);
+        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: technicianId, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dùng liệu trình: ${cp.packages.name}` }]);
 
         setCompletedInvoice({
           id: sess.id,

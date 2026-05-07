@@ -42,7 +42,7 @@ const Packages = () => {
 
   const fetchPackages = async () => {
     setLoading(true);
-    let query = supabase.from('packages').select('*, services(name)').order('created_at', { ascending: false });
+    let query = supabase.from('packages').select('*, services(name)').is('deleted_at', null).order('created_at', { ascending: false });
 
     if (profile?.role !== 'super_admin') {
       if (!shopId) {
@@ -158,7 +158,7 @@ const Packages = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xoá liệu trình này?')) return;
     
     setLoading(true);
-    const { error } = await supabase.from('packages').delete().eq('id', id);
+    const { error } = await supabase.from('packages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     if (!error) {
       fetchPackages();
     } else {
