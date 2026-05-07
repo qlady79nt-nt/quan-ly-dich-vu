@@ -108,22 +108,53 @@ const Invoices = () => {
 
       // 1. Nếu không có items (do lỗi DB uuid ""), ta vẫn có thể khôi phục nếu đây là bán gói
       if (items.length === 0) {
-        const { data: ps } = await supabase.from('package_sales').select('*, profiles:seller_id(full_name), customer_packages(total_sessions, packages(name))').eq('invoice_id', inv.id).single();
-        if (ps) {
+        const { data: psArray, error: psErr } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
+        if (psErr) console.error('Error fetching package_sales:', psErr);
+        
+        if (psArray && psArray.length > 0) {
+          const ps = psArray[0];
           isPackageSale = true;
-          realStaffName = ps.profiles?.full_name || realStaffName;
-          totalSessions = ps.customer_packages?.total_sessions || 0;
-          items.push({ 
-            name: ps.customer_packages?.packages?.name || 'Gói liệu trình', 
-            price: ps.amount_paid 
-          });
+
+          // Manual Join: get seller profile
+          if (ps.seller_id) {
+             const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
+             if (stf) realStaffName = stf.full_name;
+          }
+
+          // Manual Join: get customer_packages
+          if (ps.customer_package_id) {
+             const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
+             if (cp) {
+                totalSessions = cp.total_sessions || 0;
+                if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
+
+                // Manual Join: get package name
+                let pkgName = 'Gói liệu trình';
+                if (cp.package_id) {
+                   const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
+                   if (pkg) pkgName = pkg.name;
+                }
+
+                items.push({ 
+                  name: pkgName, 
+                  price: ps.amount_paid 
+                });
+             }
+          }
         }
       } else if (isPackageSale) {
         // Có items và là bán gói
-        const { data: ps } = await supabase.from('package_sales').select('*, profiles:seller_id(full_name), customer_packages(total_sessions)').eq('invoice_id', inv.id).single();
-        if (ps) {
-          realStaffName = ps.profiles?.full_name || realStaffName;
-          totalSessions = ps.customer_packages?.total_sessions || 0;
+        const { data: psArray } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
+        if (psArray && psArray.length > 0) {
+          const ps = psArray[0];
+          if (ps.seller_id) {
+             const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
+             if (stf) realStaffName = stf.full_name;
+          }
+          if (ps.customer_package_id) {
+             const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
+             if (cp) totalSessions = cp.total_sessions || 0;
+          }
         }
       } else {
         // Bán lẻ
