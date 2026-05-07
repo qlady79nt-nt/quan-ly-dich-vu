@@ -20,16 +20,63 @@ const Invoices = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Invoices (Bán hàng)
-      const { data: invData } = await supabase.from('invoices').select('*, profiles:created_by(full_name)').eq('shop_id', shopId).order('created_at', { ascending: false });
-      setInvoices(invData || []);
+      // 1. Fetch Invoices (Bán hàng) - Manual Join
+      const { data: invData, error: invErr } = await supabase.from('invoices').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
+      if (invErr) console.error(invErr);
+      
+      let finalInvoices = invData || [];
+      if (finalInvoices.length > 0) {
+        const creatorIds = [...new Set(finalInvoices.map(i => i.created_by).filter(Boolean))];
+        if (creatorIds.length > 0) {
+          const { data: profs } = await supabase.from('profiles').select('id, full_name').in('id', creatorIds);
+          finalInvoices = finalInvoices.map(i => ({
+            ...i,
+            profiles: profs?.find(p => p.id === i.created_by) || { full_name: 'Nhân viên' }
+          }));
+        }
+      }
+      setInvoices(finalInvoices);
 
-      // 2. Fetch Sessions (Trừ buổi)
-      const { data: sessData } = await supabase.from('service_sessions')
-        .select('*, customer_packages(customer_name, customer_phone, packages(name)), profiles:staff_id(full_name)')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
-      setSessions(sessData || []);
+      // 2. Fetch Sessions (Trừ buổi) - Manual Join
+      const { data: sessData, error: sessErr } = await supabase.from('service_sessions').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
+      if (sessErr) console.error(sessErr);
+      
+      let finalSessions = sessData || [];
+      if (finalSessions.length > 0) {
+        const cpIds = [...new Set(finalSessions.map(s => s.customer_package_id).filter(Boolean))];
+        const staffIds = [...new Set(finalSessions.map(s => s.staff_id).filter(Boolean))];
+        
+        let cpMap: any[] = [];
+        let packagesMap: any[] = [];
+        let staffMap: any[] = [];
+
+        if (cpIds.length > 0) {
+          const { data: cps } = await supabase.from('customer_packages').select('*').in('id', cpIds);
+          cpMap = cps || [];
+          
+          const pkgIds = [...new Set(cpMap.map(c => c.package_id).filter(Boolean))];
+          if (pkgIds.length > 0) {
+            const { data: pkgs } = await supabase.from('packages').select('id, name').in('id', pkgIds);
+            packagesMap = pkgs || [];
+          }
+        }
+
+        if (staffIds.length > 0) {
+          const { data: staffs } = await supabase.from('profiles').select('id, full_name').in('id', staffIds);
+          staffMap = staffs || [];
+        }
+
+        finalSessions = finalSessions.map(s => {
+          const cp = cpMap.find(c => c.id === s.customer_package_id);
+          const pkg = cp ? packagesMap.find(p => p.id === cp.package_id) : null;
+          return {
+            ...s,
+            customer_packages: cp ? { ...cp, packages: pkg } : null,
+            profiles: staffMap.find(st => st.id === s.staff_id) || { full_name: 'KTV' }
+          };
+        });
+      }
+      setSessions(finalSessions);
     } catch (e) {
       console.error(e);
     }

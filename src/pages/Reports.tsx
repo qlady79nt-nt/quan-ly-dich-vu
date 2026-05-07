@@ -46,11 +46,14 @@ const Reports = () => {
       let pkgSales: any[] = [];
       let commLog: any[] = [];
 
-      const start = `${startDate}T00:00:00.000Z`;
-      const end = `${endDate}T23:59:59.999Z`;
+      const startObj = new Date(startDate + 'T00:00:00');
+      const endObj = new Date(endDate + 'T23:59:59.999');
+      const start = startObj.toISOString();
+      const end = endObj.toISOString();
 
       if (canViewRevenue) {
-        const { data } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
+        const { data, error } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('recorded_at', start).lte('recorded_at', end);
+        if (error) console.error('Lỗi tải revenue_logs:', error);
         revLog = data || [];
         
         const { data: ps } = await supabase.from('package_sales').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end);
