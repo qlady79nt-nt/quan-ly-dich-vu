@@ -72,7 +72,7 @@ const Packages = () => {
   const fetchCustomerPackages = async () => {
     setLoading(true);
     let query = supabase.from('customer_packages')
-      .select('*, packages(name, service_id, services(name))')
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (profile?.role !== 'super_admin') {
@@ -80,12 +80,36 @@ const Packages = () => {
       query = query.eq('shop_id', shopId);
     }
 
-    const { data, error } = await query;
+    const { data: cpData, error } = await query;
     if (error) {
       console.error('Error fetching customer packages:', error);
       alert('Lỗi tải danh sách khách đã mua: ' + error.message);
+      setLoading(false);
+      return;
     }
-    if (data) setCustomerPackages(data);
+
+    if (cpData && cpData.length > 0) {
+      // Lấy danh sách package_id độc nhất
+      const packageIds = [...new Set(cpData.map(cp => cp.package_id).filter(Boolean))];
+      
+      let packagesData: any[] = [];
+      if (packageIds.length > 0) {
+        const { data: pkgs } = await supabase.from('packages')
+          .select('id, name, service_id, services(name)')
+          .in('id', packageIds);
+        if (pkgs) packagesData = pkgs;
+      }
+
+      // Gộp dữ liệu thủ công (Manual Join)
+      const finalData = cpData.map(cp => ({
+        ...cp,
+        packages: packagesData.find(p => p.id === cp.package_id) || { name: 'Gói không xác định (Hoặc đã xóa)' }
+      }));
+      setCustomerPackages(finalData);
+    } else {
+      setCustomerPackages([]);
+    }
+    
     setLoading(false);
   };
 
@@ -229,11 +253,6 @@ const Packages = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-          </div>
-          
-          <div className="premium-card" style={{ marginBottom: '1rem', padding: '1rem', background: '#1e1e1e', color: '#00ff00', fontSize: '10px', overflowX: 'auto', maxHeight: '200px' }}>
-            <strong>DEBUG DATA:</strong>
-            <pre>{JSON.stringify(customerPackages, null, 2)}</pre>
           </div>
           
           <div className="premium-card">
