@@ -177,9 +177,11 @@ const POS = () => {
             status: 'completed'
           }]).select().single();
 
-          await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: item.price, type: 'retail', reference_id: sess.id }]);
           await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: retailStaffId, amount: comm, type: 'service_execution', reference_id: sess.id, note: `Dịch vụ lẻ: ${item.name}` }]);
         }
+        
+        // Chỉ lưu 1 revenue_log tổng cho cả hoá đơn bán lẻ
+        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'retail', reference_id: inv.id }]);
 
         setCompletedInvoice({
           id: inv.id,
