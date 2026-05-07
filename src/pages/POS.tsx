@@ -27,7 +27,8 @@ const POS = () => {
   // --- RETAIL STATE ---
   const [cart, setCart] = useState<any[]>([]);
   const [retailStaffId, setRetailStaffId] = useState('');
-  const [retailDiscount, setRetailDiscount] = useState(0);
+  const [retailDiscountType, setRetailDiscountType] = useState<'amount' | 'percent'>('amount');
+  const [retailDiscountValue, setRetailDiscountValue] = useState(0);
   const [customerName, setRetailCustomerName] = useState('');
 
   // --- SELL PACKAGE STATE ---
@@ -35,6 +36,8 @@ const POS = () => {
   const [pkgCustomerName, setPkgCustomerName] = useState('');
   const [selectedPkgId, setSelectedPkgId] = useState('');
   const [sellerId, setSellerId] = useState('');
+  const [pkgDiscountType, setPkgDiscountType] = useState<'amount' | 'percent'>('amount');
+  const [pkgDiscountValue, setPkgDiscountValue] = useState(0);
 
   // --- USE PACKAGE STATE ---
   const [searchPhone, setSearchPhone] = useState('');
@@ -74,7 +77,10 @@ const POS = () => {
     setLoading(true);
     try {
       const subtotal = cart.reduce((acc, curr) => acc + Number(curr.price), 0);
-      const finalTotal = subtotal - retailDiscount;
+      const discount = retailDiscountType === 'percent' 
+        ? (subtotal * retailDiscountValue) / 100 
+        : retailDiscountValue;
+      const finalTotal = subtotal - discount;
 
       // 1. Tạo Invoice chính
       const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
@@ -82,7 +88,7 @@ const POS = () => {
         customer_name: customerName || 'Khách lẻ',
         created_by: profile?.id,
         total_amount: subtotal,
-        discount_amount: retailDiscount,
+        discount_amount: discount,
         final_amount: finalTotal,
         payment_method: 'cash',
         status: 'paid'
@@ -122,7 +128,7 @@ const POS = () => {
 
       setCompletedInvoice({ ...inv, items: cart });
       setCart([]);
-      setRetailDiscount(0);
+      setRetailDiscountValue(0);
       setRetailCustomerName('');
     } catch (e: any) { alert('Lỗi: ' + e.message); }
     setLoading(false);
@@ -138,14 +144,18 @@ const POS = () => {
       const pkg = packages.find(p => p.id === selectedPkgId);
       
       // 1. Tạo Invoice
+      const basePrice = pkg.sale_price;
+      const additionalDiscount = pkgDiscountType === 'percent' ? (basePrice * pkgDiscountValue) / 100 : pkgDiscountValue;
+      const finalSalePrice = basePrice - additionalDiscount;
+
       const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
         shop_id: shopId,
         customer_name: pkgCustomerName || 'Khách lẻ',
         customer_phone: customerPhone,
         created_by: profile?.id,
         total_amount: pkg.original_price,
-        discount_amount: pkg.original_price - pkg.sale_price,
-        final_amount: pkg.sale_price,
+        discount_amount: pkg.original_price - finalSalePrice,
+        final_amount: finalSalePrice,
         status: 'paid'
       }]).select().single();
       if (invErr) throw invErr;
@@ -158,7 +168,7 @@ const POS = () => {
         customer_phone: customerPhone,
         total_sessions: pkg.total_sessions,
         used_sessions: 0,
-        sale_price: pkg.sale_price
+        sale_price: finalSalePrice
       }]).select().single();
 
       await supabase.from('invoice_items').insert([{
@@ -167,18 +177,19 @@ const POS = () => {
         ref_id: selectedPkgId,
         staff_id: sellerId,
         unit_price: pkg.original_price,
-        final_price: pkg.sale_price
+        final_price: finalSalePrice
       }]);
 
       // 3. Hoa hồng & Giao dịch
-      const salesComm = pkg.commission_sale_type === 'percent' ? (pkg.sale_price * pkg.commission_sale_value) / 100 : pkg.commission_sale_value;
-      const { data: sale } = await supabase.from('package_sales').insert([{ shop_id: shopId, customer_package_id: custPkg.id, seller_id: sellerId, amount_paid: pkg.sale_price, commission_amount: salesComm }]).select().single();
+      const salesComm = pkg.commission_sale_type === 'percent' ? (finalSalePrice * pkg.commission_sale_value) / 100 : pkg.commission_sale_value;
+      const { data: sale } = await supabase.from('package_sales').insert([{ shop_id: shopId, customer_package_id: custPkg.id, seller_id: sellerId, amount_paid: finalSalePrice, commission_amount: salesComm }]).select().single();
       await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: sellerId, amount: salesComm, type: 'package_sale', reference_id: sale.id, note: `Bán gói: ${pkg.name}` }]);
 
-      setCompletedInvoice({ ...inv, items: [{ name: pkg.name, price: pkg.sale_price }] });
+      setCompletedInvoice({ ...inv, items: [{ name: pkg.name, price: finalSalePrice }] });
       setCustomerPhone('');
       setPkgCustomerName('');
       setSelectedPkgId('');
+      setPkgDiscountValue(0);
     } catch (e: any) { alert('Lỗi: ' + e.message); }
     setLoading(false);
   };
@@ -189,7 +200,8 @@ const POS = () => {
     const { data } = await supabase
       .from('customer_packages')
       .select('*, packages(name, service_id, services(*))')
-      .eq('customer_phone', searchPhone)
+      .eq('shop_id', shopId)
+      .or(`customer_phone.ilike.%${searchPhone}%,customer_name.ilike.%${searchPhone}%`)
       .eq('status', 'active');
     setFoundPackages(data || []);
     setLoading(false);
@@ -276,6 +288,21 @@ const POS = () => {
                   {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
                 </select>
               </div>
+              {hasPermission('sale.discount') && (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontWeight: '600' }}>Giảm giá thêm</label>
+                    <input type="number" className="form-input" value={pkgDiscountValue} onChange={e => setPkgDiscountValue(Number(e.target.value))} />
+                  </div>
+                  <div style={{ width: '100px' }}>
+                    <label className="form-label" style={{ fontWeight: '600' }}>Loại</label>
+                    <select className="form-select" value={pkgDiscountType} onChange={e => setPkgDiscountType(e.target.value as any)}>
+                      <option value="amount">VNĐ</option>
+                      <option value="percent">%</option>
+                    </select>
+                  </div>
+                </div>
+              )}
               <button 
                 onClick={handleSellPackage} 
                 disabled={loading || isRestricted()} 
@@ -293,7 +320,7 @@ const POS = () => {
           <div className="animate-fade">
             <div className="premium-card" style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input type="tel" className="form-input" placeholder="Tìm SĐT khách..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
+                <input type="text" className="form-input" placeholder="Tìm SĐT hoặc Tên khách..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
                 <button onClick={handleSearchPackage} className="btn btn-primary"><Search size={18} /></button>
               </div>
             </div>
@@ -342,12 +369,30 @@ const POS = () => {
                 <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.5rem' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
                 <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}><option value="">-- Kỹ thuật viên --</option>{staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
                 {hasPermission('sale.discount') && (
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Giảm giá (đ)</label>
-                    <input type="number" className="form-input" value={retailDiscount} onChange={e => setRetailDiscount(Number(e.target.value))} />
+                  <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Giảm giá</label>
+                      <input type="number" className="form-input" value={retailDiscountValue} onChange={e => setRetailDiscountValue(Number(e.target.value))} />
+                    </div>
+                    <div style={{ width: '100px' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Loại</label>
+                      <select className="form-select" value={retailDiscountType} onChange={e => setRetailDiscountType(e.target.value as any)}>
+                        <option value="amount">VNĐ</option>
+                        <option value="percent">%</option>
+                      </select>
+                    </div>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem' }}><span>Tổng:</span><span style={{ color: 'var(--danger)' }}>{(cart.reduce((a, b) => a + Number(b.price), 0) - retailDiscount).toLocaleString()}đ</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem' }}>
+                  <span>Tổng:</span>
+                  <span style={{ color: 'var(--danger)' }}>
+                    {(() => {
+                      const subtotal = cart.reduce((a, b) => a + Number(b.price), 0);
+                      const discount = retailDiscountType === 'percent' ? (subtotal * retailDiscountValue) / 100 : retailDiscountValue;
+                      return (subtotal - discount).toLocaleString();
+                    })()}đ
+                  </span>
+                </div>
                 <button onClick={handleRetailCheckout} className="btn btn-primary" style={{ width: '100%' }}>THANH TOÁN</button>
               </div>
             )}
