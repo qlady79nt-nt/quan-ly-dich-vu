@@ -158,7 +158,26 @@ const Invoices = () => {
         }
       } else if (isPackageSale) {
         // Có items và là bán gói
-        const { data: psArray } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
+        let { data: psArray } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
+        
+        // Auto-heal cho các hoá đơn cũ bị lỗi thiếu invoice_id trong package_sales
+        if (!psArray || psArray.length === 0) {
+           const createdTime = new Date(inv.created_at).getTime();
+           const startTime = new Date(createdTime - 15000).toISOString();
+           const endTime = new Date(createdTime + 15000).toISOString();
+           
+           const { data: cpArray } = await supabase.from('customer_packages')
+             .select('id')
+             .gte('created_at', startTime)
+             .lte('created_at', endTime)
+             .eq('customer_phone', inv.customer_phone);
+             
+           if (cpArray && cpArray.length > 0) {
+              const { data: healedPs } = await supabase.from('package_sales').select('*').eq('customer_package_id', cpArray[0].id);
+              if (healedPs) psArray = healedPs;
+           }
+        }
+
         if (psArray && psArray.length > 0) {
           const ps = psArray[0];
           if (ps.seller_id) {
@@ -167,7 +186,10 @@ const Invoices = () => {
           }
           if (ps.customer_package_id) {
              const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
-             if (cp) totalSessions = cp.total_sessions || 0;
+             if (cp) {
+                totalSessions = cp.total_sessions || 0;
+                if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
+             }
           }
         }
       } else {
