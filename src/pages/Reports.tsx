@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { createPortal } from 'react-dom';
 
 const Reports = () => {
   const { hasPermission, profile } = useAuth();
@@ -18,6 +19,7 @@ const Reports = () => {
   const [staffData, setStaffData] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [view, setView] = useState<'revenue' | 'commission' | 'invoices'>('revenue');
+  const [detailModal, setDetailModal] = useState<any>(null);
   
   const [stats, setStats] = useState({
     totalRevenue: 0,
@@ -110,10 +112,12 @@ const Reports = () => {
 
       const staffMap: any = {};
       commLog.forEach((c: any) => {
+        const id = c.staff_id;
         const name = c.profiles?.full_name || 'N/A';
-        if (!staffMap[name]) staffMap[name] = { name, execution: 0, sales: 0 };
-        if (c.type === 'service_execution') staffMap[name].execution += Number(c.amount);
-        if (c.type === 'package_sale') staffMap[name].sales += Number(c.amount);
+        if (!staffMap[id]) staffMap[id] = { id, name, execution: 0, sales: 0, logs: [] };
+        if (c.type === 'service_execution') staffMap[id].execution += Number(c.amount);
+        if (c.type === 'package_sale') staffMap[id].sales += Number(c.amount);
+        staffMap[id].logs.push(c);
       });
       setStaffData(Object.values(staffMap));
 
@@ -123,7 +127,27 @@ const Reports = () => {
     setLoading(false);
   };
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '5rem' }}><Loader2 className="animate-spin" size={40} /></div>;
+  const openRevenueDetail = async (log: any) => {
+    setLoading(true);
+    try {
+      if (log.type === 'retail') {
+        const { data: inv } = await supabase.from('invoices').select('*').eq('id', log.reference_id).single();
+        const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', log.reference_id);
+        setDetailModal({ type: 'invoice', data: { ...inv, items: items || [] }, title: `Hoá đơn #${log.reference_id.slice(0,8)}` });
+      } else if (log.type === 'package_sale') {
+        const { data: sale } = await supabase.from('package_sales').select('*').eq('id', log.reference_id).single();
+        setDetailModal({ type: 'generic', data: sale, title: `Chi tiết Bán gói` });
+      } else if (log.type === 'package_session') {
+        const { data: sess } = await supabase.from('service_sessions').select('*').eq('id', log.reference_id).single();
+        setDetailModal({ type: 'generic', data: sess, title: `Chi tiết Trừ buổi` });
+      }
+    } catch (e: any) {
+      alert('Lỗi: ' + e.message);
+    }
+    setLoading(false);
+  };
+
+  if (loading && !detailModal) return <div style={{ textAlign: 'center', padding: '5rem' }}><Loader2 className="animate-spin" size={40} /></div>;
 
   return (
     <div className="animate-fade">
@@ -162,9 +186,18 @@ const Reports = () => {
                 <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}><TrendingUp size={20} /> Nhật ký Doanh thu</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {revenueData.slice(0, 20).map((r, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '0.875rem' }}>{r.type === 'retail' ? 'Lẻ' : 'Gói'} - {new Date(r.recorded_at).toLocaleDateString()}</span>
-                      <strong style={{ color: 'var(--success)' }}>+{Number(r.amount).toLocaleString()}đ</strong>
+                    <div 
+                      key={idx} 
+                      onClick={() => openRevenueDetail(r)}
+                      style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s', borderRadius: '0.5rem' }}
+                      onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span style={{ fontSize: '0.875rem' }}>{r.type === 'retail' ? 'Lẻ' : r.type === 'package_sale' ? 'Bán gói' : 'Dùng gói'} - {new Date(r.recorded_at).toLocaleDateString()}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <strong style={{ color: 'var(--success)' }}>+{Number(r.amount).toLocaleString()}đ</strong>
+                        <FileText size={14} style={{ color: 'var(--text-secondary)' }} />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -194,7 +227,13 @@ const Reports = () => {
                 <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}><Users size={20} /> Bảng thống kê Hoa hồng Nhân viên</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
                   {staffData.map((s, idx) => (
-                    <div key={idx} style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                    <div 
+                      key={idx} 
+                      onClick={() => setDetailModal({ type: 'staff_comm', data: s, title: `Hoa hồng: ${s.name}` })}
+                      style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)', cursor: 'pointer', transition: 'border-color 0.2s' }}
+                      onMouseOver={e => e.currentTarget.style.borderColor = 'var(--primary)'}
+                      onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                    >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: '700' }}>
                         <span>{s.name}</span>
                         <span style={{ color: 'var(--primary)' }}>{(s.execution + s.sales).toLocaleString()}đ</span>
@@ -202,6 +241,9 @@ const Reports = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                         <span>Thực hiện: {s.execution.toLocaleString()}đ</span>
                         <span>Bán gói: {s.sales.toLocaleString()}đ</span>
+                      </div>
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', textAlign: 'right', color: 'var(--text-light)' }}>
+                        <FileText size={12} style={{ display: 'inline', marginRight: '4px' }} /> Xem {s.logs.length} lượt
                       </div>
                     </div>
                   ))}
@@ -245,7 +287,7 @@ const Reports = () => {
                         {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ thanh toán'}
                       </span>
                     </td>
-                    <td><button onClick={() => alert('Chức năng xem chi tiết hoá đơn đang được phát triển')} className="btn" style={{ padding: '0.4rem', background: 'var(--bg-main)' }}><FileText size={14} /></button></td>
+                    <td><button onClick={() => openRevenueDetail({ type: 'retail', reference_id: inv.id })} className="btn" style={{ padding: '0.4rem', background: 'var(--bg-main)' }}><FileText size={14} /></button></td>
                   </tr>
                 ))}
               </tbody>
@@ -255,6 +297,84 @@ const Reports = () => {
           )}
         </div>
       )}
+
+      {/* DETAIL MODAL */}
+      {detailModal && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+              {detailModal.title}
+            </h3>
+            
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1.5rem' }}>
+              {detailModal.type === 'invoice' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.customer_name || 'Khách lẻ'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Ngày tạo:</span>
+                    <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
+                  </div>
+                  
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Sản phẩm / Dịch vụ</h4>
+                  <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
+                    {detailModal.data.items?.map((item: any, idx: number) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span>{item.name || item.service_name || 'Dịch vụ'}</span>
+                        <span>{Number(item.price || item.unit_price).toLocaleString()}đ</span>
+                      </div>
+                    ))}
+                    <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                      <span>Tổng cộng:</span>
+                      <span>{Number(detailModal.data.final_amount).toLocaleString()}đ</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {detailModal.type === 'staff_comm' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ flex: 1, background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.5rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Thực hiện</div>
+                      <div style={{ fontWeight: '700' }}>{Number(detailModal.data.execution).toLocaleString()}đ</div>
+                    </div>
+                    <div style={{ flex: 1, background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.5rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Bán gói</div>
+                      <div style={{ fontWeight: '700' }}>{Number(detailModal.data.sales).toLocaleString()}đ</div>
+                    </div>
+                  </div>
+                  
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Chi tiết các lượt ({detailModal.data.logs.length})</h4>
+                  {detailModal.data.logs.map((c: any, idx: number) => (
+                    <div key={idx} style={{ padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '0.5rem', borderLeft: c.type === 'package_sale' ? '3px solid var(--secondary)' : '3px solid var(--primary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{c.type === 'package_sale' ? 'Bán liệu trình' : 'Dùng liệu trình'}</span>
+                        <span style={{ color: 'var(--primary)', fontWeight: '700' }}>+{Number(c.amount).toLocaleString()}đ</span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{c.note || 'N/A'}</span>
+                        <span>{new Date(c.created_at).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {detailModal.type === 'generic' && (
+                <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.875rem', whiteSpace: 'pre-wrap', overflowX: 'auto' }}>
+                  {JSON.stringify(detailModal.data, null, 2)}
+                </div>
+              )}
+            </div>
+            
+            <button onClick={() => setDetailModal(null)} className="btn" style={{ background: 'var(--bg-main)', width: '100%' }}>Đóng</button>
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 };
