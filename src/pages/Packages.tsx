@@ -83,6 +83,7 @@ const Packages = () => {
     const { data, error } = await query;
     if (error) {
       console.error('Error fetching customer packages:', error);
+      alert('Lỗi tải danh sách khách đã mua: ' + error.message);
     }
     if (data) setCustomerPackages(data);
     setLoading(false);
@@ -228,6 +229,11 @@ const Packages = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+          </div>
+          
+          <div className="premium-card" style={{ marginBottom: '1rem', padding: '1rem', background: '#1e1e1e', color: '#00ff00', fontSize: '10px', overflowX: 'auto', maxHeight: '200px' }}>
+            <strong>DEBUG DATA:</strong>
+            <pre>{JSON.stringify(customerPackages, null, 2)}</pre>
           </div>
           
           <div className="premium-card">
