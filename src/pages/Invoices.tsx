@@ -193,6 +193,7 @@ const Invoices = () => {
            
          if (cpArray && cpArray.length > 0) {
             isPackageSale = true;
+            realStaffName = 'Không xác định (Lỗi hệ thống cũ không lưu)';
             const cp = cpArray[0];
             totalSessions = cp.total_sessions || 0;
             if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
@@ -208,10 +209,6 @@ const Invoices = () => {
               price: cp.sale_price 
             });
          }
-      }
-      
-      if (items.length === 0) {
-        realStaffName = 'Không xác định (Dữ liệu cũ bị lỗi)';
       }
 
       // 2. Resolve real names for items that only have ref_id
