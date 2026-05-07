@@ -209,6 +209,10 @@ const Invoices = () => {
             });
          }
       }
+      
+      if (items.length === 0) {
+        realStaffName = 'Không xác định (Dữ liệu cũ bị lỗi)';
+      }
 
       // 2. Resolve real names for items that only have ref_id
       for (let i = 0; i < items.length; i++) {
@@ -404,18 +408,26 @@ const Invoices = () => {
                   
                   <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Sản phẩm / Dịch vụ</h4>
                   <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
-                    {detailModal.data.items?.map((item: any, idx: number) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <span>{item.name || item.service_name || 'Dịch vụ'}</span>
-                        <span>{Number(item.price || item.unit_price).toLocaleString()}đ</span>
+                    {detailModal.data.items?.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1rem 0', fontStyle: 'italic' }}>
+                        Dữ liệu chi tiết của hoá đơn này đã bị mất do lỗi hệ thống cũ trước khi cập nhật. Vui lòng tạo hoá đơn mới để kiểm tra.
                       </div>
-                    ))}
-                    
-                    {detailModal.data.is_package_sale && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Tổng số buổi mua:</span>
-                        <span style={{ fontWeight: '600' }}>{detailModal.data.total_sessions} buổi</span>
-                      </div>
+                    ) : (
+                      <>
+                        {detailModal.data.items?.map((item: any, idx: number) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <span>{item.name || item.service_name || 'Dịch vụ'}</span>
+                            <span>{Number(item.price || item.unit_price).toLocaleString()}đ</span>
+                          </div>
+                        ))}
+                        
+                        {detailModal.data.is_package_sale && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Tổng số buổi mua:</span>
+                            <span style={{ fontWeight: '600' }}>{detailModal.data.total_sessions} buổi</span>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
