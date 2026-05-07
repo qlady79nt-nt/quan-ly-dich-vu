@@ -131,9 +131,13 @@ const Reports = () => {
     setLoading(true);
     try {
       if (log.type === 'retail') {
-        const { data: inv } = await supabase.from('invoices').select('*').eq('id', log.reference_id).single();
+        const { data: inv } = await supabase.from('invoices').select('*, profiles:created_by(full_name)').eq('id', log.reference_id).single();
         const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', log.reference_id);
-        setDetailModal({ type: 'invoice', data: { ...inv, items: items || [] }, title: `Hoá đơn #${log.reference_id?.slice(0,8) || 'N/A'}` });
+        setDetailModal({ 
+          type: 'invoice', 
+          data: { ...inv, staff_name: inv?.profiles?.full_name || 'Thu ngân', items: items || [] }, 
+          title: `Hoá đơn #${log.reference_id?.slice(0,8) || 'N/A'}` 
+        });
       } else if (log.type === 'package_sale') {
         const { data: sale } = await supabase.from('package_sales').select('*').eq('id', log.reference_id).single();
         if (sale && sale.customer_package_id) {
@@ -338,6 +342,10 @@ const Reports = () => {
                     <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
                     <span style={{ fontWeight: '600' }}>{detailModal.data.customer_name || 'Khách lẻ'}</span>
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.staff_name}</span>
+                  </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày tạo:</span>
                     <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
@@ -403,6 +411,10 @@ const Reports = () => {
                     <span style={{ color: 'var(--text-secondary)' }}>Mã thẻ:</span>
                     <span style={{ fontWeight: '600' }}>{detailModal.data.customer?.card_code || 'Không có'}</span>
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên:</span>
+                    <span style={{ fontWeight: '600' }}>Thu ngân / Người bán</span>
+                  </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày mua:</span>
                     <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
@@ -440,6 +452,10 @@ const Reports = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Mã thẻ:</span>
                     <span style={{ fontWeight: '600' }}>{detailModal.data.customer?.card_code || 'Không có'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên:</span>
+                    <span style={{ fontWeight: '600' }}>Kỹ thuật viên</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày dùng:</span>

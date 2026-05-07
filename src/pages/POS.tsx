@@ -181,7 +181,16 @@ const POS = () => {
           await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: retailStaffId, amount: comm, type: 'service_execution', reference_id: sess.id, note: `Dịch vụ lẻ: ${item.name}` }]);
         }
 
-        setCompletedInvoice({ ...inv, items: cart });
+        setCompletedInvoice({
+          id: inv.id,
+          created_at: inv.created_at,
+          customer_name: customerName || 'Khách lẻ',
+          items: cart,
+          total_amount: subtotal,
+          discount_amount: discount,
+          final_amount: finalTotal,
+          staff_name: staff.find(s => s.id === retailStaffId)?.full_name || profile?.full_name || 'Thu ngân'
+        });
         setCart([]);
         setRetailDiscountValue(0);
         setRetailCustomerName('');
@@ -237,7 +246,11 @@ const POS = () => {
         await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: sellerId, amount: salesComm, type: 'package_sale', reference_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
         await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', reference_id: sale.id }]);
 
-        setCompletedInvoice({ ...inv, items: [{ name: pkg_name, price: original_price }] });
+        setCompletedInvoice({ 
+          ...inv, 
+          items: [{ name: pkg_name, price: original_price }],
+          staff_name: staff.find(s => s.id === sellerId)?.full_name || profile?.full_name || 'Thu ngân'
+        });
         setCustomerPhone('');
         setPkgCustomerName('');
         setPkgCardCode(generateCardCode());
@@ -265,7 +278,8 @@ const POS = () => {
           is_use_package: true,
           used_sessions: used_sessions + 1,
           total_sessions: total_sessions,
-          items: items
+          items: items,
+          staff_name: staff.find(s => s.id === technicianId)?.full_name || profile?.full_name || 'KTV'
         });
 
         setSearchPhone('');
@@ -547,6 +561,7 @@ const POS = () => {
           <p>Khách: {completedInvoice?.customer_name}</p>
           {completedInvoice?.customer_phone && <p>SĐT: {completedInvoice.customer_phone}</p>}
           {completedInvoice?.card_code && <p>Mã thẻ: {completedInvoice.card_code}</p>}
+          <p>Nhân viên: {completedInvoice?.staff_name}</p>
           <p>Ngày: {new Date().toLocaleString()}</p>
         </div>
         <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
