@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Package as PackageIcon, Trash2, Edit2, Loader2, Link2 } from 'lucide-react';
+import { Plus, Package as PackageIcon, Trash2, Edit2, Loader2, Link2, Users, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
@@ -8,11 +8,14 @@ const Packages = () => {
   const { profile, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
 
+  const [activeTab, setActiveTab] = useState<'config' | 'customers'>('config');
   const [packages, setPackages] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [customerPackages, setCustomerPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -28,10 +31,14 @@ const Packages = () => {
 
   useEffect(() => {
     if (profile) {
-      fetchPackages();
-      fetchServices();
+      if (activeTab === 'config') {
+        fetchPackages();
+        fetchServices();
+      } else {
+        fetchCustomerPackages();
+      }
     }
-  }, [profile]);
+  }, [profile, activeTab]);
 
   const fetchPackages = async () => {
     setLoading(true);
@@ -60,6 +67,22 @@ const Packages = () => {
 
     const { data } = await query;
     if (data) setServices(data);
+  };
+
+  const fetchCustomerPackages = async () => {
+    setLoading(true);
+    let query = supabase.from('customer_packages')
+      .select('*, packages(name, service_id, services(name))')
+      .order('created_at', { ascending: false });
+
+    if (profile?.role !== 'super_admin') {
+      if (!shopId) return;
+      query = query.eq('shop_id', shopId);
+    }
+
+    const { data } = await query;
+    if (data) setCustomerPackages(data);
+    setLoading(false);
   };
 
   // Logic tự động tính giá bán khi thay đổi giá gốc hoặc giảm giá
@@ -125,22 +148,35 @@ const Packages = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Liệu trình (Gói)</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Tạo các gói liệu trình nhiều buổi gắn liền với dịch vụ</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Quản lý cấu hình gói và danh sách khách hàng đã mua</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)} 
-          className="btn btn-primary"
-          disabled={isRestricted()}
-          title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
-        >
-          <Plus size={18} />
-          Tạo liệu trình
-        </button>
+        {activeTab === 'config' && (
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className="btn btn-primary"
+            disabled={isRestricted()}
+            title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
+          >
+            <Plus size={18} />
+            Tạo liệu trình
+          </button>
+        )}
+      </div>
+
+      <div className="premium-card" style={{ marginBottom: '1.5rem', padding: '0.5rem' }}>
+        <div style={{ display: 'flex' }}>
+          <button onClick={() => setActiveTab('config')} style={{ flex: 1, padding: '1rem', background: activeTab === 'config' ? 'var(--primary)' : 'transparent', color: activeTab === 'config' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <PackageIcon size={18} /> Cấu hình gói
+          </button>
+          <button onClick={() => setActiveTab('customers')} style={{ flex: 1, padding: '1rem', background: activeTab === 'customers' ? 'var(--primary)' : 'transparent', color: activeTab === 'customers' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <Users size={18} /> Khách đã mua
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /> Đang tải...</div>
-      ) : (
+      ) : activeTab === 'config' ? (
         <div className="grid grid-cols-2">
           {packages.map((p) => (
             <div key={p.id} className="premium-card">
@@ -174,6 +210,74 @@ const Packages = () => {
               </div>
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="animate-fade">
+          <div className="premium-card" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ position: 'relative', maxWidth: '400px' }}>
+              <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Tìm theo tên hoặc số điện thoại..." 
+                style={{ paddingLeft: '2.75rem' }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="premium-card">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                  <th style={{ padding: '1rem' }}>Khách hàng</th>
+                  <th>Gói liệu trình</th>
+                  <th>Tiến độ</th>
+                  <th>Trạng thái</th>
+                  <th>Ngày mua</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customerPackages.filter(cp => 
+                  cp.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  cp.customer_phone?.includes(searchTerm)
+                ).map(cp => (
+                  <tr key={cp.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ fontWeight: '600' }}>{cp.customer_name || 'Khách lẻ'}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{cp.customer_phone}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{cp.packages?.name}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{Number(cp.sale_price).toLocaleString()}đ</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ flex: 1, height: '8px', background: 'var(--bg-main)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
+                        </div>
+                        <span style={{ fontWeight: '600', minWidth: '40px' }}>{cp.used_sessions}/{cp.total_sessions}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge ${cp.status === 'active' ? 'badge-success' : 'badge-secondary'}`}>
+                        {cp.status === 'active' ? 'Đang dùng' : 'Đã xong'}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{new Date(cp.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+                {customerPackages.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+                      Chưa có khách hàng nào mua liệu trình
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
