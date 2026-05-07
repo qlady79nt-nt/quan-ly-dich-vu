@@ -22,6 +22,7 @@ const POS = () => {
   const [services, setServices] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
+  const [customersList, setCustomersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<any>(null);
   const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
@@ -32,6 +33,7 @@ const POS = () => {
   const [retailDiscountType, setRetailDiscountType] = useState<'amount' | 'percent'>('amount');
   const [retailDiscountValue, setRetailDiscountValue] = useState(0);
   const [customerName, setRetailCustomerName] = useState('');
+  const [retailCustomerId, setRetailCustomerId] = useState('');
 
   // --- SELL PACKAGE STATE ---
   const generateCardCode = () => {
@@ -62,14 +64,16 @@ const POS = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [svc, pkg, stf] = await Promise.all([
-      supabase.from('services').select('*').eq('shop_id', shopId).eq('status', 'active'),
-      supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).eq('status', 'active'),
-      supabase.from('profiles').select('*').eq('shop_id', shopId).eq('status', 'active')
+    const [svc, pkg, stf, custs] = await Promise.all([
+      supabase.from('services').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
+      supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
+      supabase.from('profiles').select('*').eq('shop_id', shopId).eq('status', 'active'),
+      supabase.from('customers').select('*').eq('shop_id', shopId).is('deleted_at', null)
     ]);
     setServices(svc.data || []);
     setPackages(pkg.data || []);
     setStaff(stf.data || []);
+    setCustomersList(custs.data || []);
     setLoading(false);
   };
 
@@ -97,7 +101,8 @@ const POS = () => {
       subtotal,
       discount,
       finalTotal,
-      customerName: customerName || 'Khách lẻ'
+      customerName: retailCustomerId ? customersList.find(c => c.id === retailCustomerId)?.name : (customerName || 'Khách lẻ'),
+      customerId: retailCustomerId || null
     });
   };
 
@@ -138,11 +143,12 @@ const POS = () => {
 
     try {
       if (previewInvoiceData.type === 'retail') {
-        const { subtotal, discount, finalTotal, customerName } = previewInvoiceData;
+        const { subtotal, discount, finalTotal, customerName, customerId } = previewInvoiceData;
 
         // 1. Tạo Invoice chính
         const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
           shop_id: shopId,
+          customer_id: customerId,
           customer_name: customerName,
           created_by: profile?.id,
           total_amount: subtotal,
@@ -196,6 +202,7 @@ const POS = () => {
         setCart([]);
         setRetailDiscountValue(0);
         setRetailCustomerName('');
+        setRetailCustomerId('');
       } else if (previewInvoiceData.type === 'sell_package') {
         const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
         
@@ -521,7 +528,13 @@ const POS = () => {
             </div>
             {cart.length > 0 && (
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.5rem' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
+                <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailCustomerId} onChange={e => { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }}>
+                  <option value="">Khách vãng lai (Nhập tên)</option>
+                  {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
+                </select>
+                {!retailCustomerId && (
+                  <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.5rem' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
+                )}
                 <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}><option value="">-- Kỹ thuật viên --</option>{staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
                 {hasPermission('sale.discount') && (
                   <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>

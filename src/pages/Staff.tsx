@@ -41,7 +41,7 @@ const Staff = () => {
 
   const fetchStaff = async () => {
     setLoading(true);
-    let query = supabase.from('profiles').select('*, user_permissions(permission)').order('created_at', { ascending: false });
+    let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
 
     if (profile?.role !== 'super_admin') {
       if (!shopId) {
@@ -52,7 +52,28 @@ const Staff = () => {
     }
 
     const { data, error } = await query;
-    if (!error) setStaff(data || []);
+    if (!error && data) {
+      const userIds = data.map(p => p.id);
+      let permissionsMap: any = {};
+      
+      if (userIds.length > 0) {
+        const { data: perms } = await supabase.from('user_permissions').select('*').in('user_id', userIds);
+        if (perms) {
+          perms.forEach(p => {
+            if (!permissionsMap[p.user_id]) permissionsMap[p.user_id] = [];
+            permissionsMap[p.user_id].push(p);
+          });
+        }
+      }
+      
+      const mappedStaff = data.map(s => ({
+        ...s,
+        user_permissions: permissionsMap[s.id] || []
+      }));
+      setStaff(mappedStaff);
+    } else {
+      setStaff([]);
+    }
     setLoading(false);
   };
 
