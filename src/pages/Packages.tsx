@@ -16,6 +16,7 @@ const Packages = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -138,17 +139,23 @@ const Packages = () => {
     // Ánh xạ price = sale_price để thoả mãn database constraint
     const payload = { ...formData, shop_id: shopId, price: formData.sale_price };
 
-    const { error } = await supabase
-      .from('packages')
-      .insert([payload]);
+    let error;
+    if (editingId) {
+      const { error: updateErr } = await supabase.from('packages').update(payload).eq('id', editingId);
+      error = updateErr;
+    } else {
+      const { error: insertErr } = await supabase.from('packages').insert([payload]);
+      error = insertErr;
+    }
 
     if (!error) {
       fetchPackages();
       setIsModalOpen(false);
+      setEditingId(null);
       setFormData({ name: '', service_id: '', total_sessions: 10, original_price: 0, discount_type: 'none', discount_value: 0, sale_price: 0, commission_sale_type: 'percent', commission_sale_value: 5 });
     } else {
-      console.error('Package creation error:', error);
-      alert('Lỗi khi tạo liệu trình: ' + error.message);
+      console.error('Package save error:', error);
+      alert(`Lỗi khi ${editingId ? 'cập nhật' : 'tạo'} liệu trình: ` + error.message);
     }
     setSaving(false);
   };
@@ -167,8 +174,21 @@ const Packages = () => {
     }
   };
 
-  const handleEdit = () => {
-    alert('Tính năng chỉnh sửa đang được phát triển. Vui lòng xoá và tạo lại liệu trình mới.');
+  const handleEdit = (pkg: any) => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
+    setEditingId(pkg.id);
+    setFormData({
+      name: pkg.name,
+      service_id: pkg.service_id,
+      total_sessions: pkg.total_sessions,
+      original_price: pkg.original_price,
+      discount_type: pkg.discount_type || 'none',
+      discount_value: pkg.discount_value || 0,
+      sale_price: pkg.sale_price,
+      commission_sale_type: pkg.commission_sale_type || 'percent',
+      commission_sale_value: pkg.commission_sale_value || 0
+    });
+    setIsModalOpen(true);
   };
 
   return (
@@ -180,7 +200,11 @@ const Packages = () => {
         </div>
         {activeTab === 'config' && (
           <button 
-            onClick={() => setIsModalOpen(true)} 
+            onClick={() => {
+              setEditingId(null);
+              setFormData({ name: '', service_id: '', total_sessions: 10, original_price: 0, discount_type: 'none', discount_value: 0, sale_price: 0, commission_sale_type: 'percent', commission_sale_value: 5 });
+              setIsModalOpen(true);
+            }} 
             className="btn btn-primary"
             disabled={isRestricted()}
             title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
@@ -232,7 +256,7 @@ const Packages = () => {
                   <div>HH Bán: <strong>{p.commission_sale_type === 'percent' ? `${p.commission_sale_value}%` : `${p.commission_sale_value}đ`}</strong></div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={handleEdit} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
+                  <button onClick={() => handleEdit(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
                   <button onClick={() => handleDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={14} /></button>
                 </div>
               </div>
@@ -317,8 +341,8 @@ const Packages = () => {
       {/* Modal */}
       {isModalOpen && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>Thiết lập liệu trình mới</h3>
+          <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ marginBottom: '1.5rem' }}>{editingId ? 'Sửa thông tin Liệu trình' : 'Thiết lập Liệu trình mới'}</h3>
             <form onSubmit={handleCreate}>
               <div className="grid grid-cols-2" style={{ gap: '1.25rem' }}>
                 <div style={{ gridColumn: 'span 2' }}>
@@ -389,7 +413,7 @@ const Packages = () => {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ background: 'var(--border)' }}>Hủy</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? <Loader2 className="animate-spin" /> : 'Lưu liệu trình'}
+                  {saving ? <Loader2 className="animate-spin" /> : editingId ? 'Cập nhật' : 'Lưu liệu trình'}
                 </button>
               </div>
             </form>
