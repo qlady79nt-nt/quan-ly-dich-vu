@@ -310,9 +310,27 @@ const POS = () => {
       await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: unitPrice, type: 'package_session', reference_id: sess.id }]);
       await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: technicianId, amount: comm, type: 'service_execution', reference_id: sess.id, note: `Dùng liệu trình: ${cp.packages.name}` }]);
 
-      alert('Đã trừ 1 buổi thành công!');
+      const maskInfo = (str: string) => str ? '*'.repeat(Math.max(0, str.length - 2)) + str.slice(-2) : '';
+
+      setCompletedInvoice({
+        id: sess.id,
+        created_at: new Date().toISOString(),
+        customer_name: cp.customer_name || 'Khách lẻ',
+        customer_phone: maskInfo(cp.customer_phone),
+        card_code: maskInfo(cp.card_code),
+        is_use_package: true,
+        used_sessions: cp.used_sessions + 1,
+        total_sessions: cp.total_sessions,
+        items: [{ name: `Dùng 1 buổi: ${cp.packages.name}`, price: '-' }]
+      });
+
       setSearchPhone('');
       setFoundPackages([]);
+
+      setTimeout(() => {
+        window.print();
+      }, 500);
+
     } catch (e: any) { alert('Lỗi: ' + e.message); }
     setLoading(false);
   };
@@ -513,11 +531,13 @@ const POS = () => {
       <div className="print-only" style={{ padding: '20px', fontFamily: 'monospace', width: '300px' }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <h2 style={{ margin: 0 }}>SPA & POS</h2>
-          <p style={{ fontSize: '12px' }}>Hoá đơn thanh toán</p>
+          <p style={{ fontSize: '12px' }}>{completedInvoice?.is_use_package ? 'BIÊN NHẬN DÙNG LIỆU TRÌNH' : 'HOÁ ĐƠN THANH TOÁN'}</p>
         </div>
         <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
           <p>Mã: #{completedInvoice?.id.slice(0,8)}</p>
           <p>Khách: {completedInvoice?.customer_name}</p>
+          {completedInvoice?.customer_phone && <p>SĐT: {completedInvoice.customer_phone}</p>}
+          {completedInvoice?.card_code && <p>Mã thẻ: {completedInvoice.card_code}</p>}
           <p>Ngày: {new Date().toLocaleString()}</p>
         </div>
         <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
@@ -528,11 +548,23 @@ const POS = () => {
             </div>
           ))}
         </div>
-        <div style={{ textAlign: 'right', fontSize: '14px' }}>
-          <p>Tạm tính: {Number(completedInvoice?.total_amount).toLocaleString()}đ</p>
-          <p>Giảm giá: {Number(completedInvoice?.discount_amount).toLocaleString()}đ</p>
-          <h3 style={{ margin: '5px 0' }}>TỔNG: {Number(completedInvoice?.final_amount).toLocaleString()}đ</h3>
-        </div>
+        
+        {completedInvoice?.is_use_package ? (
+          <div style={{ textAlign: 'right', fontSize: '14px' }}>
+            <p>Tổng số buổi gói: {completedInvoice?.total_sessions}</p>
+            <p>Đã dùng (Bao gồm lần này): {completedInvoice?.used_sessions}</p>
+            <h3 style={{ margin: '10px 0', fontSize: '16px' }}>
+              CÒN LẠI: {completedInvoice?.total_sessions - completedInvoice?.used_sessions} buổi
+            </h3>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'right', fontSize: '14px' }}>
+            <p>Tạm tính: {Number(completedInvoice?.total_amount).toLocaleString()}đ</p>
+            <p>Giảm giá: {Number(completedInvoice?.discount_amount).toLocaleString()}đ</p>
+            <h3 style={{ margin: '5px 0' }}>TỔNG: {Number(completedInvoice?.final_amount).toLocaleString()}đ</h3>
+          </div>
+        )}
+        
         <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '10px' }}>
           <p>Cảm ơn quý khách! Hẹn gặp lại.</p>
         </div>
