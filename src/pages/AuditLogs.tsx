@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldAlert, Loader2, Search, Filter, History } from 'lucide-react';
+import { ShieldAlert, Loader2, Search, History } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
