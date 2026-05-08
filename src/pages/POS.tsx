@@ -362,9 +362,7 @@ const POS = () => {
   const handleUseSessionClick = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện trừ buổi');
     if (!selectedCustPkgId) return alert('Vui lòng chọn thẻ liệu trình');
-    if (!technicianId) {
-      if (!window.confirm("⚠️ Chưa chọn kỹ thuật viên!\n\nGiao dịch này sẽ KHÔNG được tính hoa hồng cho bất kỳ ai.\nBạn có chắc chắn muốn tiếp tục trừ buổi?")) return;
-    }
+    if (!technicianId) return alert('Vui lòng chọn Kỹ thuật viên (Bắt buộc đối với nghiệp vụ trừ buổi)');
     
     const cp = foundPackages.find(p => p.id === selectedCustPkgId);
     if (!cp) return;
