@@ -78,6 +78,10 @@ const Reports = () => {
         }
       }
 
+      // Lấy toàn bộ danh sách nhân viên của shop để map đủ cả những người không có commission_logs
+      const { data: allStaffs } = await supabase.from('staffs').select('id, full_name').eq('shop_id', shopId);
+      const staffList = allStaffs || [];
+
 
 
       let retailItems: any[] = [];
@@ -170,27 +174,47 @@ const Reports = () => {
       setRevenueData(mappedRevLogs);
 
       const staffMap: any = {};
+      const getStaffName = (id: string) => {
+        const s = staffList.find(st => st.id === id);
+        return s ? s.full_name : 'Nhân viên (Đã xoá)';
+      };
+
+      const ensureStaff = (id: string) => {
+        if (!staffMap[id]) staffMap[id] = { id, name: getStaffName(id), execution: 0, sales: 0, logs: [], revenueGenerated: 0 };
+      };
+
+      // Đưa những người có commission_logs vào map
       commLog.forEach((c: any) => {
         const id = c.staff_id;
-        const name = c.staffs?.full_name || 'N/A';
-        if (!staffMap[id]) staffMap[id] = { id, name, execution: 0, sales: 0, logs: [], revenueGenerated: 0 };
-        if (c.type === 'service_execution') staffMap[id].execution += Number(c.amount);
-        if (c.type === 'package_sale' || c.type === 'retail') staffMap[id].sales += Number(c.amount);
-        staffMap[id].logs.push(c);
+        if (id) {
+          ensureStaff(id);
+          if (c.type === 'service_execution') staffMap[id].execution += Number(c.amount);
+          if (c.type === 'package_sale' || c.type === 'retail') staffMap[id].sales += Number(c.amount);
+          staffMap[id].logs.push(c);
+        }
       });
       
+      // Tính doanh số thực thu từ package_sales
       relatedPkgSales.forEach((ps: any) => {
-        if (ps.seller_id && staffMap[ps.seller_id]) {
+        if (ps.seller_id) {
+          ensureStaff(ps.seller_id);
           staffMap[ps.seller_id].revenueGenerated += Number(ps.amount_paid);
         }
       });
+      // Tính doanh số thực thu từ retail items
       retailItems.forEach((ri: any) => {
-        if (ri.staff_id && staffMap[ri.staff_id]) {
+        if (ri.staff_id) {
+          ensureStaff(ri.staff_id);
           staffMap[ri.staff_id].revenueGenerated += Number(ri.final_price || ri.price);
         }
       });
 
-      setStaffData(Object.values(staffMap));
+      // Lọc ra nhân viên CÓ PHÁT SINH dữ liệu (để không hiện những người ko làm gì)
+      const activeStaffData = Object.values(staffMap).filter((s: any) => 
+        s.execution > 0 || s.sales > 0 || s.revenueGenerated > 0 || s.logs.length > 0
+      );
+
+      setStaffData(activeStaffData);
 
     } catch (e) {
       console.error(e);
@@ -215,7 +239,7 @@ const Reports = () => {
         const { data: sale } = await supabase.from('package_sales').select('*').eq('id', idToLook).single();
         if (sale && sale.customer_package_id) {
           const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', sale.customer_package_id).single();
-          const { data: prof } = sale.seller_id ? await supabase.from('profiles').select('full_name').eq('id', sale.seller_id).single() : { data: null };
+          const { data: prof } = sale.seller_id ? await supabase.from('staffs').select('full_name').eq('id', sale.seller_id).single() : { data: null };
           if (cp) {
             const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
             setDetailModal({ 
@@ -227,12 +251,16 @@ const Reports = () => {
           }
         }
         setDetailModal({ type: 'generic', data: sale || { message: 'Không tìm thấy dữ liệu' }, title: `Chi tiết Bán gói` });
-      } else if (log.type === 'package_session') {
+      } else if (log.type === 'package_session' || log.type === 'service_execution') {
         const idToLook = log.service_session_id || log.reference_id;
+        if (!idToLook) {
+          setDetailModal({ type: 'generic', data: log, title: `Chi tiết Dịch vụ` });
+          return;
+        }
         const { data: sess } = await supabase.from('service_sessions').select('*').eq('id', idToLook).single();
         if (sess && sess.customer_package_id) {
           const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', sess.customer_package_id).single();
-          const { data: prof } = sess.staff_id ? await supabase.from('profiles').select('full_name').eq('id', sess.staff_id).single() : { data: null };
+          const { data: prof } = sess.staff_id ? await supabase.from('staffs').select('full_name').eq('id', sess.staff_id).single() : { data: null };
           if (cp) {
             const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
             setDetailModal({ 
@@ -243,7 +271,7 @@ const Reports = () => {
             return;
           }
         }
-        setDetailModal({ type: 'generic', data: sess || { message: 'Không tìm thấy dữ liệu' }, title: `Chi tiết Trừ buổi` });
+        setDetailModal({ type: 'generic', data: sess || log || { message: 'Không tìm thấy dữ liệu' }, title: `Chi tiết Thực hiện dịch vụ` });
       }
     } catch (e: any) {
       alert('Lỗi: ' + e.message);
@@ -428,7 +456,7 @@ const Reports = () => {
                                     onClick={() => openRevenueDetail(log)}
                                     style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                                   >
-                                    #{log.reference_id?.slice(0,8)} <FileText size={12} />
+                                    #{(log.service_session_id || log.package_sale_id || log.invoice_id || log.reference_id || 'N/A')?.slice(0,8)} <FileText size={12} />
                                   </button>
                                 </td>
                                 <td style={{ padding: '0.75rem 0.5rem' }}>
