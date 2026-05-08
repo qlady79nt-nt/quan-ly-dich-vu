@@ -30,6 +30,7 @@ import Beds from './pages/Beds';
 import Customers from './pages/Customers';
 import Register from './pages/Register';
 import Landing from './pages/Landing';
+import AuditLogs from './pages/AuditLogs';
 
 // --- LAYOUT COMPONENT ---
 const MainLayout = () => {
@@ -42,7 +43,8 @@ const MainLayout = () => {
   if (profile?.role === 'super_admin') {
     menuItems = [
       { path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
-      { path: '/app/shops', label: 'Quản lý Cửa hàng', icon: LayoutGrid }
+      { path: '/app/shops', label: 'Quản lý Cửa hàng', icon: LayoutGrid },
+      { path: '/app/audit-logs', label: 'Nhật ký Hệ thống', icon: ShieldAlert }
     ];
   } else {
     menuItems = [
@@ -180,6 +182,7 @@ function App() {
             <Route path="pos" element={<POS />} />
             <Route path="reports" element={<Reports />} />
             <Route path="shops" element={<ProtectedRoute allowedRoles={['super_admin']}><Shops /></ProtectedRoute>} />
+            <Route path="audit-logs" element={<ProtectedRoute allowedRoles={['super_admin']}><AuditLogs /></ProtectedRoute>} />
           </Route>
           {/* Redirect old dashboard path if needed */}
           <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
