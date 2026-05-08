@@ -26,7 +26,8 @@ const Beds = () => {
     } else if (profile?.role === 'super_admin') {
       setLoading(false);
     }
-    const timer = setInterval(() => setNow(new Date()), 60000);
+    // Cập nhật biến now mỗi giây để đồng hồ nhảy phút chính xác và mượt mà hơn
+    const timer = setInterval(() => setNow(new Date()), 1000);
 
     const handleAfterPrint = () => {
       setCompletedInvoice(null);
@@ -215,7 +216,13 @@ const Beds = () => {
               </div>
               <h4 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: '800' }}>{bed.name}</h4>
               
-              {bed.session ? (
+              {bed.session ? (() => {
+                const expectedMinutes = bed.session.services?.duration_minutes || 60;
+                const elapsedMinutes = bed.session.start_time ? Math.floor((now.getTime() - new Date(bed.session.start_time).getTime()) / 60000) : 0;
+                const remainingMinutes = expectedMinutes - elapsedMinutes;
+                const isOvertime = remainingMinutes < 0;
+
+                return (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-light)' }}>Khách:</span> <strong>{bed.session.retail_customer_name || 'Khách lẻ'}</strong>
@@ -227,17 +234,25 @@ const Beds = () => {
                     <span style={{ color: 'var(--text-light)' }}>KTV:</span> <strong>{bed.session.staffs?.full_name}</strong>
                   </div>
                   
-                  <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px dashed var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--warning)', fontWeight: '700' }}>
-                      <Clock size={16} />
-                      {bed.session.start_time ? Math.floor((now.getTime() - new Date(bed.session.start_time).getTime()) / 60000) : 0} phút
+                  <div style={{ background: isOvertime ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Dự kiến: {expectedMinutes}p</span>
+                      <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>Đã làm: {elapsedMinutes}p</span>
                     </div>
-                    <button onClick={() => openCheckout(bed.session)} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isOvertime ? 'var(--danger)' : 'var(--warning)', fontWeight: '800', fontSize: '1.1rem' }}>
+                      <Clock size={18} />
+                      {isOvertime ? `Quá giờ: +${Math.abs(remainingMinutes)} phút` : `Còn: ${remainingMinutes} phút`}
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={() => openCheckout(bed.session)} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', width: '100%' }}>
                       TÍNH TIỀN
                     </button>
                   </div>
                 </div>
-              ) : (
+                );
+              })() : (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', fontSize: '0.875rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px dashed var(--border)' }}>
                   Chỗ đang trống
                 </div>
