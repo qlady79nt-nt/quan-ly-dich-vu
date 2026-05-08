@@ -308,7 +308,7 @@ const Invoices = () => {
           await supabase.from('commission_logs').update({ status: 'cancelled' }).in('invoice_item_id', invItems.map(i => i.id));
        }
        
-       await supabase.from('audit_logs').insert([{
+       const { error: auditErr } = await supabase.from('audit_logs').insert([{
           shop_id: shopId,
           actor_id: profile?.id,
           action_type: 'DELETE_INVOICE',
@@ -316,6 +316,11 @@ const Invoices = () => {
           entity_id: detailModal.data.id,
           description: `Hủy hóa đơn #${detailModal.data.id.slice(0,8)} - Lý do: ${cancelReason}`
        }]);
+       
+       if (auditErr) {
+         console.error('Lỗi khi ghi Audit Log:', auditErr);
+         alert('Lỗi khi ghi Nhật ký: ' + auditErr.message);
+       }
 
        fetchData();
        setDetailModal(null);
