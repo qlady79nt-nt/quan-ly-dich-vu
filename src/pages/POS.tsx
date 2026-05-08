@@ -136,6 +136,7 @@ const POS = () => {
       sellerId,
       total_sessions: pkg.total_sessions,
       original_price: pkg.original_price,
+      pkg_sale_price: basePrice,
       commission_sale_type: pkg.commission_sale_type,
       commission_sale_value: pkg.commission_sale_value,
       pkg_name: pkg.name
@@ -211,7 +212,7 @@ const POS = () => {
         setRetailCustomerName('');
         setRetailCustomerId('');
       } else if (previewInvoiceData.type === 'sell_package') {
-        const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
+        const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
         
         const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
           shop_id: shopId,
@@ -249,7 +250,7 @@ const POS = () => {
         }]);
         if (itemErr) throw new Error(`Lỗi lưu dịch vụ gói: ${itemErr.message}`);
 
-        const salesComm = commission_sale_type === 'percent' ? (finalTotal * commission_sale_value) / 100 : commission_sale_value;
+        const salesComm = commission_sale_type === 'percent' ? (pkg_sale_price * commission_sale_value) / 100 : commission_sale_value;
         const validSellerId = sellerId || null;
 
         const { data: sale, error: saleErr } = await supabase.from('package_sales').insert([{ 
