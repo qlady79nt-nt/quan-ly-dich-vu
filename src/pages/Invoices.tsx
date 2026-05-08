@@ -434,7 +434,7 @@ const Invoices = () => {
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên bán hàng:</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên / KTV:</span>
                     <span style={{ fontWeight: '600' }}>{detailModal.data.real_staff_name}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
