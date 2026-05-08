@@ -34,6 +34,8 @@ const POS = () => {
   const [retailDiscountValue, setRetailDiscountValue] = useState(0);
   const [customerName, setRetailCustomerName] = useState('');
   const [retailCustomerId, setRetailCustomerId] = useState('');
+  const [retailBedId, setRetailBedId] = useState('');
+  const [bedsList, setBedsList] = useState<any[]>([]);
 
   // --- SELL PACKAGE STATE ---
   const generateCardCode = () => {
@@ -64,48 +66,72 @@ const POS = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [svc, pkg, stf, custs] = await Promise.all([
+    const [svc, pkg, stf, custs, bds] = await Promise.all([
       supabase.from('services').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('staffs').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
-      supabase.from('customers').select('*').eq('shop_id', shopId).is('deleted_at', null)
+      supabase.from('customers').select('*').eq('shop_id', shopId).is('deleted_at', null),
+      supabase.from('beds').select('*').eq('shop_id', shopId).eq('status', 'available').order('name')
     ]);
     setServices(svc.data || []);
     setPackages(pkg.data || []);
     setStaff(stf.data || []);
     setCustomersList(custs.data || []);
+    setBedsList(bds.data || []);
     setLoading(false);
   };
 
   const addToCart = (svc: any) => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán hàng');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền tạo đơn hàng');
-    setCart([...cart, { ...svc, cartId: Math.random() }]);
+    setCart([{ ...svc, cartId: Math.random() }]); // Chỉ cho phép 1 dịch vụ 1 lần
   };
 
-  const handleRetailCheckoutClick = () => {
+  const handleRetailCheckoutClick = async () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện thanh toán');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thanh toán');
     if (cart.length === 0) return alert('Giỏ hàng trống');
-    if (!retailStaffId) {
-      if (!window.confirm("⚠️ Chưa chọn kỹ thuật viên!\n\nGiao dịch này sẽ KHÔNG được tính hoa hồng cho bất kỳ ai.\nBạn có chắc chắn muốn tiếp tục thanh toán?")) return;
-    }
+    if (!retailStaffId) return alert('Vui lòng chọn Kỹ thuật viên (Bắt buộc)');
+    if (!retailBedId) return alert('Vui lòng chọn Giường/Phòng (Bắt buộc)');
     
-    const subtotal = cart.reduce((acc, curr) => acc + Number(curr.price), 0);
-    const discount = retailDiscountType === 'percent' 
-      ? (subtotal * retailDiscountValue) / 100 
-      : retailDiscountValue;
-    const finalTotal = subtotal - discount;
+    setLoading(true);
+    const item = cart[0];
+    const customer = retailCustomerId ? customersList.find(c => c.id === retailCustomerId) : null;
+    const finalCustName = customer?.name || customerName || 'Khách lẻ';
+    const finalCustPhone = customer?.phone || '';
 
-    setPreviewInvoiceData({
-      type: 'retail',
-      items: cart.map(c => ({ name: c.name, price: c.price })),
-      subtotal,
-      discount,
-      finalTotal,
-      customerName: retailCustomerId ? customersList.find(c => c.id === retailCustomerId)?.name : (customerName || 'Khách lẻ'),
-      customerId: retailCustomerId || null
-    });
+    const { data: sess, error } = await supabase.from('service_sessions').insert([{
+      shop_id: shopId,
+      service_id: item.id,
+      staff_id: retailStaffId,
+      bed_id: retailBedId,
+      status: 'in_progress',
+      is_retail: true,
+      retail_customer_name: finalCustName,
+      retail_customer_phone: finalCustPhone,
+      start_time: new Date().toISOString()
+    }]);
+
+    if (error) {
+      alert('Lỗi tạo cuốc dịch vụ: ' + error.message);
+      setLoading(false);
+      return;
+    }
+
+    await supabase.from('beds').update({ status: 'occupied' }).eq('id', retailBedId);
+    
+    setCart([]);
+    setRetailBedId('');
+    setRetailStaffId('');
+    setRetailCustomerName('');
+    setRetailCustomerId('');
+    
+    // Load lại list giường
+    const { data: newBeds } = await supabase.from('beds').select('*').eq('shop_id', shopId).eq('status', 'available').order('name');
+    setBedsList(newBeds || []);
+
+    alert('Đã xếp khách vào giường thành công! Chuyển sang tab Giường/Phòng để theo dõi và thanh toán.');
+    setLoading(false);
   };
 
   const handleSellPackageClick = () => {
@@ -149,68 +175,8 @@ const POS = () => {
 
     try {
       if (previewInvoiceData.type === 'retail') {
-        const { subtotal, discount, finalTotal, customerName, customerId } = previewInvoiceData;
-
-        // 1. Tạo Invoice chính
-        const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
-          shop_id: shopId,
-          customer_id: customerId,
-          customer_name: customerName,
-          created_by: profile?.id,
-          total_amount: subtotal,
-          discount_amount: discount,
-          final_amount: finalTotal,
-          payment_method: 'cash',
-          status: 'paid'
-        }]).select().single();
-
-        if (invErr) throw invErr;
-
-        // 2. Tạo Invoice Items & Sessions & Logs
-        for (const item of cart) {
-          const { error: itemErr } = await supabase.from('invoice_items').insert([{
-            invoice_id: inv.id,
-            type: 'service',
-            service_id: item.id,
-            staff_id: retailStaffId || null,
-            unit_price: item.price,
-            final_price: item.price,
-            price: item.price
-          }]);
-          if (itemErr) throw new Error(`Lỗi lưu dịch vụ lẻ: ${itemErr.message}`);
-
-          const comm = item.commission_type === 'percent' ? (item.price * item.commission_value) / 100 : item.commission_value;
-          const { data: sess } = await supabase.from('service_sessions').insert([{
-            shop_id: shopId,
-            service_id: item.id,
-            staff_id: retailStaffId,
-            revenue_amount: item.price,
-            commission_amount: comm,
-            status: 'completed'
-          }]).select().single();
-
-          const { error: commErr } = await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: retailStaffId, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dịch vụ lẻ: ${item.name}` }]);
-          if (commErr) throw new Error(`Lỗi lưu hoa hồng: ${commErr.message}`);
-        }
-        
-        // Chỉ lưu 1 revenue_log tổng cho cả hoá đơn bán lẻ
-        const { error: revErr } = await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id }]);
-        if (revErr) throw new Error(`Lỗi lưu doanh thu: ${revErr.message}`);
-
-        setCompletedInvoice({
-          id: inv.id,
-          created_at: inv.created_at,
-          customer_name: customerName || 'Khách lẻ',
-          items: cart,
-          total_amount: subtotal,
-          discount_amount: discount,
-          final_amount: finalTotal,
-          staff_name: staff.find(s => s.id === retailStaffId)?.full_name || profile?.full_name || 'Thu ngân'
-        });
-        setCart([]);
-        setRetailDiscountValue(0);
-        setRetailCustomerName('');
-        setRetailCustomerId('');
+         // Tính năng này đã chuyển sang Beds.tsx (Thanh toán sau khi làm xong)
+         // Đoạn code này được giữ lại để phòng hờ, nhưng hiện tại POS không gọi setPreviewInvoiceData('retail') nữa.
       } else if (previewInvoiceData.type === 'sell_package') {
         const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
         
@@ -548,33 +514,23 @@ const POS = () => {
                 {!retailCustomerId && (
                   <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.5rem' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
                 )}
-                <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}><option value="">-- Kỹ thuật viên --</option>{staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
-                {hasPermission('sale.discount') && (
-                  <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Giảm giá</label>
-                      <input type="number" className="form-input" value={retailDiscountValue} onChange={e => setRetailDiscountValue(Number(e.target.value))} />
-                    </div>
-                    <div style={{ width: '100px' }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Loại</label>
-                      <select className="form-select" value={retailDiscountType} onChange={e => setRetailDiscountType(e.target.value as any)}>
-                        <option value="amount">VNĐ</option>
-                        <option value="percent">%</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem' }}>
-                  <span>Tổng:</span>
-                  <span style={{ color: 'var(--danger)' }}>
-                    {(() => {
-                      const subtotal = cart.reduce((a, b) => a + Number(b.price), 0);
-                      const discount = retailDiscountType === 'percent' ? (subtotal * retailDiscountValue) / 100 : retailDiscountValue;
-                      return (subtotal - discount).toLocaleString();
-                    })()}đ
+                <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
+                  <option value="">-- Kỹ thuật viên (Bắt buộc) --</option>
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                </select>
+                <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailBedId} onChange={e => setRetailBedId(e.target.value)}>
+                  <option value="">-- Chọn Giường/Phòng (Trống) --</option>
+                  {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem', marginTop: '1rem' }}>
+                  <span>Phí dịch vụ (tạm tính):</span>
+                  <span style={{ color: 'var(--primary)' }}>
+                    {cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
                   </span>
                 </div>
-                <button onClick={handleRetailCheckoutClick} className="btn btn-primary" style={{ width: '100%' }}>THANH TOÁN</button>
+                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%' }}>
+                  {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP GIƯỜNG'}
+                </button>
               </div>
             )}
           </div>
