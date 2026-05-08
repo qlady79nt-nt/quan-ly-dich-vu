@@ -221,7 +221,10 @@ const Staff = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xoá nhân sự này? (Xoá mềm, không mất dữ liệu cũ)')) return;
     
     setLoading(true);
-    const { error } = await supabase.from('staffs').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('staffs').update({ 
+      deleted_at: new Date().toISOString(),
+      status: 'inactive'
+    }).eq('id', id);
     if (!error) {
       fetchStaff();
     } else {
