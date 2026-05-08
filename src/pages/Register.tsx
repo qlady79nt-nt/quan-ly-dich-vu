@@ -147,7 +147,7 @@ const Register = () => {
           </div>
           <h2 style={{ fontSize: '3rem', fontWeight: '800', marginBottom: '1.5rem', lineHeight: 1.2 }}>Quản lý Spa chuyên nghiệp & Tối giản.</h2>
           <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '3rem', maxWidth: '500px' }}>
-            Hệ thống quản lý SaaS giúp bạn kiểm soát doanh thu, hoa hồng và giường phòng mọi lúc, mọi nơi.
+            Hệ thống quản lý SaaS giúp bạn kiểm soát doanh thu, hoa hồng và chỗ mọi lúc, mọi nơi.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

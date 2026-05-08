@@ -29,7 +29,7 @@ const Landing = () => {
             <span className="text-gradient">Tăng trưởng doanh thu.</span>
           </h2>
           <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', marginBottom: '3rem', maxWidth: '700px', margin: '0 auto 3rem' }}>
-            Nền tảng SaaS tối giản giúp bạn quản lý giường phòng, nhân viên, hoa hồng và báo cáo tài chính chỉ trên một màn hình duy nhất.
+            Nền tảng SaaS tối giản giúp bạn quản lý chỗ, nhân viên, hoa hồng và báo cáo tài chính chỉ trên một màn hình duy nhất.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <Link to="/register" className="btn btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.125rem', height: 'auto' }}>
@@ -46,7 +46,7 @@ const Landing = () => {
       <section style={{ padding: '80px 5%' }}>
         <div className="grid grid-cols-3" style={{ gap: '2rem' }}>
           {[
-            { icon: LayoutGrid, title: 'Quản lý Giường', desc: 'Theo dõi trạng thái giường trống/đang làm theo thời gian thực.' },
+            { icon: LayoutGrid, title: 'Quản lý Chỗ', desc: 'Theo dõi trạng thái chỗ trống/đang làm theo thời gian thực.' },
             { icon: Users, title: 'Hoa hồng Nhân viên', desc: 'Tự động tính hoa hồng chính xác theo từng dịch vụ hoặc bán gói.' },
             { icon: BarChart3, title: 'Báo cáo Chuyên sâu', desc: 'Tách biệt doanh thu và dòng tiền giúp bạn kiểm soát lãi lỗ thực.' },
             { icon: Shield, title: 'Bảo mật SaaS', desc: 'Mỗi cửa hàng là một phân đoạn dữ liệu riêng biệt, an toàn tuyệt đối.' },

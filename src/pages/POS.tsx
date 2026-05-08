@@ -94,7 +94,7 @@ const POS = () => {
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thanh toán');
     if (cart.length === 0) return alert('Giỏ hàng trống');
     if (!retailStaffId) return alert('Vui lòng chọn Kỹ thuật viên (Bắt buộc)');
-    if (!retailBedId) return alert('Vui lòng chọn Giường/Phòng (Bắt buộc)');
+    if (!retailBedId) return alert('Vui lòng chọn Chỗ (Bắt buộc)');
     
     setLoading(true);
     const item = cart[0];
@@ -115,7 +115,7 @@ const POS = () => {
 
     if (error) {
       if (error.code === '23505') {
-        alert('Giường này vừa được người khác xếp! Vui lòng chọn giường khác.');
+        alert('Chỗ này vừa được người khác xếp! Vui lòng chọn chỗ khác.');
       } else {
         alert('Lỗi tạo cuốc dịch vụ: ' + error.message);
       }
@@ -129,7 +129,7 @@ const POS = () => {
     setRetailCustomerName('');
     setRetailCustomerId('');
     
-    // Load lại list giường bằng cách tính toán động
+    // Load lại list chỗ bằng cách tính toán động
     const [newBedsRes, newSessionsRes] = await Promise.all([
       supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
       supabase.from('service_sessions').select('bed_id').eq('shop_id', shopId).eq('status', 'in_progress')
@@ -137,7 +137,7 @@ const POS = () => {
     const activeIds = (newSessionsRes.data || []).map(s => s.bed_id);
     setBedsList((newBedsRes.data || []).filter(b => !activeIds.includes(b.id)));
 
-    alert('Đã xếp khách vào giường thành công! Chuyển sang tab Giường/Phòng để theo dõi và thanh toán.');
+    alert('Đã xếp khách vào chỗ thành công! Chuyển sang tab Chỗ để theo dõi và thanh toán.');
     setLoading(false);
   };
 
@@ -526,7 +526,7 @@ const POS = () => {
                   {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
                 </select>
                 <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailBedId} onChange={e => setRetailBedId(e.target.value)}>
-                  <option value="">-- Chọn Giường/Phòng (Trống) --</option>
+                  <option value="">-- Chọn Chỗ (Trống) --</option>
                   {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem', marginTop: '1rem' }}>
@@ -536,7 +536,7 @@ const POS = () => {
                   </span>
                 </div>
                 <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%' }}>
-                  {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP GIƯỜNG'}
+                  {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP CHỖ'}
                 </button>
               </div>
             )}

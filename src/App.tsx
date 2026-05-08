@@ -48,7 +48,7 @@ const MainLayout = () => {
     menuItems = [
       { path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
       { path: '/app/pos', label: 'Bán hàng (POS)', icon: ShoppingCart },
-      { path: '/app/beds', label: 'Giường & Phòng', icon: LayoutGrid },
+      { path: '/app/beds', label: 'Quản lý Chỗ', icon: LayoutGrid },
       { path: '/app/staff', label: 'Nhân viên', icon: Users },
       { path: '/app/services', label: 'Dịch vụ', icon: Scissors },
       { path: '/app/customers', label: 'Khách hàng', icon: UserCircle },

@@ -16,6 +16,7 @@ const Beds = () => {
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
   const [discountValue, setDiscountValue] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [completedInvoice, setCompletedInvoice] = useState<any>(null);
 
   useEffect(() => {
     if (shopId) {
@@ -67,11 +68,11 @@ const Beds = () => {
   const handleAddBed = async () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
     if (!shopId) return alert('Lỗi: Chưa xác định được cửa hàng.');
-    const name = window.prompt('Nhập tên giường/phòng mới:');
+    const name = window.prompt('Nhập tên chỗ mới:');
     if (!name?.trim()) return;
 
     const { error } = await supabase.from('beds').insert([{ shop_id: shopId, name: name.trim() }]);
-    if (error) alert('Lỗi khi tạo giường: ' + error.message);
+    if (error) alert('Lỗi khi tạo chỗ: ' + error.message);
     else fetchBedsAndSessions();
   };
 
@@ -151,24 +152,39 @@ const Beds = () => {
       }]);
       if (revErr) throw revErr;
 
-      alert('Thanh toán thành công!');
+      setCompletedInvoice({
+        id: inv.id,
+        customer_name: sess.retail_customer_name || 'Khách lẻ',
+        customer_phone: sess.retail_customer_phone,
+        staff_name: sess.staffs?.full_name || 'KTV',
+        items: [{ name: svc.name, price: price }],
+        total_amount: price,
+        discount_amount: discount,
+        final_amount: finalTotal,
+        is_use_package: false
+      });
       setCheckoutSession(null);
-      fetchBedsAndSessions();
     } catch (err: any) {
       alert('Lỗi thanh toán: ' + err.message);
     }
     setIsProcessing(false);
   };
 
+  const handlePrint = () => {
+    window.print();
+    setCompletedInvoice(null);
+    fetchBedsAndSessions();
+  };
+
   return (
     <div className="animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Giường & Điều phối</h2>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Chỗ & Điều phối</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Theo dõi thời gian thực các dịch vụ đang diễn ra</p>
         </div>
         <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddBed}>
-          <Plus size={18} /> Thêm Giường
+          <Plus size={18} /> Thêm Chỗ
         </button>
       </div>
 
@@ -212,14 +228,14 @@ const Beds = () => {
                 </div>
               ) : (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', fontSize: '0.875rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px dashed var(--border)' }}>
-                  Giường đang trống
+                  Chỗ đang trống
                 </div>
               )}
             </div>
           ))}
           {beds.length === 0 && (
             <div style={{ gridColumn: 'span 4', textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
-              Chưa có dữ liệu giường. Vui lòng thêm giường để quản lý.
+              Chưa có dữ liệu chỗ. Vui lòng thêm chỗ để quản lý.
             </div>
           )}
         </div>
@@ -292,6 +308,63 @@ const Beds = () => {
           </div>
         </div>, document.body
       )}
+
+      {/* Giao diện Thành công & In Hóa đơn */}
+      {completedInvoice && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--bg-main)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }} className="no-print">
+          <div className="premium-card animate-fade" style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+              <CheckCircle2 size={32} />
+            </div>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Thanh toán thành công!</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Hoá đơn #{completedInvoice.id.slice(0,8)} đã được ghi nhận vào hệ thống.</p>
+            
+            <button onClick={handlePrint} className="btn btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}><Printer size={18} /> In hoá đơn</button>
+            <button onClick={() => { setCompletedInvoice(null); fetchBedsAndSessions(); }} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Quay lại Màn hình Chỗ</button>
+          </div>
+        </div>, document.body
+      )}
+
+      {/* GIAO DIỆN IN HOÁ ĐƠN (Chỉ hiển thị khi in) */}
+      <div className="print-only" style={{ padding: '20px', fontFamily: 'monospace', width: '300px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <h2 style={{ margin: 0 }}>SPA & POS</h2>
+          <p style={{ fontSize: '12px' }}>HOÁ ĐƠN THANH TOÁN</p>
+        </div>
+        <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
+          <p>Mã: #{completedInvoice?.id?.slice(0,8)}</p>
+          <p>Khách: {completedInvoice?.customer_name}</p>
+          {completedInvoice?.customer_phone && <p>SĐT: {completedInvoice.customer_phone}</p>}
+          <p>Nhân viên: {completedInvoice?.staff_name}</p>
+          <p>Ngày: {new Date().toLocaleString()}</p>
+        </div>
+        <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
+          {completedInvoice?.items?.map((item: any, i: number) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>{item.name}</span>
+              <span>{Number(item.price).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: 'right', fontSize: '14px' }}>
+          <p>Tạm tính: {Number(completedInvoice?.total_amount || 0).toLocaleString()}đ</p>
+          <p>Giảm giá: {Number(completedInvoice?.discount_amount || 0).toLocaleString()}đ</p>
+          <h3 style={{ margin: '5px 0' }}>TỔNG: {Number(completedInvoice?.final_amount || 0).toLocaleString()}đ</h3>
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '10px' }}>
+          <p>Cảm ơn quý khách! Hẹn gặp lại.</p>
+        </div>
+      </div>
+
+      <style>{`
+        @media screen { .print-only { display: none; } }
+        @media print {
+          .no-print { display: none !important; }
+          header, aside { display: none !important; }
+          .print-only { display: block !important; margin: 0 auto; }
+          body { background: white !important; }
+        }
+      `}</style>
     </div>
   );
 };
