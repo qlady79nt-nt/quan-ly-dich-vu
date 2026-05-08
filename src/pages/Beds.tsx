@@ -29,19 +29,30 @@ const Beds = () => {
 
   const fetchBedsAndSessions = async () => {
     setLoading(true);
-    const [bRes, sRes] = await Promise.all([
+    const [bRes, sRes, svcRes, stfRes] = await Promise.all([
       supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
-      supabase.from('service_sessions')
-        .select('*, services(*), staffs(full_name)')
-        .eq('shop_id', shopId)
-        .eq('status', 'in_progress')
+      supabase.from('service_sessions').select('*').eq('shop_id', shopId).eq('status', 'in_progress'),
+      supabase.from('services').select('*').eq('shop_id', shopId),
+      supabase.from('staffs').select('*').eq('shop_id', shopId)
     ]);
     
+    if (bRes.error) console.error('Beds fetch error:', bRes.error);
+    if (sRes.error) console.error('Sessions fetch error:', sRes.error);
+
     const bedsData = bRes.data || [];
     const sessionsData = sRes.data || [];
+    const servicesData = svcRes.data || [];
+    const staffsData = stfRes.data || [];
 
     const mapped = bedsData.map(b => {
-      const session = sessionsData.find(s => s.bed_id === b.id) || null;
+      let session = sessionsData.find(s => s.bed_id === b.id) || null;
+      if (session) {
+        session = {
+          ...session,
+          services: servicesData.find(svc => svc.id === session.service_id) || null,
+          staffs: staffsData.find(stf => stf.id === session.staff_id) || null
+        };
+      }
       return {
         ...b,
         session,
