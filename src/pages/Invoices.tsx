@@ -14,6 +14,8 @@ const Invoices = () => {
   const [view, setView] = useState<'retail' | 'session'>('retail');
   const [searchTerm, setSearchTerm] = useState('');
   const [detailModal, setDetailModal] = useState<any>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     if (shopId) fetchData();
@@ -104,6 +106,8 @@ const Invoices = () => {
       
       let realStaffName = inv.profiles?.full_name || 'Hệ thống';
       let totalSessions = 0;
+      let usedSessions = 0;
+      let customerPackageId = null;
       let isPackageSale = items.some(i => i.type === 'package_sale');
 
       // Hook directly from invoice_items first
@@ -128,8 +132,10 @@ const Invoices = () => {
 
           if (ps.customer_package_id) {
              const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
-             if (cp) {
+              if (cp) {
                 totalSessions = cp.total_sessions || 0;
+                usedSessions = cp.used_sessions || 0;
+                customerPackageId = cp.id;
                 if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
 
                 let pkgName = 'Gói liệu trình';
@@ -176,6 +182,8 @@ const Invoices = () => {
              const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
              if (cp) {
                 totalSessions = cp.total_sessions || 0;
+                usedSessions = cp.used_sessions || 0;
+                customerPackageId = cp.id;
                 if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
              }
           }
@@ -197,9 +205,11 @@ const Invoices = () => {
          if (cpArray && cpArray.length > 0) {
             isPackageSale = true;
             realStaffName = 'Không xác định (Lỗi hệ thống cũ không lưu)';
-            const cp = cpArray[0];
-            totalSessions = cp.total_sessions || 0;
-            if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
+             const cp = cpArray[0];
+             totalSessions = cp.total_sessions || 0;
+             usedSessions = cp.used_sessions || 0;
+             customerPackageId = cp.id;
+             if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
             
             let pkgName = 'Gói liệu trình';
             if (cp.package_id) {
@@ -240,6 +250,8 @@ const Invoices = () => {
           items: items, 
           real_staff_name: realStaffName,
           total_sessions: totalSessions,
+          used_sessions: usedSessions,
+          customer_package_id: customerPackageId,
           is_package_sale: isPackageSale
         },
         title: 'Chi tiết Hoá đơn'
@@ -248,6 +260,68 @@ const Invoices = () => {
       console.error(e);
     }
     setLoading(false);
+  };
+
+  const handleCancelInvoice = async () => {
+    if (!cancelReason.trim()) return alert('Vui lòng nhập lý do huỷ hoá đơn');
+    
+    if (detailModal.data.is_package_sale && detailModal.data.used_sessions > 0) {
+      alert('Gói đã phát sinh sử dụng. Không thể hủy hóa đơn.');
+      return;
+    }
+
+    if (!window.confirm('Bạn có chắc chắn muốn hủy hóa đơn này? Thao tác này không thể hoàn tác.')) return;
+
+    setIsCancelling(true);
+    const { error } = await supabase.from('invoices').update({ 
+      status: 'cancelled', 
+      cancelled_reason: cancelReason,
+      cancelled_by: profile?.id
+    }).eq('id', detailModal.data.id);
+
+    if (error) {
+       alert('Lỗi khi huỷ hoá đơn: ' + error.message);
+    } else {
+       if (detailModal.data.is_package_sale && detailModal.data.customer_package_id) {
+          await supabase.from('customer_packages').update({
+             status: 'cancelled',
+             cancelled_reason: cancelReason,
+             cancelled_by: profile?.id
+          }).eq('id', detailModal.data.customer_package_id);
+          
+          // Hủy hoa hồng & doanh thu của gói
+          await supabase.from('revenue_logs').update({ status: 'cancelled' }).eq('reference_id', detailModal.data.customer_package_id);
+          // Hủy thông qua package_sale
+          const { data: ps } = await supabase.from('package_sales').select('id').eq('customer_package_id', detailModal.data.customer_package_id);
+          if (ps && ps.length > 0) {
+             const psIds = ps.map(p => p.id);
+             await supabase.from('commission_logs').update({ status: 'cancelled' }).in('package_sale_id', psIds);
+             await supabase.from('revenue_logs').update({ status: 'cancelled' }).in('package_sale_id', psIds);
+          }
+       }
+
+       // Hủy doanh thu và hoa hồng của hoá đơn bán lẻ
+       await supabase.from('revenue_logs').update({ status: 'cancelled' }).eq('invoice_id', detailModal.data.id);
+       
+       const { data: invItems } = await supabase.from('invoice_items').select('id').eq('invoice_id', detailModal.data.id);
+       if (invItems && invItems.length > 0) {
+          await supabase.from('commission_logs').update({ status: 'cancelled' }).in('invoice_item_id', invItems.map(i => i.id));
+       }
+       
+       await supabase.from('audit_logs').insert([{
+          shop_id: shopId,
+          actor_id: profile?.id,
+          action_type: 'DELETE_INVOICE',
+          entity_type: 'INVOICE',
+          entity_id: detailModal.data.id,
+          description: `Hủy hóa đơn #${detailModal.data.id.slice(0,8)} - Lý do: ${cancelReason}`
+       }]);
+
+       fetchData();
+       setDetailModal(null);
+       setCancelReason('');
+    }
+    setIsCancelling(false);
   };
 
   const handleViewSession = async (sess: any) => {
@@ -442,6 +516,13 @@ const Invoices = () => {
                     <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
                   </div>
                   
+                  {detailModal.data.status === 'cancelled' && (
+                    <div style={{ background: 'var(--danger-light)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--danger)' }}>
+                      <h4 style={{ color: 'var(--danger)', margin: '0 0 0.5rem 0' }}>HÓA ĐƠN ĐÃ BỊ HỦY</h4>
+                      <p style={{ margin: 0, fontSize: '0.875rem' }}><strong>Lý do:</strong> {detailModal.data.cancelled_reason}</p>
+                    </div>
+                  )}
+                  
                   <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Sản phẩm / Dịch vụ</h4>
                   <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
                     {detailModal.data.items?.length === 0 ? (
@@ -469,9 +550,38 @@ const Invoices = () => {
                     <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>
                       <span>Tổng cộng:</span>
-                      <span>{Number(detailModal.data.final_amount).toLocaleString()}đ</span>
+                      <span style={{ textDecoration: detailModal.data.status === 'cancelled' ? 'line-through' : 'none' }}>{Number(detailModal.data.final_amount).toLocaleString()}đ</span>
                     </div>
                   </div>
+                  
+                  {detailModal.data.status !== 'cancelled' && hasPermission('sale.delete') && (
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+                      <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--danger)', marginBottom: '0.5rem' }}>Hủy Hóa Đơn</h4>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input 
+                          type="text" 
+                          placeholder="Nhập lý do hủy (Bắt buộc)..." 
+                          className="form-input" 
+                          style={{ flex: 1 }}
+                          value={cancelReason}
+                          onChange={e => setCancelReason(e.target.value)}
+                        />
+                        <button 
+                          onClick={handleCancelInvoice} 
+                          className="btn" 
+                          style={{ background: 'var(--danger)', color: 'white' }}
+                          disabled={isCancelling}
+                        >
+                          {isCancelling ? <Loader2 className="animate-spin" /> : 'Hủy hóa đơn'}
+                        </button>
+                      </div>
+                      {detailModal.data.is_package_sale && detailModal.data.used_sessions > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--danger)', marginTop: '0.5rem' }}>
+                          ⚠️ Gói đã phát sinh sử dụng. Không thể hủy hóa đơn này.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

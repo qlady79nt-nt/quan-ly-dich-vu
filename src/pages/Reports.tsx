@@ -54,13 +54,13 @@ const Reports = () => {
       const end = endObj.toISOString();
 
       if (canViewRevenue) {
-        const { data, error } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('recorded_at', start).lte('recorded_at', end);
+        const { data, error } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('recorded_at', start).lte('recorded_at', end).neq('status', 'cancelled');
         if (error) console.error('Lỗi tải revenue_logs:', error);
         revLog = data || [];
       }
 
       if (canViewCommissions) {
-        const { data: commData, error } = await supabase.from('commission_logs').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false });
+        const { data: commData, error } = await supabase.from('commission_logs').select('*').eq('shop_id', shopId).gte('created_at', start).lte('created_at', end).neq('status', 'cancelled').order('created_at', { ascending: false });
         
         if (error) {
           console.error('Lỗi tải hoa hồng:', error);

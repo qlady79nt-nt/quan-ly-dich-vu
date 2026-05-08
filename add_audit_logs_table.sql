@@ -1,16 +1,19 @@
 -- 1. Tạo bảng Audit Logs (Append-Only)
+-- 1. Tạo bảng Audit Logs nếu chưa có
 CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     shop_id UUID REFERENCES shops(id) ON DELETE CASCADE,
-    actor_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Ai là người thực hiện
-    action_type TEXT NOT NULL, -- Ví dụ: DELETE_INVOICE, APPLY_DISCOUNT
-    entity_type TEXT NOT NULL, -- Ví dụ: INVOICE, STAFF, SERVICE
-    entity_id TEXT, -- ID của thực thể bị tác động
-    old_data JSONB, -- Dữ liệu trước khi sửa (nếu có)
-    new_data JSONB, -- Dữ liệu sau khi sửa (nếu có)
-    description TEXT, -- Mô tả dễ hiểu (Ví dụ: "Thu ngân Xóa hóa đơn #123")
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Bổ sung các cột nến bảng đã có từ trước nhưng thiếu
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS actor_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS action_type TEXT DEFAULT 'UNKNOWN';
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_type TEXT DEFAULT 'UNKNOWN';
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_id TEXT;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS old_data JSONB;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS new_data JSONB;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS description TEXT;
 
 -- 2. Cài đặt RLS (Bức tường thép Append-Only)
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
