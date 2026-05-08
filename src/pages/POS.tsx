@@ -30,8 +30,6 @@ const POS = () => {
   // --- RETAIL STATE ---
   const [cart, setCart] = useState<any[]>([]);
   const [retailStaffId, setRetailStaffId] = useState('');
-  const [retailDiscountType, setRetailDiscountType] = useState<'amount' | 'percent'>('amount');
-  const [retailDiscountValue, setRetailDiscountValue] = useState(0);
   const [customerName, setRetailCustomerName] = useState('');
   const [retailCustomerId, setRetailCustomerId] = useState('');
   const [retailBedId, setRetailBedId] = useState('');
@@ -104,7 +102,7 @@ const POS = () => {
     const finalCustName = customer?.name || customerName || 'Khách lẻ';
     const finalCustPhone = customer?.phone || '';
 
-    const { data: sess, error } = await supabase.from('service_sessions').insert([{
+    const { error } = await supabase.from('service_sessions').insert([{
       shop_id: shopId,
       service_id: item.id,
       staff_id: retailStaffId,
