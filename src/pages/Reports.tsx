@@ -22,6 +22,7 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
+  const [missingStaffData, setMissingStaffData] = useState<any[]>([]);
   const [view, setView] = useState<'revenue' | 'commission'>('revenue');
   const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'package_sale' | 'package_session'>('all');
   const [detailModal, setDetailModal] = useState<any>(null);
@@ -101,7 +102,7 @@ const Reports = () => {
          const { data: invs } = await supabase.from('invoices').select('id, customer_id, customer_name, customers(name)').in('id', invIdsToFetch);
          if (invs) {
             relatedInvoices = invs;
-            const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIdsToFetch).eq('type', 'retail');
+            const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIdsToFetch).eq('type', 'service');
             if (items) retailItems = items;
          }
       }
@@ -112,7 +113,7 @@ const Reports = () => {
       }
 
       if (ssIds.length > 0) {
-         const { data: ssData } = await supabase.from('service_sessions').select('id, customer_package_id, customer_packages(customer_name)').in('id', ssIds);
+         const { data: ssData } = await supabase.from('service_sessions').select('*, customer_packages(customer_name)').in('id', ssIds);
          if (ssData) relatedSessions = ssData;
       }
 
@@ -215,6 +216,19 @@ const Reports = () => {
       );
 
       setStaffData(activeStaffData);
+
+      // Thống kê các giao dịch không có kỹ thuật viên/người bán (mồ côi)
+      const missingTransactions: any[] = [];
+      relatedPkgSales.forEach(ps => {
+        if (!ps.seller_id) missingTransactions.push({ id: ps.id, type: 'Bán gói', amount: ps.amount_paid, date: ps.created_at });
+      });
+      retailItems.forEach(ri => {
+        if (!ri.staff_id) missingTransactions.push({ id: ri.id, type: 'Dịch vụ lẻ', amount: ri.final_price || ri.price, date: relatedInvoices.find(i=>i.id === ri.invoice_id)?.created_at || new Date().toISOString() });
+      });
+      relatedSessions.forEach(ss => {
+        if (!ss.staff_id) missingTransactions.push({ id: ss.id, type: 'Trừ buổi', amount: ss.revenue_amount, date: ss.created_at });
+      });
+      setMissingStaffData(missingTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
 
     } catch (e) {
       console.error(e);
@@ -474,6 +488,51 @@ const Reports = () => {
                       </div>
                     ))
                   )}
+
+                  {/* Phần hiển thị Giao dịch mồ côi (không gán KTV) */}
+                  {missingStaffData.length > 0 && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', borderRadius: '0.75rem', padding: '1.5rem', border: '1px dashed var(--danger)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px dashed rgba(239, 68, 68, 0.3)', paddingBottom: '1rem' }}>
+                        <div>
+                          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--danger)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Lock size={18} /> Giao dịch chưa gán Kỹ thuật viên / Người bán
+                          </h3>
+                          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                            Những giao dịch này bị bỏ trống người thực hiện lúc thanh toán. Bạn cần gán lại trên hóa đơn để tính hoa hồng.
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--danger)', textTransform: 'uppercase' }}>Số lượng giao dịch</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--danger)' }}>{missingStaffData.length}</div>
+                        </div>
+                      </div>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                          <thead>
+                            <tr style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>
+                              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', borderRadius: '0.5rem 0 0 0.5rem' }}>Ngày/Giờ</th>
+                              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }}>Loại giao dịch</th>
+                              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }}>Mã phiếu/HĐ</th>
+                              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', borderRadius: '0 0.5rem 0.5rem 0' }}>Doanh số</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {missingStaffData.map((m: any, idx: number) => (
+                              <tr key={idx} style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                <td style={{ padding: '0.75rem 0.5rem' }}>{new Date(m.date).toLocaleString()}</td>
+                                <td style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>{m.type}</td>
+                                <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'monospace' }}>#{m.id?.slice(0,8)}</td>
+                                <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '700', color: 'var(--danger)' }}>
+                                  {Number(m.amount).toLocaleString()}đ
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </>

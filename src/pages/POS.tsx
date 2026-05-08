@@ -87,7 +87,9 @@ const POS = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện thanh toán');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thanh toán');
     if (cart.length === 0) return alert('Giỏ hàng trống');
-    if (!retailStaffId) return alert('Vui lòng chọn nhân viên thực hiện');
+    if (!retailStaffId) {
+      if (!window.confirm("⚠️ Chưa chọn kỹ thuật viên!\n\nGiao dịch này sẽ KHÔNG được tính hoa hồng cho bất kỳ ai.\nBạn có chắc chắn muốn tiếp tục thanh toán?")) return;
+    }
     
     const subtotal = cart.reduce((acc, curr) => acc + Number(curr.price), 0);
     const discount = retailDiscountType === 'percent' 
@@ -109,7 +111,10 @@ const POS = () => {
   const handleSellPackageClick = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán gói');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thực hiện');
-    if (!customerPhone || !selectedPkgId || !sellerId || !pkgCardCode) return alert('Vui lòng nhập đầy đủ SĐT, Mã thẻ, chọn gói và KTV bán');
+    if (!customerPhone || !selectedPkgId || !pkgCardCode) return alert('Vui lòng nhập đầy đủ SĐT, Mã thẻ và chọn gói');
+    if (!sellerId) {
+      if (!window.confirm("⚠️ Chưa chọn người bán!\n\nGiao dịch này sẽ KHÔNG được tính hoa hồng cho bất kỳ ai.\nBạn có chắc chắn muốn tiếp tục thanh toán?")) return;
+    }
     
     const pkg = packages.find(p => p.id === selectedPkgId);
     if (!pkg) return;
@@ -166,7 +171,7 @@ const POS = () => {
             invoice_id: inv.id,
             type: 'service',
             service_id: item.id,
-            staff_id: retailStaffId || profile?.id || null,
+            staff_id: retailStaffId || null,
             unit_price: item.price,
             final_price: item.price,
             price: item.price
@@ -183,11 +188,13 @@ const POS = () => {
             status: 'completed'
           }]).select().single();
 
-          await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: retailStaffId, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dịch vụ lẻ: ${item.name}` }]);
+          const { error: commErr } = await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: retailStaffId, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dịch vụ lẻ: ${item.name}` }]);
+          if (commErr) throw new Error(`Lỗi lưu hoa hồng: ${commErr.message}`);
         }
         
         // Chỉ lưu 1 revenue_log tổng cho cả hoá đơn bán lẻ
-        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id }]);
+        const { error: revErr } = await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id }]);
+        if (revErr) throw new Error(`Lỗi lưu doanh thu: ${revErr.message}`);
 
         setCompletedInvoice({
           id: inv.id,
@@ -235,7 +242,7 @@ const POS = () => {
           invoice_id: inv.id,
           type: 'package_sale',
           package_id: selectedPkgId,
-          staff_id: sellerId || profile?.id || null,
+          staff_id: sellerId || null,
           unit_price: original_price,
           final_price: finalTotal,
           price: finalTotal
@@ -243,7 +250,7 @@ const POS = () => {
         if (itemErr) throw new Error(`Lỗi lưu dịch vụ gói: ${itemErr.message}`);
 
         const salesComm = commission_sale_type === 'percent' ? (finalTotal * commission_sale_value) / 100 : commission_sale_value;
-        const validSellerId = sellerId || profile?.id || null;
+        const validSellerId = sellerId || null;
 
         const { data: sale, error: saleErr } = await supabase.from('package_sales').insert([{ 
           shop_id: shopId, 
@@ -255,8 +262,10 @@ const POS = () => {
         }]).select().single();
         if (saleErr || !sale) throw new Error(`Lỗi tạo giao dịch bán gói: ${saleErr?.message || 'Không có dữ liệu'}`);
 
-        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: validSellerId, amount: salesComm, type: 'package_sale', package_sale_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
-        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', package_sale_id: sale.id }]);
+        const { error: commLogErr } = await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: validSellerId, amount: salesComm, type: 'package_sale', package_sale_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
+        if (commLogErr) throw new Error(`Lỗi lưu hoa hồng bán gói: ${commLogErr.message}`);
+        const { error: revLogErr } = await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', package_sale_id: sale.id }]);
+        if (revLogErr) throw new Error(`Lỗi lưu doanh thu bán gói: ${revLogErr.message}`);
 
         setCompletedInvoice({ 
           ...inv, 
@@ -278,8 +287,10 @@ const POS = () => {
         if (sessErr || !sess) throw new Error(`Lỗi trừ buổi: ${sessErr?.message || ''}`);
 
         await supabase.from('customer_packages').update({ used_sessions: cp.used_sessions + 1, status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' }).eq('id', cp.id);
-        await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: unitPrice, type: 'package_session', service_session_id: sess.id }]);
-        await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: technicianId, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dùng liệu trình: ${cp.packages.name}` }]);
+        const { error: revLogErr } = await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: unitPrice, type: 'package_session', service_session_id: sess.id }]);
+        if (revLogErr) throw new Error(`Lỗi lưu doanh thu dùng gói: ${revLogErr.message}`);
+        const { error: commLogErr } = await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: technicianId, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dùng liệu trình: ${cp.packages.name}` }]);
+        if (commLogErr) throw new Error(`Lỗi lưu hoa hồng dùng gói: ${commLogErr.message}`);
 
         setCompletedInvoice({
           id: sess.id,
@@ -350,7 +361,10 @@ const POS = () => {
 
   const handleUseSessionClick = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện trừ buổi');
-    if (!selectedCustPkgId || !technicianId) return alert('Vui lòng chọn gói và KTV');
+    if (!selectedCustPkgId) return alert('Vui lòng chọn thẻ liệu trình');
+    if (!technicianId) {
+      if (!window.confirm("⚠️ Chưa chọn kỹ thuật viên!\n\nGiao dịch này sẽ KHÔNG được tính hoa hồng cho bất kỳ ai.\nBạn có chắc chắn muốn tiếp tục trừ buổi?")) return;
+    }
     
     const cp = foundPackages.find(p => p.id === selectedCustPkgId);
     if (!cp) return;
