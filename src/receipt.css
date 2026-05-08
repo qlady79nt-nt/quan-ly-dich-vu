@@ -1,0 +1,121 @@
+/* ==========================================================================
+   MẪU IN HOÁ ĐƠN (RECEIPT PRINT STYLES)
+   ========================================================================== */
+
+:root {
+  /* Biến mặc định: khổ giấy 80mm. 
+     Sau này có thể gán động trên thẻ bao ngoài: style={{ '--receipt-width': '58mm' }} */
+  --receipt-width: 300px; /* ~80mm */
+}
+
+/* Ẩn giao diện in trên màn hình Web mặc định */
+@media screen {
+  .print-only {
+    display: none;
+  }
+}
+
+/* Định dạng chung cho khu vực hóa đơn */
+.receipt-container {
+  padding: 10px;
+  font-family: monospace;
+  width: var(--receipt-width);
+  margin: 0 auto;
+  color: #000;
+  background: white;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 20px;
+  page-break-inside: avoid;
+}
+
+.receipt-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.receipt-header p {
+  font-size: 12px;
+  margin: 5px 0 0 0;
+}
+
+.receipt-section {
+  font-size: 12px;
+  border-bottom: 1px dashed black;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  page-break-inside: avoid;
+}
+
+.receipt-section p {
+  margin: 2px 0;
+}
+
+.receipt-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0;
+  page-break-inside: avoid;
+}
+
+.receipt-totals {
+  text-align: right;
+  font-size: 14px;
+  page-break-inside: avoid;
+}
+
+.receipt-totals p {
+  margin: 2px 0;
+}
+
+.receipt-totals h3 {
+  margin: 10px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 10px;
+  page-break-inside: avoid;
+}
+
+/* ==========================================================================
+   QUY TẮC MÁY IN (PRINT MEDIA QUERIES)
+   ========================================================================== */
+@media print {
+  /* Khử Margin mặc định của trình duyệt để bill in ra sát lề, không bị đẩy trang */
+  @page {
+    margin: 0;
+  }
+
+  /* 1. Giấu toàn bộ những chỗ có class "no-print" */
+  .no-print { 
+    display: none !important; 
+  }
+  
+  /* 2. Giấu luôn thanh header và thanh menu bên trái */
+  header, aside { 
+    display: none !important; 
+  }
+  
+  /* 3. Lôi hóa đơn ra hiển thị - Đặt ở top-left để không bị khoảng trống phía trên */
+  .print-only { 
+    display: block !important; 
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--receipt-width);
+  }
+  
+  /* 4. Ép nền màu trắng chuẩn giấy in */
+  body { 
+    background: white !important; 
+    margin: 0;
+    padding: 0;
+  }
+}

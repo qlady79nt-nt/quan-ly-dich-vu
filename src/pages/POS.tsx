@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { ReceiptTemplate } from '../components/ReceiptTemplate';
+import '../receipt.css';
 
 const POS = () => {
   const { profile, hasPermission, isRestricted } = useAuth();
@@ -60,7 +62,16 @@ const POS = () => {
 
   useEffect(() => {
     if (shopId) fetchData();
-  }, [shopId]);
+    // Setup afterprint listener
+    const handleAfterPrint = () => {
+      setCompletedInvoice(null);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, [shopId, profile]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -357,7 +368,6 @@ const POS = () => {
   };
 
   const handlePrint = () => {
-    if (!hasPermission('invoice.print')) return alert('Bạn không có quyền in hoá đơn');
     window.print();
   };
 
@@ -544,49 +554,15 @@ const POS = () => {
         )}
       </div>
 
-      {/* GIAO DIỆN IN HOÁ ĐƠN (Chỉ hiển thị khi in) */}
-      <div className="print-only" style={{ padding: '20px', fontFamily: 'monospace', width: '300px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0 }}>SPA & POS</h2>
-          <p style={{ fontSize: '12px' }}>{completedInvoice?.is_use_package ? 'BIÊN NHẬN DÙNG LIỆU TRÌNH' : 'HOÁ ĐƠN THANH TOÁN'}</p>
-        </div>
-        <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
-          <p>Mã: #{completedInvoice?.id.slice(0,8)}</p>
-          <p>Khách: {completedInvoice?.customer_name}</p>
-          {completedInvoice?.customer_phone && <p>SĐT: {completedInvoice.customer_phone}</p>}
-          {completedInvoice?.card_code && <p>Mã thẻ: {completedInvoice.card_code}</p>}
-          <p>Nhân viên: {completedInvoice?.staff_name}</p>
-          <p>Ngày: {new Date().toLocaleString()}</p>
-        </div>
-        <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
-          {completedInvoice?.items.map((item: any, i: number) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>{item.name}</span>
-              <span>{Number(item.price).toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
-        
-        {completedInvoice?.is_use_package ? (
-          <div style={{ textAlign: 'right', fontSize: '14px' }}>
-            <p>Tổng số buổi gói: {completedInvoice?.total_sessions}</p>
-            <p>Đã dùng (Bao gồm lần này): {completedInvoice?.used_sessions}</p>
-            <h3 style={{ margin: '10px 0', fontSize: '16px' }}>
-              CÒN LẠI: {completedInvoice?.total_sessions - completedInvoice?.used_sessions} buổi
-            </h3>
-          </div>
-        ) : (
-          <div style={{ textAlign: 'right', fontSize: '14px' }}>
-            <p>Tạm tính: {Number(completedInvoice?.total_amount).toLocaleString()}đ</p>
-            <p>Giảm giá: {Number(completedInvoice?.discount_amount).toLocaleString()}đ</p>
-            <h3 style={{ margin: '5px 0' }}>TỔNG: {Number(completedInvoice?.final_amount).toLocaleString()}đ</h3>
-          </div>
-        )}
-        
-        <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '10px' }}>
-          <p>Cảm ơn quý khách! Hẹn gặp lại.</p>
-        </div>
-      </div>
+      {/* GIAO DIỆN IN HOÁ ĐƠN TẬP TRUNG */}
+      <ReceiptTemplate 
+        invoice={completedInvoice} 
+        config={{
+          shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
+          paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
+          footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
+        }} 
+      />
 
       {/* Modal Preview Hóa Đơn */}
       {previewInvoiceData && createPortal(
@@ -686,16 +662,6 @@ const POS = () => {
         </div>,
         document.body
       )}
-
-      <style>{`
-        @media screen { .print-only { display: none; } }
-        @media print {
-          .no-print { display: none !important; }
-          header, aside { display: none !important; }
-          .print-only { display: block !important; margin: 0 auto; }
-          body { background: white !important; }
-        }
-      `}</style>
     </div>
   );
 };

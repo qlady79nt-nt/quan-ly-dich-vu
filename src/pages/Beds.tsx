@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { Plus, Loader2, BedDouble, CheckCircle2, Clock, X, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { ReceiptTemplate } from '../components/ReceiptTemplate';
+import '../receipt.css';
 
 const Beds = () => {
   const { profile, hasPermission, isRestricted } = useAuth();
@@ -25,7 +27,17 @@ const Beds = () => {
       setLoading(false);
     }
     const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
+
+    const handleAfterPrint = () => {
+      setCompletedInvoice(null);
+      fetchBedsAndSessions();
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
   }, [shopId, profile]);
 
   const fetchBedsAndSessions = async () => {
@@ -172,8 +184,6 @@ const Beds = () => {
 
   const handlePrint = () => {
     window.print();
-    setCompletedInvoice(null);
-    fetchBedsAndSessions();
   };
 
   return (
@@ -327,46 +337,15 @@ const Beds = () => {
         </div>, document.body
       )}
 
-      {/* GIAO DIỆN IN HOÁ ĐƠN (Chỉ hiển thị khi in) */}
-      <div className="print-only" style={{ padding: '20px', fontFamily: 'monospace', width: '300px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0 }}>SPA & POS</h2>
-          <p style={{ fontSize: '12px' }}>HOÁ ĐƠN THANH TOÁN</p>
-        </div>
-        <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
-          <p>Mã: #{completedInvoice?.id?.slice(0,8)}</p>
-          <p>Khách: {completedInvoice?.customer_name}</p>
-          {completedInvoice?.customer_phone && <p>SĐT: {completedInvoice.customer_phone}</p>}
-          <p>Nhân viên: {completedInvoice?.staff_name}</p>
-          <p>Ngày: {new Date().toLocaleString()}</p>
-        </div>
-        <div style={{ fontSize: '12px', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
-          {completedInvoice?.items?.map((item: any, i: number) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>{item.name}</span>
-              <span>{Number(item.price).toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ textAlign: 'right', fontSize: '14px' }}>
-          <p>Tạm tính: {Number(completedInvoice?.total_amount || 0).toLocaleString()}đ</p>
-          <p>Giảm giá: {Number(completedInvoice?.discount_amount || 0).toLocaleString()}đ</p>
-          <h3 style={{ margin: '5px 0' }}>TỔNG: {Number(completedInvoice?.final_amount || 0).toLocaleString()}đ</h3>
-        </div>
-        <div style={{ textAlign: 'center', marginTop: '30px', fontSize: '10px' }}>
-          <p>Cảm ơn quý khách! Hẹn gặp lại.</p>
-        </div>
-      </div>
-
-      <style>{`
-        @media screen { .print-only { display: none; } }
-        @media print {
-          .no-print { display: none !important; }
-          header, aside { display: none !important; }
-          .print-only { display: block !important; margin: 0 auto; }
-          body { background: white !important; }
-        }
-      `}</style>
+      {/* GIAO DIỆN IN HOÁ ĐƠN TẬP TRUNG */}
+      <ReceiptTemplate 
+        invoice={completedInvoice} 
+        config={{
+          shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
+          paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
+          footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
+        }} 
+      />
     </>
   );
 };
