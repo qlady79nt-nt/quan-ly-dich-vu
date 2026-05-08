@@ -40,10 +40,14 @@ const Beds = () => {
     const bedsData = bRes.data || [];
     const sessionsData = sRes.data || [];
 
-    const mapped = bedsData.map(b => ({
-      ...b,
-      session: sessionsData.find(s => s.bed_id === b.id) || null
-    }));
+    const mapped = bedsData.map(b => {
+      const session = sessionsData.find(s => s.bed_id === b.id) || null;
+      return {
+        ...b,
+        session,
+        computed_status: session ? 'occupied' : 'available'
+      };
+    });
 
     setBeds(mapped);
     setLoading(false);
@@ -55,7 +59,7 @@ const Beds = () => {
     const name = window.prompt('Nhập tên giường/phòng mới:');
     if (!name?.trim()) return;
 
-    const { error } = await supabase.from('beds').insert([{ shop_id: shopId, name: name.trim(), status: 'available' }]);
+    const { error } = await supabase.from('beds').insert([{ shop_id: shopId, name: name.trim() }]);
     if (error) alert('Lỗi khi tạo giường: ' + error.message);
     else fetchBedsAndSessions();
   };
@@ -136,9 +140,6 @@ const Beds = () => {
       }]);
       if (revErr) throw revErr;
 
-      // 5. Giải phóng giường
-      await supabase.from('beds').update({ status: 'available' }).eq('id', sess.bed_id);
-
       alert('Thanh toán thành công!');
       setCheckoutSession(null);
       fetchBedsAndSessions();
@@ -165,13 +166,13 @@ const Beds = () => {
       ) : (
         <div className="grid grid-cols-4">
           {beds.map((bed) => (
-            <div key={bed.id} className="premium-card" style={{ borderTop: `4px solid ${getStatusColor(bed.status)}`, display: 'flex', flexDirection: 'column' }}>
+            <div key={bed.id} className="premium-card" style={{ borderTop: `4px solid ${getStatusColor(bed.computed_status)}`, display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div style={{ color: getStatusColor(bed.status) }}>
+                <div style={{ color: getStatusColor(bed.computed_status) }}>
                   <BedDouble size={32} />
                 </div>
-                <div style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: getStatusColor(bed.status), background: `${getStatusColor(bed.status)}15`, padding: '0.25rem 0.5rem', borderRadius: '1rem' }}>
-                  {bed.status === 'available' ? 'Trống' : (bed.status === 'occupied' ? 'Đang có khách' : 'Đang vệ sinh')}
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: getStatusColor(bed.computed_status), background: `${getStatusColor(bed.computed_status)}15`, padding: '0.25rem 0.5rem', borderRadius: '1rem' }}>
+                  {bed.computed_status === 'available' ? 'Trống' : (bed.computed_status === 'occupied' ? 'Đang có khách' : 'Đang vệ sinh')}
                 </div>
               </div>
               <h4 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: '800' }}>{bed.name}</h4>

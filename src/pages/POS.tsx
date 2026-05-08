@@ -66,18 +66,22 @@ const POS = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [svc, pkg, stf, custs, bds] = await Promise.all([
+    const [svc, pkg, stf, custs, bds, activeSessionsRes] = await Promise.all([
       supabase.from('services').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('staffs').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('customers').select('*').eq('shop_id', shopId).is('deleted_at', null),
-      supabase.from('beds').select('*').eq('shop_id', shopId).eq('status', 'available').order('name')
+      supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
+      supabase.from('service_sessions').select('bed_id').eq('shop_id', shopId).eq('status', 'in_progress')
     ]);
     setServices(svc.data || []);
     setPackages(pkg.data || []);
     setStaff(stf.data || []);
     setCustomersList(custs.data || []);
-    setBedsList(bds.data || []);
+    
+    const allBeds = bds.data || [];
+    const activeBedIds = (activeSessionsRes.data || []).map(s => s.bed_id);
+    setBedsList(allBeds.filter(b => !activeBedIds.includes(b.id)));
     setLoading(false);
   };
 
@@ -108,17 +112,18 @@ const POS = () => {
       status: 'in_progress',
       is_retail: true,
       retail_customer_name: finalCustName,
-      retail_customer_phone: finalCustPhone,
-      start_time: new Date().toISOString()
+      retail_customer_phone: finalCustPhone
     }]);
 
     if (error) {
-      alert('Lỗi tạo cuốc dịch vụ: ' + error.message);
+      if (error.code === '23505') {
+        alert('Giường này vừa được người khác xếp! Vui lòng chọn giường khác.');
+      } else {
+        alert('Lỗi tạo cuốc dịch vụ: ' + error.message);
+      }
       setLoading(false);
       return;
     }
-
-    await supabase.from('beds').update({ status: 'occupied' }).eq('id', retailBedId);
     
     setCart([]);
     setRetailBedId('');
@@ -126,9 +131,13 @@ const POS = () => {
     setRetailCustomerName('');
     setRetailCustomerId('');
     
-    // Load lại list giường
-    const { data: newBeds } = await supabase.from('beds').select('*').eq('shop_id', shopId).eq('status', 'available').order('name');
-    setBedsList(newBeds || []);
+    // Load lại list giường bằng cách tính toán động
+    const [newBedsRes, newSessionsRes] = await Promise.all([
+      supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
+      supabase.from('service_sessions').select('bed_id').eq('shop_id', shopId).eq('status', 'in_progress')
+    ]);
+    const activeIds = (newSessionsRes.data || []).map(s => s.bed_id);
+    setBedsList((newBedsRes.data || []).filter(b => !activeIds.includes(b.id)));
 
     alert('Đã xếp khách vào giường thành công! Chuyển sang tab Giường/Phòng để theo dõi và thanh toán.');
     setLoading(false);
