@@ -177,7 +177,8 @@ const Beds = () => {
   };
 
   return (
-    <div className="animate-fade">
+    <>
+      <div className="animate-fade no-print">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Chỗ & Điều phối</h2>
@@ -240,6 +241,7 @@ const Beds = () => {
           )}
         </div>
       )}
+      </div>
 
       {/* Modal Thanh Toán */}
       {checkoutSession && createPortal(
@@ -365,7 +367,7 @@ const Beds = () => {
           body { background: white !important; }
         }
       `}</style>
-    </div>
+    </>
   );
 };
 
