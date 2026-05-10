@@ -45,7 +45,7 @@ const Beds = () => {
     setLoading(true);
     const [bRes, sRes, svcRes, stfRes] = await Promise.all([
       supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
-      supabase.from('service_sessions').select('*').eq('shop_id', shopId).eq('status', 'in_progress'),
+      supabase.from('service_sessions').select('*, customer_packages(customer_name)').eq('shop_id', shopId).eq('status', 'in_progress'),
       supabase.from('services').select('*').eq('shop_id', shopId),
       supabase.from('staffs').select('*').eq('shop_id', shopId)
     ]);
@@ -114,72 +114,120 @@ const Beds = () => {
       const svc = sess.services;
       const price = Number(svc.price);
       
-      const discount = discountType === 'percent' ? (price * discountValue) / 100 : discountValue;
-      const finalTotal = price - discount;
+      if (sess.customer_package_id) {
+        // --- XỬ LÝ THANH TOÁN GÓI LIỆU TRÌNH ---
+        const { data: cp } = await supabase.from('customer_packages').select('*, packages(name, services(commission_type, commission_value))').eq('id', sess.customer_package_id).single();
+        if (!cp) throw new Error('Không tìm thấy gói liệu trình khách hàng');
 
-      const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+        const unitPrice = cp.sale_price / cp.total_sessions;
+        const comm = svc.commission_type === 'percent' ? (svc.price * svc.commission_value) / 100 : svc.commission_value;
 
-      // 1. Tạo Invoice
-      const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
-        shop_id: shopId,
-        invoice_code: invCode,
-        customer_name: sess.retail_customer_name,
-        customer_phone: sess.retail_customer_phone,
-        created_by: profile?.id,
-        total_amount: price,
-        discount_amount: discount,
-        final_amount: finalTotal,
-        payment_method: 'cash',
-        status: 'paid'
-      }]).select().single();
-      if (invErr) throw invErr;
+        // Cập nhật trạng thái session
+        const { error: updErr } = await supabase.from('service_sessions').update({
+          status: 'completed',
+          end_time: new Date().toISOString(),
+          revenue_amount: unitPrice,
+          commission_amount: comm
+        }).eq('id', sess.id);
+        if (updErr) throw updErr;
 
-      // 2. Tạo Invoice Item
-      const { error: itemErr } = await supabase.from('invoice_items').insert([{
-        invoice_id: inv.id,
-        type: 'service',
-        service_id: svc.id,
-        staff_id: sess.staff_id,
-        unit_price: price,
-        final_price: price, // Giữ nguyên giá trị gốc cho commission
-        price: price
-      }]);
-      if (itemErr) throw itemErr;
+        // Cập nhật used_sessions của gói
+        await supabase.from('customer_packages').update({ 
+          used_sessions: cp.used_sessions + 1, 
+          status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' 
+        }).eq('id', cp.id);
 
-      // 3. Tính hoa hồng và update session
-      const comm = svc.commission_type === 'percent' ? (price * svc.commission_value) / 100 : svc.commission_value;
-      
-      const { error: updErr } = await supabase.from('service_sessions').update({
-        status: 'completed',
-        end_time: new Date().toISOString(),
-        revenue_amount: price,
-        commission_amount: comm
-      }).eq('id', sess.id);
-      if (updErr) throw updErr;
+        // Ghi nhận dòng tiền và hoa hồng
+        const { error: revErr } = await supabase.from('revenue_logs').insert([{ 
+          shop_id: shopId, amount: unitPrice, type: 'package_session', service_session_id: sess.id 
+        }]);
+        if (revErr) throw revErr;
 
-      // 4. Ledger: Commission & Revenue
-      const { error: commErr } = await supabase.from('commission_logs').insert([{ 
-        shop_id: shopId, staff_id: sess.staff_id, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dịch vụ: ${svc.name}` 
-      }]);
-      if (commErr) throw commErr;
+        const { error: commErr } = await supabase.from('commission_logs').insert([{ 
+          shop_id: shopId, staff_id: sess.staff_id, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dùng liệu trình: ${cp.packages?.name || svc.name}` 
+        }]);
+        if (commErr) throw commErr;
 
-      const { error: revErr } = await supabase.from('revenue_logs').insert([{ 
-        shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id 
-      }]);
-      if (revErr) throw revErr;
+        setCompletedInvoice({
+          id: sess.id,
+          display_id: sess.id.slice(0,8),
+          customer_name: cp.customer_name || sess.retail_customer_name || 'Khách liệu trình',
+          customer_phone: cp.customer_phone || sess.retail_customer_phone,
+          staff_name: sess.staffs?.full_name || 'KTV',
+          items: [{ name: `Trừ 1 buổi: ${cp.packages?.name || svc.name}`, price: '-' }],
+          total_amount: 0,
+          discount_amount: 0,
+          final_amount: 0,
+          is_use_package: true,
+          used_sessions: cp.used_sessions + 1,
+          total_sessions: cp.total_sessions
+        });
+      } else {
+        // --- XỬ LÝ THANH TOÁN BÁN LẺ (GIỮ NGUYÊN) ---
+        const discount = discountType === 'percent' ? (price * discountValue) / 100 : discountValue;
+        const finalTotal = price - discount;
 
-      setCompletedInvoice({
-        id: inv.id,
-        display_id: inv.invoice_code || inv.id.slice(0,8),
-        customer_name: sess.retail_customer_name || 'Khách lẻ',
-        customer_phone: sess.retail_customer_phone,
-        staff_name: sess.staffs?.full_name || 'KTV',
-        items: [{ name: svc.name, price: price }],
-        total_amount: price,
-        discount_amount: discount,
-        final_amount: finalTotal,
-        is_use_package: false
-      });
+        const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+
+        const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
+          shop_id: shopId,
+          invoice_code: invCode,
+          customer_name: sess.retail_customer_name,
+          customer_phone: sess.retail_customer_phone,
+          created_by: profile?.id,
+          total_amount: price,
+          discount_amount: discount,
+          final_amount: finalTotal,
+          payment_method: 'cash',
+          status: 'paid'
+        }]).select().single();
+        if (invErr) throw invErr;
+
+        const { error: itemErr } = await supabase.from('invoice_items').insert([{
+          invoice_id: inv.id,
+          type: 'service',
+          service_id: svc.id,
+          staff_id: sess.staff_id,
+          unit_price: price,
+          final_price: price,
+          price: price
+        }]);
+        if (itemErr) throw itemErr;
+
+        const comm = svc.commission_type === 'percent' ? (price * svc.commission_value) / 100 : svc.commission_value;
+        
+        const { error: updErr } = await supabase.from('service_sessions').update({
+          status: 'completed',
+          end_time: new Date().toISOString(),
+          revenue_amount: price,
+          commission_amount: comm
+        }).eq('id', sess.id);
+        if (updErr) throw updErr;
+
+        const { error: commErr } = await supabase.from('commission_logs').insert([{ 
+          shop_id: shopId, staff_id: sess.staff_id, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dịch vụ: ${svc.name}` 
+        }]);
+        if (commErr) throw commErr;
+
+        const { error: revErr } = await supabase.from('revenue_logs').insert([{ 
+          shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id 
+        }]);
+        if (revErr) throw revErr;
+
+        setCompletedInvoice({
+          id: inv.id,
+          display_id: inv.invoice_code || inv.id.slice(0,8),
+          customer_name: sess.retail_customer_name || 'Khách lẻ',
+          customer_phone: sess.retail_customer_phone,
+          staff_name: sess.staffs?.full_name || 'KTV',
+          items: [{ name: svc.name, price: price }],
+          total_amount: price,
+          discount_amount: discount,
+          final_amount: finalTotal,
+          is_use_package: false
+        });
+      }
+
       setCheckoutSession(null);
     } catch (err: any) {
       alert('Lỗi thanh toán: ' + err.message);
@@ -229,7 +277,7 @@ const Beds = () => {
                 return (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--text-light)' }}>Khách:</span> <strong>{bed.session.retail_customer_name || 'Khách lẻ'}</strong>
+                    <span style={{ color: 'var(--text-light)' }}>Khách:</span> <strong>{bed.session.customer_packages?.customer_name || bed.session.retail_customer_name || 'Khách lẻ'}</strong>
                   </div>
                   <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-light)' }}>Dịch vụ:</span> <strong style={{ color: 'var(--primary)' }}>{bed.session.services?.name}</strong>
@@ -250,8 +298,8 @@ const Beds = () => {
                   </div>
                   
                   <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={() => openCheckout(bed.session)} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', width: '100%' }}>
-                      TÍNH TIỀN
+                    <button onClick={() => openCheckout(bed.session)} className={`btn ${bed.session.customer_package_id ? 'btn' : 'btn-primary'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', width: '100%', background: bed.session.customer_package_id ? 'var(--success)' : 'var(--primary)', color: 'white', border: 'none' }}>
+                      {bed.session.customer_package_id ? 'HOÀN THÀNH (TRỪ BUỔI)' : 'TÍNH TIỀN'}
                     </button>
                   </div>
                 </div>
@@ -285,7 +333,7 @@ const Beds = () => {
               <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
                   <span style={{ color: 'var(--text-light)' }}>Khách hàng:</span>
-                  <strong>{checkoutSession.retail_customer_name}</strong>
+                  <strong>{checkoutSession.customer_packages?.customer_name || checkoutSession.retail_customer_name || 'Khách'}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
                   <span style={{ color: 'var(--text-light)' }}>Dịch vụ:</span>
@@ -297,12 +345,12 @@ const Beds = () => {
                 </div>
                 <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '700' }}>
-                  <span>Giá dịch vụ:</span>
-                  <span>{Number(checkoutSession.services?.price).toLocaleString()}đ</span>
+                  <span>{checkoutSession.customer_package_id ? 'Hình thức:' : 'Giá dịch vụ:'}</span>
+                  <span>{checkoutSession.customer_package_id ? 'Trừ thẻ liệu trình' : `${Number(checkoutSession.services?.price).toLocaleString()}đ`}</span>
                 </div>
               </div>
 
-              {hasPermission('sale.discount') && (
+              {!checkoutSession.customer_package_id && hasPermission('sale.discount') && (
                 <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: '0.75rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Giảm giá (Voucher)</label>
@@ -319,20 +367,20 @@ const Beds = () => {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '0.5rem' }}>
-                <span style={{ fontWeight: '700', color: 'var(--success)' }}>KHÁCH PHẢI TRẢ:</span>
+                <span style={{ fontWeight: '700', color: 'var(--success)' }}>{checkoutSession.customer_package_id ? 'SỐ BUỔI BỊ TRỪ:' : 'KHÁCH PHẢI TRẢ:'}</span>
                 <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--success)' }}>
-                  {(() => {
+                  {checkoutSession.customer_package_id ? '1 Buổi' : (() => {
                     const price = Number(checkoutSession.services?.price);
                     const disc = discountType === 'percent' ? (price * discountValue) / 100 : discountValue;
-                    return (price - disc).toLocaleString();
-                  })()}đ
+                    return (price - disc).toLocaleString() + 'đ';
+                  })()}
                 </span>
               </div>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button type="button" onClick={() => setCheckoutSession(null)} className="btn" style={{ flex: 1, background: 'var(--bg-main)' }}>Hủy</button>
-                <button type="submit" className="btn btn-primary" disabled={isProcessing} style={{ flex: 2 }}>
-                  {isProcessing ? <Loader2 className="animate-spin" /> : 'XÁC NHẬN THANH TOÁN'}
+                <button type="submit" className="btn btn-primary" disabled={isProcessing} style={{ flex: 2, background: checkoutSession.customer_package_id ? 'var(--success)' : 'var(--primary)' }}>
+                  {isProcessing ? <Loader2 className="animate-spin" /> : checkoutSession.customer_package_id ? 'XÁC NHẬN TRỪ BUỔI' : 'XÁC NHẬN THANH TOÁN'}
                 </button>
               </div>
             </form>

@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Loader2, UserCircle, Phone } from 'lucide-react';
+import { Search, Plus, Loader2, UserCircle, Phone, CreditCard, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 const Customers = () => {
   const { profile, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
+  const [activeTab, setActiveTab] = useState<'general' | 'packages'>('general');
   const [customers, setCustomers] = useState<any[]>([]);
+  const [packageCustomers, setPackageCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (shopId) {
-      fetchCustomers();
+      if (activeTab === 'general') fetchCustomers();
+      else fetchPackageCustomers();
     } else if (profile?.role === 'super_admin') {
       setLoading(false);
     }
-  }, [shopId, profile]);
+  }, [shopId, profile, activeTab]);
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -26,6 +29,17 @@ const Customers = () => {
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
     setCustomers(data || []);
+    setLoading(false);
+  };
+
+  const fetchPackageCustomers = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('customer_packages')
+      .select('*, packages(name)')
+      .eq('shop_id', shopId)
+      .order('created_at', { ascending: false });
+    setPackageCustomers(data || []);
     setLoading(false);
   };
 
@@ -57,6 +71,12 @@ const Customers = () => {
     c.phone?.includes(searchTerm)
   );
 
+  const filteredPackageCustomers = packageCustomers.filter(c => 
+    c.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.customer_phone?.includes(searchTerm) ||
+    c.card_code?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -64,8 +84,19 @@ const Customers = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Khách hàng</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Lưu trữ thông tin và lịch sử dịch vụ của khách</p>
         </div>
-        <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddCustomer}>
-          <Plus size={18} /> Thêm Khách hàng
+        {activeTab === 'general' && (
+          <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddCustomer}>
+            <Plus size={18} /> Thêm Khách hàng
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+        <button onClick={() => setActiveTab('general')} className="btn" style={{ background: activeTab === 'general' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'general' ? 'white' : 'inherit' }}>
+          <UserCircle size={18} /> Khách vãng lai / Đăng ký
+        </button>
+        <button onClick={() => setActiveTab('packages')} className="btn" style={{ background: activeTab === 'packages' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'packages' ? 'white' : 'inherit' }}>
+          <Package size={18} /> Khách hàng liệu trình
         </button>
       </div>
 
@@ -85,7 +116,7 @@ const Customers = () => {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
-      ) : (
+      ) : activeTab === 'general' ? (
         <div className="grid grid-cols-3">
           {filteredCustomers.map((customer) => (
             <div key={customer.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -104,6 +135,50 @@ const Customers = () => {
           {filteredCustomers.length === 0 && (
             <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
               Không tìm thấy khách hàng phù hợp.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-3">
+          {filteredPackageCustomers.map((cp) => (
+            <div key={cp.id} className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{cp.customer_name}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    <Phone size={14} />
+                    {cp.customer_phone || 'Chưa có SĐT'}
+                  </div>
+                </div>
+                {cp.status === 'completed' ? (
+                  <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>Hết buổi</span>
+                ) : (
+                  <span className="badge badge-success">Đang dùng</span>
+                )}
+              </div>
+              
+              <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.5rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                  <Package size={16} className="text-primary" />
+                  {cp.packages?.name || 'Gói không xác định'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <CreditCard size={16} className="text-secondary" />
+                  Mã thẻ: <strong>{cp.card_code || 'N/A'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  <span>Số buổi: <strong>{cp.total_sessions}</strong></span>
+                  <span>Đã dùng: <strong style={{ color: 'var(--warning)' }}>{cp.used_sessions}</strong></span>
+                </div>
+                <div style={{ marginTop: '0.5rem', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredPackageCustomers.length === 0 && (
+            <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
+              Không tìm thấy khách hàng liệu trình phù hợp.
             </div>
           )}
         </div>

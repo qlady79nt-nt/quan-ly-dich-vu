@@ -59,6 +59,7 @@ const POS = () => {
   const [foundPackages, setFoundPackages] = useState<any[]>([]);
   const [selectedCustPkgId, setSelectedCustPkgId] = useState('');
   const [technicianId, setTechnicianId] = useState('');
+  const [packageBedId, setPackageBedId] = useState('');
 
   useEffect(() => {
     if (shopId) fetchData();
@@ -147,6 +148,7 @@ const POS = () => {
     ]);
     const activeIds = (newSessionsRes.data || []).map(s => s.bed_id);
     setBedsList((newBedsRes.data || []).filter(b => !activeIds.includes(b.id)));
+    setPackageBedId('');
 
     alert('Đã xếp khách vào chỗ thành công! Chuyển sang tab Chỗ để theo dõi và thanh toán.');
     setLoading(false);
@@ -263,36 +265,35 @@ const POS = () => {
         setSelectedPkgId('');
         setPkgDiscountValue(0);
       } else if (previewInvoiceData.type === 'use_package') {
-        const { cp, technicianId, customerName, customerPhone, cardCode, items, total_sessions, used_sessions } = previewInvoiceData;
+        const { cp, technicianId, bedId } = previewInvoiceData;
         const svc = cp.packages.services;
-        const unitPrice = cp.sale_price / cp.total_sessions;
 
-        const comm = svc.commission_type === 'percent' ? (svc.price * svc.commission_value) / 100 : svc.commission_value;
-        const { data: sess, error: sessErr } = await supabase.from('service_sessions').insert([{ shop_id: shopId, service_id: svc.id, staff_id: technicianId, customer_package_id: cp.id, revenue_amount: unitPrice, commission_amount: comm }]).select().single();
-        if (sessErr || !sess) throw new Error(`Lỗi trừ buổi: ${sessErr?.message || ''}`);
+        const { data: sess, error: sessErr } = await supabase.from('service_sessions').insert([{ 
+          shop_id: shopId, 
+          service_id: svc.id, 
+          staff_id: technicianId, 
+          customer_package_id: cp.id,
+          bed_id: bedId,
+          status: 'in_progress',
+          is_retail: false
+        }]).select().single();
+        if (sessErr || !sess) throw new Error(`Lỗi xếp chỗ trừ buổi: ${sessErr?.message || ''}`);
 
-        await supabase.from('customer_packages').update({ used_sessions: cp.used_sessions + 1, status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' }).eq('id', cp.id);
-        const { error: revLogErr } = await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: unitPrice, type: 'package_session', service_session_id: sess.id }]);
-        if (revLogErr) throw new Error(`Lỗi lưu doanh thu dùng gói: ${revLogErr.message}`);
-        const { error: commLogErr } = await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: technicianId, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dùng liệu trình: ${cp.packages.name}` }]);
-        if (commLogErr) throw new Error(`Lỗi lưu hoa hồng dùng gói: ${commLogErr.message}`);
-
-        setCompletedInvoice({
-          id: sess.id,
-          created_at: new Date().toISOString(),
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          card_code: cardCode,
-          is_use_package: true,
-          used_sessions: used_sessions + 1,
-          total_sessions: total_sessions,
-          items: items,
-          staff_name: staff.find(s => s.id === technicianId)?.full_name || profile?.full_name || 'KTV'
-        });
+        alert('Đã xếp khách vào chỗ thành công! Vui lòng sang tab Chỗ để theo dõi và hoàn thành trừ buổi.');
+        
+        // Refresh Beds List
+        const [newBedsRes, newSessionsRes] = await Promise.all([
+          supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
+          supabase.from('service_sessions').select('bed_id').eq('shop_id', shopId).eq('status', 'in_progress')
+        ]);
+        const activeIds = (newSessionsRes.data || []).map(s => s.bed_id);
+        setBedsList((newBedsRes.data || []).filter(b => !activeIds.includes(b.id)));
 
         setSearchPhone('');
         setFoundPackages([]);
         setSelectedCustPkgId('');
+        setTechnicianId('');
+        setPackageBedId('');
       }
 
       setPreviewInvoiceData(null);
@@ -348,6 +349,7 @@ const POS = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện trừ buổi');
     if (!selectedCustPkgId) return alert('Vui lòng chọn thẻ liệu trình');
     if (!technicianId) return alert('Vui lòng chọn Kỹ thuật viên (Bắt buộc đối với nghiệp vụ trừ buổi)');
+    if (!packageBedId) return alert('Vui lòng chọn Chỗ (Bắt buộc)');
 
     const cp = foundPackages.find(p => p.id === selectedCustPkgId);
     if (!cp) return;
@@ -358,6 +360,7 @@ const POS = () => {
       type: 'use_package',
       cp,
       technicianId,
+      bedId: packageBedId,
       customerName: cp.customer_name || 'Khách lẻ',
       customerPhone: maskInfo(cp.customer_phone),
       cardCode: maskInfo(cp.card_code),
@@ -491,8 +494,9 @@ const POS = () => {
                 ))}
                 {selectedCustPkgId && (
                   <div className="premium-card" style={{ background: 'rgba(16, 185, 129, 0.05)' }}>
-                    <select className="form-select" value={technicianId} onChange={e => setTechnicianId(e.target.value)}><option value="">-- Kỹ thuật viên --</option>{staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
-                    <button onClick={handleUseSessionClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--success)' }}>{loading ? <Loader2 className="animate-spin" /> : 'Xác nhận trừ buổi'}</button>
+                    <select className="form-select" style={{ marginBottom: '0.5rem' }} value={technicianId} onChange={e => setTechnicianId(e.target.value)}><option value="">-- Kỹ thuật viên --</option>{staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
+                    <select className="form-select" value={packageBedId} onChange={e => setPackageBedId(e.target.value)}><option value="">-- Chọn Chỗ (Trống) --</option>{bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+                    <button onClick={handleUseSessionClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--success)' }}>{loading ? <Loader2 className="animate-spin" /> : 'Bắt đầu & Xếp chỗ'}</button>
                   </div>
                 )}
               </div>
@@ -639,16 +643,18 @@ const POS = () => {
                 className="btn btn-primary"
                 style={{ width: '100%' }}
               >
-                {loading ? <Loader2 className="animate-spin" /> : 'Xác nhận & In hoá đơn'}
+                {loading ? <Loader2 className="animate-spin" /> : previewInvoiceData.type === 'use_package' ? 'Xác nhận trừ buổi (Không in)' : 'Xác nhận & In hoá đơn'}
               </button>
-              <button
-                onClick={() => handleConfirmCheckout(false)}
-                disabled={loading}
-                className="btn"
-                style={{ width: '100%', background: 'var(--success)', color: 'white', border: 'none' }}
-              >
-                {loading ? <Loader2 className="animate-spin" /> : 'Chỉ xác nhận (Không in)'}
-              </button>
+              {previewInvoiceData.type !== 'use_package' && (
+                <button
+                  onClick={() => handleConfirmCheckout(false)}
+                  disabled={loading}
+                  className="btn"
+                  style={{ width: '100%', background: 'var(--success)', color: 'white', border: 'none' }}
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : 'Chỉ xác nhận (Không in)'}
+                </button>
+              )}
               <button
                 onClick={() => setPreviewInvoiceData(null)}
                 disabled={loading}
