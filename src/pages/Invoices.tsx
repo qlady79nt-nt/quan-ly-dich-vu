@@ -27,7 +27,7 @@ const Invoices = () => {
       // 1. Fetch Invoices (Bán hàng) - Manual Join
       const { data: invData, error: invErr } = await supabase.from('invoices').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
       if (invErr) console.error(invErr);
-      
+
       let finalInvoices = invData || [];
       if (finalInvoices.length > 0) {
         const creatorIds = [...new Set(finalInvoices.map(i => i.created_by).filter(Boolean))];
@@ -44,12 +44,12 @@ const Invoices = () => {
       // 2. Fetch Sessions (Trừ buổi) - Manual Join
       const { data: sessData, error: sessErr } = await supabase.from('service_sessions').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
       if (sessErr) console.error(sessErr);
-      
+
       let finalSessions = sessData || [];
       if (finalSessions.length > 0) {
         const cpIds = [...new Set(finalSessions.map(s => s.customer_package_id).filter(Boolean))];
         const staffIds = [...new Set(finalSessions.map(s => s.staff_id).filter(Boolean))];
-        
+
         let cpMap: any[] = [];
         let packagesMap: any[] = [];
         let staffMap: any[] = [];
@@ -57,7 +57,7 @@ const Invoices = () => {
         if (cpIds.length > 0) {
           const { data: cps } = await supabase.from('customer_packages').select('*').in('id', cpIds);
           cpMap = cps || [];
-          
+
           const pkgIds = [...new Set(cpMap.map(c => c.package_id).filter(Boolean))];
           if (pkgIds.length > 0) {
             const { data: pkgs } = await supabase.from('packages').select('id, name').in('id', pkgIds);
@@ -87,13 +87,13 @@ const Invoices = () => {
     setLoading(false);
   };
 
-  const filteredInvoices = invoices.filter(inv => 
-    inv.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredInvoices = invoices.filter(inv =>
+    inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inv.customer_name && inv.customer_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const filteredSessions = sessions.filter(sess => 
-    sess.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredSessions = sessions.filter(sess =>
+    sess.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (sess.customer_packages?.customer_name && sess.customer_packages.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (sess.customer_packages?.customer_phone && sess.customer_packages.customer_phone.includes(searchTerm))
   );
@@ -103,7 +103,7 @@ const Invoices = () => {
     try {
       let { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id);
       items = items || [];
-      
+
       let realStaffName = inv.profiles?.full_name || 'Hệ thống';
       let totalSessions = 0;
       let usedSessions = 0;
@@ -113,115 +113,115 @@ const Invoices = () => {
       // Hook directly from invoice_items first
       const firstItemWithStaff = items.find(i => i.staff_id);
       if (firstItemWithStaff && firstItemWithStaff.staff_id) {
-         const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', firstItemWithStaff.staff_id).single();
-         if (stf) realStaffName = stf.full_name;
+        const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', firstItemWithStaff.staff_id).single();
+        if (stf) realStaffName = stf.full_name;
       }
 
       if (items.length === 0) {
         const { data: psArray, error: psErr } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
         if (psErr) console.error('Error fetching package_sales:', psErr);
-        
+
         if (psArray && psArray.length > 0) {
           const ps = psArray[0];
           isPackageSale = true;
 
           if (ps.seller_id) {
-             const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
-             if (stf) realStaffName = stf.full_name;
+            const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
+            if (stf) realStaffName = stf.full_name;
           }
 
           if (ps.customer_package_id) {
-             const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
-              if (cp) {
-                totalSessions = cp.total_sessions || 0;
-                usedSessions = cp.used_sessions || 0;
-                customerPackageId = cp.id;
-                if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
+            const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
+            if (cp) {
+              totalSessions = cp.total_sessions || 0;
+              usedSessions = cp.used_sessions || 0;
+              customerPackageId = cp.id;
+              if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
 
-                let pkgName = 'Gói liệu trình';
-                if (cp.package_id) {
-                   const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
-                   if (pkg) pkgName = pkg.name;
-                }
+              let pkgName = 'Gói liệu trình';
+              if (cp.package_id) {
+                const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
+                if (pkg) pkgName = pkg.name;
+              }
 
-                items.push({ 
-                  name: pkgName, 
-                  price: ps.amount_paid 
-                });
-             }
+              items.push({
+                name: pkgName,
+                price: ps.amount_paid
+              });
+            }
           }
         }
       } else if (isPackageSale) {
         let { data: psArray } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
-        
+
         if (!psArray || psArray.length === 0) {
-           const createdTime = new Date(inv.created_at).getTime();
-           const startTime = new Date(createdTime - 15000).toISOString();
-           const endTime = new Date(createdTime + 15000).toISOString();
-           
-           const { data: cpArray } = await supabase.from('customer_packages')
-             .select('id')
-             .gte('created_at', startTime)
-             .lte('created_at', endTime)
-             .eq('customer_phone', inv.customer_phone);
-             
-           if (cpArray && cpArray.length > 0) {
-              const { data: healedPs } = await supabase.from('package_sales').select('*').eq('customer_package_id', cpArray[0].id);
-              if (healedPs) psArray = healedPs;
-           }
+          const createdTime = new Date(inv.created_at).getTime();
+          const startTime = new Date(createdTime - 15000).toISOString();
+          const endTime = new Date(createdTime + 15000).toISOString();
+
+          const { data: cpArray } = await supabase.from('customer_packages')
+            .select('id')
+            .gte('created_at', startTime)
+            .lte('created_at', endTime)
+            .eq('customer_phone', inv.customer_phone);
+
+          if (cpArray && cpArray.length > 0) {
+            const { data: healedPs } = await supabase.from('package_sales').select('*').eq('customer_package_id', cpArray[0].id);
+            if (healedPs) psArray = healedPs;
+          }
         }
 
         if (psArray && psArray.length > 0) {
           const ps = psArray[0];
           // Nếu invoice_items không có staff_id, lấy bù từ package_sales
           if (!firstItemWithStaff && ps.seller_id) {
-             const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
-             if (stf) realStaffName = stf.full_name;
+            const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
+            if (stf) realStaffName = stf.full_name;
           }
           if (ps.customer_package_id) {
-             const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
-             if (cp) {
-                totalSessions = cp.total_sessions || 0;
-                usedSessions = cp.used_sessions || 0;
-                customerPackageId = cp.id;
-                if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
-             }
+            const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', ps.customer_package_id).single();
+            if (cp) {
+              totalSessions = cp.total_sessions || 0;
+              usedSessions = cp.used_sessions || 0;
+              customerPackageId = cp.id;
+              if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
+            }
           }
         }
       }
 
       // 1.5. Ultimate Fallback Recovery: Nếu items VẪN rỗng (lỗi cả invoice_items và package_sales)
       if (items.length === 0) {
-         const createdTime = new Date(inv.created_at).getTime();
-         const startTime = new Date(createdTime - 15000).toISOString();
-         const endTime = new Date(createdTime + 15000).toISOString();
-         
-         const { data: cpArray } = await supabase.from('customer_packages')
-           .select('*')
-           .gte('created_at', startTime)
-           .lte('created_at', endTime)
-           .eq('customer_phone', inv.customer_phone);
-           
-         if (cpArray && cpArray.length > 0) {
-            isPackageSale = true;
-            realStaffName = 'Không xác định (Lỗi hệ thống cũ không lưu)';
-             const cp = cpArray[0];
-             totalSessions = cp.total_sessions || 0;
-             usedSessions = cp.used_sessions || 0;
-             customerPackageId = cp.id;
-             if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
-            
-            let pkgName = 'Gói liệu trình';
-            if (cp.package_id) {
-               const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
-               if (pkg) pkgName = pkg.name;
-            }
-            
-            items.push({ 
-              name: pkgName, 
-              price: cp.sale_price 
-            });
-         }
+        const createdTime = new Date(inv.created_at).getTime();
+        const startTime = new Date(createdTime - 15000).toISOString();
+        const endTime = new Date(createdTime + 15000).toISOString();
+
+        const { data: cpArray } = await supabase.from('customer_packages')
+          .select('*')
+          .gte('created_at', startTime)
+          .lte('created_at', endTime)
+          .eq('customer_phone', inv.customer_phone);
+
+        if (cpArray && cpArray.length > 0) {
+          isPackageSale = true;
+          realStaffName = 'Không xác định (Lỗi hệ thống cũ không lưu)';
+          const cp = cpArray[0];
+          totalSessions = cp.total_sessions || 0;
+          usedSessions = cp.used_sessions || 0;
+          customerPackageId = cp.id;
+          if (!inv.card_code && cp.card_code) inv.card_code = cp.card_code;
+
+          let pkgName = 'Gói liệu trình';
+          if (cp.package_id) {
+            const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
+            if (pkg) pkgName = pkg.name;
+          }
+
+          items.push({
+            name: pkgName,
+            price: cp.sale_price
+          });
+        }
       }
 
       // 2. Resolve real names for items
@@ -230,14 +230,14 @@ const Invoices = () => {
           if (items[i].type === 'package_sale' || items[i].type === 'package') {
             const idToLook = items[i].package_id || items[i].ref_id;
             if (idToLook) {
-                const { data: pkg } = await supabase.from('packages').select('name').eq('id', idToLook).single();
-                if (pkg) items[i].name = pkg.name;
+              const { data: pkg } = await supabase.from('packages').select('name').eq('id', idToLook).single();
+              if (pkg) items[i].name = pkg.name;
             }
           } else if (items[i].type === 'service') {
             const idToLook = items[i].service_id || items[i].ref_id;
             if (idToLook) {
-                const { data: svc } = await supabase.from('services').select('name').eq('id', idToLook).single();
-                if (svc) items[i].name = svc.name;
+              const { data: svc } = await supabase.from('services').select('name').eq('id', idToLook).single();
+              if (svc) items[i].name = svc.name;
             }
           }
         }
@@ -245,9 +245,9 @@ const Invoices = () => {
 
       setDetailModal({
         type: 'invoice',
-        data: { 
-          ...inv, 
-          items: items, 
+        data: {
+          ...inv,
+          items: items,
           real_staff_name: realStaffName,
           total_sessions: totalSessions,
           used_sessions: usedSessions,
@@ -264,7 +264,7 @@ const Invoices = () => {
 
   const handleCancelInvoice = async () => {
     if (!cancelReason.trim()) return alert('Vui lòng nhập lý do huỷ hoá đơn');
-    
+
     if (detailModal.data.is_package_sale && detailModal.data.used_sessions > 0) {
       alert('Gói đã phát sinh sử dụng. Không thể hủy hóa đơn.');
       return;
@@ -273,58 +273,58 @@ const Invoices = () => {
     if (!window.confirm('Bạn có chắc chắn muốn hủy hóa đơn này? Thao tác này không thể hoàn tác.')) return;
 
     setIsCancelling(true);
-    const { error } = await supabase.from('invoices').update({ 
-      status: 'cancelled', 
+    const { error } = await supabase.from('invoices').update({
+      status: 'cancelled',
       cancelled_reason: cancelReason,
       cancelled_by: profile?.id
     }).eq('id', detailModal.data.id);
 
     if (error) {
-       alert('Lỗi khi huỷ hoá đơn: ' + error.message);
+      alert('Lỗi khi huỷ hoá đơn: ' + error.message);
     } else {
-       if (detailModal.data.is_package_sale && detailModal.data.customer_package_id) {
-          await supabase.from('customer_packages').update({
-             status: 'cancelled',
-             cancelled_reason: cancelReason,
-             cancelled_by: profile?.id
-          }).eq('id', detailModal.data.customer_package_id);
-          
-          // Hủy hoa hồng & doanh thu của gói
-          await supabase.from('revenue_logs').update({ status: 'cancelled' }).eq('reference_id', detailModal.data.customer_package_id);
-          // Hủy thông qua package_sale
-          const { data: ps } = await supabase.from('package_sales').select('id').eq('customer_package_id', detailModal.data.customer_package_id);
-          if (ps && ps.length > 0) {
-             const psIds = ps.map(p => p.id);
-             await supabase.from('commission_logs').update({ status: 'cancelled' }).in('package_sale_id', psIds);
-             await supabase.from('revenue_logs').update({ status: 'cancelled' }).in('package_sale_id', psIds);
-          }
-       }
+      if (detailModal.data.is_package_sale && detailModal.data.customer_package_id) {
+        await supabase.from('customer_packages').update({
+          status: 'cancelled',
+          cancelled_reason: cancelReason,
+          cancelled_by: profile?.id
+        }).eq('id', detailModal.data.customer_package_id);
 
-       // Hủy doanh thu và hoa hồng của hoá đơn bán lẻ
-       await supabase.from('revenue_logs').update({ status: 'cancelled' }).eq('invoice_id', detailModal.data.id);
-       
-       const { data: invItems } = await supabase.from('invoice_items').select('id').eq('invoice_id', detailModal.data.id);
-       if (invItems && invItems.length > 0) {
-          await supabase.from('commission_logs').update({ status: 'cancelled' }).in('invoice_item_id', invItems.map(i => i.id));
-       }
-       
-       const { error: auditErr } = await supabase.from('audit_logs').insert([{
-          shop_id: shopId,
-          actor_id: profile?.id,
-          action_type: 'DELETE_INVOICE',
-          entity_type: 'INVOICE',
-          entity_id: detailModal.data.id,
-          description: `Hủy hóa đơn #${detailModal.data.id.slice(0,8)} - Lý do: ${cancelReason}`
-       }]);
-       
-       if (auditErr) {
-         console.error('Lỗi khi ghi Audit Log:', auditErr);
-         alert('Lỗi khi ghi Nhật ký: ' + auditErr.message);
-       }
+        // Hủy hoa hồng & doanh thu của gói
+        await supabase.from('revenue_logs').update({ status: 'cancelled' }).eq('reference_id', detailModal.data.customer_package_id);
+        // Hủy thông qua package_sale
+        const { data: ps } = await supabase.from('package_sales').select('id').eq('customer_package_id', detailModal.data.customer_package_id);
+        if (ps && ps.length > 0) {
+          const psIds = ps.map(p => p.id);
+          await supabase.from('commission_logs').update({ status: 'cancelled' }).in('package_sale_id', psIds);
+          await supabase.from('revenue_logs').update({ status: 'cancelled' }).in('package_sale_id', psIds);
+        }
+      }
 
-       fetchData();
-       setDetailModal(null);
-       setCancelReason('');
+      // Hủy doanh thu và hoa hồng của hoá đơn bán lẻ
+      await supabase.from('revenue_logs').update({ status: 'cancelled' }).eq('invoice_id', detailModal.data.id);
+
+      const { data: invItems } = await supabase.from('invoice_items').select('id').eq('invoice_id', detailModal.data.id);
+      if (invItems && invItems.length > 0) {
+        await supabase.from('commission_logs').update({ status: 'cancelled' }).in('invoice_item_id', invItems.map(i => i.id));
+      }
+
+      const { error: auditErr } = await supabase.from('audit_logs').insert([{
+        shop_id: shopId,
+        actor_id: profile?.id,
+        action_type: 'DELETE_INVOICE',
+        entity_type: 'INVOICE',
+        entity_id: detailModal.data.id,
+        description: `Hủy hóa đơn #${detailModal.data.id.slice(0, 8)} - Lý do: ${cancelReason}`
+      }]);
+
+      if (auditErr) {
+        console.error('Lỗi khi ghi Audit Log:', auditErr);
+        alert('Lỗi khi ghi Nhật ký: ' + auditErr.message);
+      }
+
+      fetchData();
+      setDetailModal(null);
+      setCancelReason('');
     }
     setIsCancelling(false);
   };
@@ -334,31 +334,31 @@ const Invoices = () => {
     let invoiceCode = '';
     try {
       if (sess.customer_package_id) {
-         // Try fetching from package_sales first
-         const { data: ps } = await supabase.from('package_sales').select('invoice_id, invoices(invoice_code)').eq('customer_package_id', sess.customer_package_id).single();
-         if (ps && ps.invoice_id) {
-            invoiceCode = ps.invoices?.invoice_code || ps.invoice_id.slice(0,8);
-         } else if (sess.customer_packages?.customer_phone && sess.customer_packages?.created_at) {
-            // Ultimate fallback for corrupted invoices
-            const createdTime = new Date(sess.customer_packages.created_at).getTime();
-            const startTime = new Date(createdTime - 15000).toISOString();
-            const endTime = new Date(createdTime + 15000).toISOString();
-            
-            const { data: invArray } = await supabase.from('invoices')
-              .select('id, invoice_code')
-              .gte('created_at', startTime)
-              .lte('created_at', endTime)
-              .eq('customer_phone', sess.customer_packages.customer_phone);
-              
-            if (invArray && invArray.length > 0) {
-               invoiceCode = invArray[0].invoice_code || invArray[0].id.slice(0,8);
-            }
-         }
+        // Try fetching from package_sales first
+        const { data: ps } = await supabase.from('package_sales').select('invoice_id').eq('customer_package_id', sess.customer_package_id).single();
+        if (ps && ps.invoice_id) {
+          invoiceCode = ps.invoice_id;
+        } else if (sess.customer_packages?.customer_phone && sess.customer_packages?.created_at) {
+          // Ultimate fallback for corrupted invoices
+          const createdTime = new Date(sess.customer_packages.created_at).getTime();
+          const startTime = new Date(createdTime - 15000).toISOString();
+          const endTime = new Date(createdTime + 15000).toISOString();
+
+          const { data: invArray } = await supabase.from('invoices')
+            .select('id')
+            .gte('created_at', startTime)
+            .lte('created_at', endTime)
+            .eq('customer_phone', sess.customer_packages.customer_phone);
+
+          if (invArray && invArray.length > 0) {
+            invoiceCode = invArray[0].id;
+          }
+        }
       }
     } catch (e) {
       console.error(e);
     }
-    
+
     setDetailModal({
       type: 'session',
       data: { ...sess, original_invoice_code: invoiceCode },
@@ -378,13 +378,13 @@ const Invoices = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Hoá đơn & Phiếu</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Tra cứu hoá đơn bán hàng và lịch sử trừ buổi</p>
         </div>
-        
+
         <div style={{ display: 'flex', gap: '1rem' }}>
           <div className="search-container" style={{ width: '300px' }}>
             <Search size={18} />
-            <input 
-              type="text" 
-              placeholder="Tìm theo tên khách, mã..." 
+            <input
+              type="text"
+              placeholder="Tìm theo tên khách, mã..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -418,14 +418,14 @@ const Invoices = () => {
             </thead>
             <tbody>
               {filteredInvoices.map(inv => (
-                <tr 
-                  key={inv.id} 
+                <tr
+                  key={inv.id}
                   onClick={() => handleViewInvoice(inv)}
                   style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
                   onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.invoice_code || inv.id.slice(0,8)}</td>
+                  <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.id.slice(0, 8)}</td>
                   <td>{inv.customer_name || 'Khách lẻ'}</td>
                   <td>{new Date(inv.created_at).toLocaleString()}</td>
                   <td>{inv.profiles?.full_name || 'Hệ thống'}</td>
@@ -458,14 +458,14 @@ const Invoices = () => {
             </thead>
             <tbody>
               {filteredSessions.map(sess => (
-                <tr 
-                  key={sess.id} 
+                <tr
+                  key={sess.id}
                   onClick={() => handleViewSession(sess)}
                   style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
                   onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.session_code || sess.id.slice(0,8)}</td>
+                  <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.id.slice(0, 8)}</td>
                   <td>
                     <div style={{ fontWeight: '600' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{sess.customer_packages?.customer_phone}</div>
@@ -490,13 +490,13 @@ const Invoices = () => {
             <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
               {detailModal.title}
             </h3>
-            
+
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1.5rem' }}>
               {detailModal.type === 'invoice' && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Mã Hoá Đơn:</span>
-                    <span style={{ fontWeight: '600' }}>#{detailModal.data.invoice_code || detailModal.data.id.slice(0,8)}</span>
+                    <span style={{ fontWeight: '600' }}>#{detailModal.data.id.slice(0, 8)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
@@ -520,14 +520,14 @@ const Invoices = () => {
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày tạo:</span>
                     <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
                   </div>
-                  
+
                   {detailModal.data.status === 'cancelled' && (
                     <div style={{ background: 'var(--danger-light)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--danger)' }}>
                       <h4 style={{ color: 'var(--danger)', margin: '0 0 0.5rem 0' }}>HÓA ĐƠN ĐÃ BỊ HỦY</h4>
                       <p style={{ margin: 0, fontSize: '0.875rem' }}><strong>Lý do:</strong> {detailModal.data.cancelled_reason}</p>
                     </div>
                   )}
-                  
+
                   <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Sản phẩm / Dịch vụ</h4>
                   <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
                     {detailModal.data.items?.length === 0 ? (
@@ -542,7 +542,7 @@ const Invoices = () => {
                             <span>{Number(item.price || item.unit_price).toLocaleString()}đ</span>
                           </div>
                         ))}
-                        
+
                         {detailModal.data.is_package_sale && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.875rem' }}>
                             <span style={{ color: 'var(--text-secondary)' }}>Tổng số buổi mua:</span>
@@ -558,22 +558,22 @@ const Invoices = () => {
                       <span style={{ textDecoration: detailModal.data.status === 'cancelled' ? 'line-through' : 'none' }}>{Number(detailModal.data.final_amount).toLocaleString()}đ</span>
                     </div>
                   </div>
-                  
+
                   {detailModal.data.status !== 'cancelled' && hasPermission('sale.delete') && (
                     <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
                       <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--danger)', marginBottom: '0.5rem' }}>Hủy Hóa Đơn</h4>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input 
-                          type="text" 
-                          placeholder="Nhập lý do hủy (Bắt buộc)..." 
-                          className="form-input" 
+                        <input
+                          type="text"
+                          placeholder="Nhập lý do hủy (Bắt buộc)..."
+                          className="form-input"
                           style={{ flex: 1 }}
                           value={cancelReason}
                           onChange={e => setCancelReason(e.target.value)}
                         />
-                        <button 
-                          onClick={handleCancelInvoice} 
-                          className="btn" 
+                        <button
+                          onClick={handleCancelInvoice}
+                          className="btn"
                           style={{ background: 'var(--danger)', color: 'white' }}
                           disabled={isCancelling}
                         >
@@ -594,12 +594,12 @@ const Invoices = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Mã Phiếu:</span>
-                    <span style={{ fontWeight: '600' }}>#{detailModal.data.session_code || detailModal.data.id.slice(0,8)}</span>
+                    <span style={{ fontWeight: '600' }}>#{detailModal.data.id.slice(0, 8)}</span>
                   </div>
                   {detailModal.data.original_invoice_code && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Mã hoá đơn (Gốc):</span>
-                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.original_invoice_code}</span>
+                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.original_invoice_code.slice(0, 8)}</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -624,7 +624,7 @@ const Invoices = () => {
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày dùng:</span>
                     <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
                   </div>
-                  
+
                   <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Thông tin Gói</h4>
                   <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -648,11 +648,11 @@ const Invoices = () => {
                 </div>
               )}
             </div>
-            
+
             <button onClick={() => setDetailModal(null)} className="btn" style={{ background: 'var(--bg-main)', width: '100%' }}>Đóng</button>
           </div>
         </div>
-      , document.body)}
+        , document.body)}
     </div>
   );
 };

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Search, 
-  Plus, 
-  Trash2, 
+import {
+  Search,
+  Plus,
+  Trash2,
   Loader2,
   Package as PackageIcon,
   Zap,
@@ -38,21 +38,17 @@ const POS = () => {
   const [bedsList, setBedsList] = useState<any[]>([]);
 
   // --- SELL PACKAGE STATE ---
-  const generateInvoiceCode = () => {
-    const year = new Date().getFullYear().toString().slice(-2);
-    const random = Math.floor(1000 + Math.random() * 9000).toString();
-    return `HD${year}${random}`;
+  const generateCardCode = () => {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    let code = '';
+    for (let i = 0; i < 2; i++) code += letters.charAt(Math.floor(Math.random() * letters.length));
+    for (let i = 0; i < 3; i++) code += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    return code;
   };
-
-  const generateCardCode = (invCode: string) => {
-    const random = Math.floor(10 + Math.random() * 90).toString();
-    return `P${random}${invCode}`;
-  };
-
-  const [currentInvoiceCode, setCurrentInvoiceCode] = useState(generateInvoiceCode());
   const [customerPhone, setCustomerPhone] = useState('');
   const [pkgCustomerName, setPkgCustomerName] = useState('');
-  const [pkgCardCode, setPkgCardCode] = useState(generateCardCode(currentInvoiceCode));
+  const [pkgCardCode, setPkgCardCode] = useState(generateCardCode());
   const [selectedPkgId, setSelectedPkgId] = useState('');
   const [sellerId, setSellerId] = useState('');
   const [pkgDiscountType, setPkgDiscountType] = useState<'amount' | 'percent'>('amount');
@@ -91,7 +87,7 @@ const POS = () => {
     setPackages(pkg.data || []);
     setStaff(stf.data || []);
     setCustomersList(custs.data || []);
-    
+
     const allBeds = bds.data || [];
     const activeBedIds = (activeSessionsRes.data || []).map(s => s.bed_id);
     setBedsList(allBeds.filter(b => !activeBedIds.includes(b.id)));
@@ -110,7 +106,7 @@ const POS = () => {
     if (cart.length === 0) return alert('Giỏ hàng trống');
     if (!retailStaffId) return alert('Vui lòng chọn Kỹ thuật viên (Bắt buộc)');
     if (!retailBedId) return alert('Vui lòng chọn Chỗ (Bắt buộc)');
-    
+
     setLoading(true);
     const item = cart[0];
     const customer = retailCustomerId ? customersList.find(c => c.id === retailCustomerId) : null;
@@ -137,13 +133,13 @@ const POS = () => {
       setLoading(false);
       return;
     }
-    
+
     setCart([]);
     setRetailBedId('');
     setRetailStaffId('');
     setRetailCustomerName('');
     setRetailCustomerId('');
-    
+
     // Load lại list chỗ bằng cách tính toán động
     const [newBedsRes, newSessionsRes] = await Promise.all([
       supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
@@ -163,7 +159,7 @@ const POS = () => {
     if (!sellerId) {
       if (!window.confirm("⚠️ Chưa chọn người bán!\n\nGiao dịch này sẽ KHÔNG được tính hoa hồng cho bất kỳ ai.\nBạn có chắc chắn muốn tiếp tục thanh toán?")) return;
     }
-    
+
     const pkg = packages.find(p => p.id === selectedPkgId);
     if (!pkg) return;
 
@@ -187,8 +183,7 @@ const POS = () => {
       pkg_sale_price: basePrice,
       commission_sale_type: pkg.commission_sale_type,
       commission_sale_value: pkg.commission_sale_value,
-      pkg_name: pkg.name,
-      invoiceCode: currentInvoiceCode
+      pkg_name: pkg.name
     });
   };
 
@@ -198,14 +193,13 @@ const POS = () => {
 
     try {
       if (previewInvoiceData.type === 'retail') {
-         // Tính năng này đã chuyển sang Beds.tsx (Thanh toán sau khi làm xong)
-         // Đoạn code này được giữ lại để phòng hờ, nhưng hiện tại POS không gọi setPreviewInvoiceData('retail') nữa.
+        // Tính năng này đã chuyển sang Beds.tsx (Thanh toán sau khi làm xong)
+        // Đoạn code này được giữ lại để phòng hờ, nhưng hiện tại POS không gọi setPreviewInvoiceData('retail') nữa.
       } else if (previewInvoiceData.type === 'sell_package') {
-        const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name, invoiceCode } = previewInvoiceData;
-        
+        const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
+
         const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
           shop_id: shopId,
-          invoice_code: invoiceCode,
           customer_name: customerName,
           customer_phone: customerPhone,
           created_by: profile?.id,
@@ -243,13 +237,13 @@ const POS = () => {
         const salesComm = commission_sale_type === 'percent' ? (pkg_sale_price * commission_sale_value) / 100 : commission_sale_value;
         const validSellerId = sellerId || null;
 
-        const { data: sale, error: saleErr } = await supabase.from('package_sales').insert([{ 
-          shop_id: shopId, 
+        const { data: sale, error: saleErr } = await supabase.from('package_sales').insert([{
+          shop_id: shopId,
           invoice_id: inv.id,
-          customer_package_id: custPkg.id, 
-          seller_id: validSellerId, 
-          amount_paid: finalTotal, 
-          commission_amount: salesComm 
+          customer_package_id: custPkg.id,
+          seller_id: validSellerId,
+          amount_paid: finalTotal,
+          commission_amount: salesComm
         }]).select().single();
         if (saleErr || !sale) throw new Error(`Lỗi tạo giao dịch bán gói: ${saleErr?.message || 'Không có dữ liệu'}`);
 
@@ -258,18 +252,14 @@ const POS = () => {
         const { error: revLogErr } = await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', package_sale_id: sale.id }]);
         if (revLogErr) throw new Error(`Lỗi lưu doanh thu bán gói: ${revLogErr.message}`);
 
-        setCompletedInvoice({ 
-          ...inv, 
+        setCompletedInvoice({
+          ...inv,
           items: [{ name: pkg_name, price: original_price }],
-          staff_name: staff.find(s => s.id === sellerId)?.full_name || profile?.full_name || 'Thu ngân',
-          display_id: inv.invoice_code || inv.id.slice(0,8)
+          staff_name: staff.find(s => s.id === sellerId)?.full_name || profile?.full_name || 'Thu ngân'
         });
-        
-        const nextInvCode = generateInvoiceCode();
-        setCurrentInvoiceCode(nextInvCode);
         setCustomerPhone('');
         setPkgCustomerName('');
-        setPkgCardCode(generatePackageCode(nextInvCode));
+        setPkgCardCode(generateCardCode());
         setSelectedPkgId('');
         setPkgDiscountValue(0);
       } else if (previewInvoiceData.type === 'use_package') {
@@ -277,21 +267,8 @@ const POS = () => {
         const svc = cp.packages.services;
         const unitPrice = cp.sale_price / cp.total_sessions;
 
-        // Generate session code: P + 2 random + invoice_code of the package
-        // If cardCode already contains the invoice code (P12HD261234), we can extract it or just generate a new one
-        const extractedInvCode = cp.card_code ? cp.card_code.substring(3) : '';
-        const sessionCode = `P${Math.floor(10 + Math.random() * 90)}${extractedInvCode}`;
-
         const comm = svc.commission_type === 'percent' ? (svc.price * svc.commission_value) / 100 : svc.commission_value;
-        const { data: sess, error: sessErr } = await supabase.from('service_sessions').insert([{ 
-          shop_id: shopId, 
-          session_code: sessionCode,
-          service_id: svc.id, 
-          staff_id: technicianId, 
-          customer_package_id: cp.id, 
-          revenue_amount: unitPrice, 
-          commission_amount: comm 
-        }]).select().single();
+        const { data: sess, error: sessErr } = await supabase.from('service_sessions').insert([{ shop_id: shopId, service_id: svc.id, staff_id: technicianId, customer_package_id: cp.id, revenue_amount: unitPrice, commission_amount: comm }]).select().single();
         if (sessErr || !sess) throw new Error(`Lỗi trừ buổi: ${sessErr?.message || ''}`);
 
         await supabase.from('customer_packages').update({ used_sessions: cp.used_sessions + 1, status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' }).eq('id', cp.id);
@@ -302,7 +279,6 @@ const POS = () => {
 
         setCompletedInvoice({
           id: sess.id,
-          display_id: sess.session_code || sess.id.slice(0,8),
           created_at: new Date().toISOString(),
           customer_name: customerName,
           customer_phone: customerPhone,
@@ -318,7 +294,7 @@ const POS = () => {
         setFoundPackages([]);
         setSelectedCustPkgId('');
       }
-      
+
       setPreviewInvoiceData(null);
       if (print) {
         setTimeout(() => {
@@ -364,7 +340,7 @@ const POS = () => {
     } else {
       setFoundPackages([]);
     }
-    
+
     setLoading(false);
   };
 
@@ -372,7 +348,7 @@ const POS = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện trừ buổi');
     if (!selectedCustPkgId) return alert('Vui lòng chọn thẻ liệu trình');
     if (!technicianId) return alert('Vui lòng chọn Kỹ thuật viên (Bắt buộc đối với nghiệp vụ trừ buổi)');
-    
+
     const cp = foundPackages.find(p => p.id === selectedCustPkgId);
     if (!cp) return;
 
@@ -475,10 +451,10 @@ const POS = () => {
                   </div>
                 </div>
               )}
-              <button 
-                onClick={handleSellPackageClick} 
-                disabled={isRestricted()} 
-                className="btn btn-primary" 
+              <button
+                onClick={handleSellPackageClick}
+                disabled={isRestricted()}
+                className="btn btn-primary"
                 style={{ width: '100%', height: '50px' }}
                 title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để thực hiện tính năng này' : ''}
               >
@@ -530,7 +506,7 @@ const POS = () => {
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
             <h3 style={{ marginBottom: '0.5rem' }}>Thanh toán thành công</h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Hoá đơn #{completedInvoice.display_id || completedInvoice.id.slice(0,8)}</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Hoá đơn #{completedInvoice.id.slice(0, 8)}</p>
             <button onClick={handlePrint} className="btn btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}><Printer size={18} /> In hoá đơn</button>
             <button onClick={() => setCompletedInvoice(null)} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Tiếp tục bán hàng</button>
           </div>
@@ -579,13 +555,13 @@ const POS = () => {
       </div>
 
       {/* GIAO DIỆN IN HOÁ ĐƠN TẬP TRUNG */}
-      <ReceiptTemplate 
-        invoice={completedInvoice} 
+      <ReceiptTemplate
+        invoice={completedInvoice}
         config={{
           shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
           paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
           footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
-        }} 
+        }}
       />
 
       {/* Modal Preview Hóa Đơn */}
@@ -593,7 +569,7 @@ const POS = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '400px' }}>
             <h3 style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.25rem' }}>Xác nhận Hoá đơn</h3>
-            
+
             <div style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
@@ -611,18 +587,18 @@ const POS = () => {
                   <span style={{ fontWeight: '600' }}>{previewInvoiceData.cardCode}</span>
                 </div>
               )}
-              
+
               <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
-              
+
               {previewInvoiceData.items.map((item: any, idx: number) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>{item.name}</span>
                   <span>{item.price === '-' ? '-' : `${Number(item.price).toLocaleString()}đ`}</span>
                 </div>
               ))}
-              
+
               <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
-              
+
               {previewInvoiceData.type === 'use_package' ? (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -657,26 +633,26 @@ const POS = () => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <button 
-                onClick={() => handleConfirmCheckout(true)} 
-                disabled={loading} 
-                className="btn btn-primary" 
+              <button
+                onClick={() => handleConfirmCheckout(true)}
+                disabled={loading}
+                className="btn btn-primary"
                 style={{ width: '100%' }}
               >
                 {loading ? <Loader2 className="animate-spin" /> : 'Xác nhận & In hoá đơn'}
               </button>
-              <button 
-                onClick={() => handleConfirmCheckout(false)} 
-                disabled={loading} 
-                className="btn" 
+              <button
+                onClick={() => handleConfirmCheckout(false)}
+                disabled={loading}
+                className="btn"
                 style={{ width: '100%', background: 'var(--success)', color: 'white', border: 'none' }}
               >
                 {loading ? <Loader2 className="animate-spin" /> : 'Chỉ xác nhận (Không in)'}
               </button>
-              <button 
-                onClick={() => setPreviewInvoiceData(null)} 
-                disabled={loading} 
-                className="btn" 
+              <button
+                onClick={() => setPreviewInvoiceData(null)}
+                disabled={loading}
+                className="btn"
                 style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
               >
                 Hủy bỏ
