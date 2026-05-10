@@ -117,9 +117,12 @@ const Beds = () => {
       const discount = discountType === 'percent' ? (price * discountValue) / 100 : discountValue;
       const finalTotal = price - discount;
 
+      const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+
       // 1. Tạo Invoice
       const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
         shop_id: shopId,
+        invoice_code: invCode,
         customer_name: sess.retail_customer_name,
         customer_phone: sess.retail_customer_phone,
         created_by: profile?.id,
@@ -167,6 +170,7 @@ const Beds = () => {
 
       setCompletedInvoice({
         id: inv.id,
+        display_id: inv.invoice_code || inv.id.slice(0,8),
         customer_name: sess.retail_customer_name || 'Khách lẻ',
         customer_phone: sess.retail_customer_phone,
         staff_name: sess.staffs?.full_name || 'KTV',
@@ -344,7 +348,7 @@ const Beds = () => {
               <CheckCircle2 size={32} />
             </div>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Thanh toán thành công!</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Hoá đơn #{completedInvoice.id.slice(0,8)} đã được ghi nhận vào hệ thống.</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Hoá đơn #{completedInvoice.display_id || completedInvoice.id.slice(0,8)} đã được ghi nhận vào hệ thống.</p>
             
             <button onClick={handlePrint} className="btn btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}><Printer size={18} /> In hoá đơn</button>
             <button onClick={() => { setCompletedInvoice(null); fetchBedsAndSessions(); }} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Quay lại Màn hình Chỗ</button>

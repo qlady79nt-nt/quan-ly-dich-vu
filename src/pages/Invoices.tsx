@@ -335,9 +335,9 @@ const Invoices = () => {
     try {
       if (sess.customer_package_id) {
          // Try fetching from package_sales first
-         const { data: ps } = await supabase.from('package_sales').select('invoice_id').eq('customer_package_id', sess.customer_package_id).single();
+         const { data: ps } = await supabase.from('package_sales').select('invoice_id, invoices(invoice_code)').eq('customer_package_id', sess.customer_package_id).single();
          if (ps && ps.invoice_id) {
-            invoiceCode = ps.invoice_id;
+            invoiceCode = ps.invoices?.invoice_code || ps.invoice_id.slice(0,8);
          } else if (sess.customer_packages?.customer_phone && sess.customer_packages?.created_at) {
             // Ultimate fallback for corrupted invoices
             const createdTime = new Date(sess.customer_packages.created_at).getTime();
@@ -345,13 +345,13 @@ const Invoices = () => {
             const endTime = new Date(createdTime + 15000).toISOString();
             
             const { data: invArray } = await supabase.from('invoices')
-              .select('id')
+              .select('id, invoice_code')
               .gte('created_at', startTime)
               .lte('created_at', endTime)
               .eq('customer_phone', sess.customer_packages.customer_phone);
               
             if (invArray && invArray.length > 0) {
-               invoiceCode = invArray[0].id;
+               invoiceCode = invArray[0].invoice_code || invArray[0].id.slice(0,8);
             }
          }
       }
@@ -425,7 +425,7 @@ const Invoices = () => {
                   onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.id.slice(0,8)}</td>
+                  <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.invoice_code || inv.id.slice(0,8)}</td>
                   <td>{inv.customer_name || 'Khách lẻ'}</td>
                   <td>{new Date(inv.created_at).toLocaleString()}</td>
                   <td>{inv.profiles?.full_name || 'Hệ thống'}</td>
@@ -465,7 +465,7 @@ const Invoices = () => {
                   onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.id.slice(0,8)}</td>
+                  <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.session_code || sess.id.slice(0,8)}</td>
                   <td>
                     <div style={{ fontWeight: '600' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{sess.customer_packages?.customer_phone}</div>
@@ -496,7 +496,7 @@ const Invoices = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Mã Hoá Đơn:</span>
-                    <span style={{ fontWeight: '600' }}>#{detailModal.data.id.slice(0,8)}</span>
+                    <span style={{ fontWeight: '600' }}>#{detailModal.data.invoice_code || detailModal.data.id.slice(0,8)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
@@ -594,12 +594,12 @@ const Invoices = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Mã Phiếu:</span>
-                    <span style={{ fontWeight: '600' }}>#{detailModal.data.id.slice(0,8)}</span>
+                    <span style={{ fontWeight: '600' }}>#{detailModal.data.session_code || detailModal.data.id.slice(0,8)}</span>
                   </div>
                   {detailModal.data.original_invoice_code && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Mã hoá đơn (Gốc):</span>
-                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.original_invoice_code.slice(0,8)}</span>
+                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.original_invoice_code}</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

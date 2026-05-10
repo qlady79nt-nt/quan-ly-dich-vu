@@ -38,17 +38,21 @@ const POS = () => {
   const [bedsList, setBedsList] = useState<any[]>([]);
 
   // --- SELL PACKAGE STATE ---
-  const generateCardCode = () => {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
-    let code = '';
-    for (let i = 0; i < 2; i++) code += letters.charAt(Math.floor(Math.random() * letters.length));
-    for (let i = 0; i < 3; i++) code += numbers.charAt(Math.floor(Math.random() * numbers.length));
-    return code;
+  const generateInvoiceCode = () => {
+    const year = new Date().getFullYear().toString().slice(-2);
+    const random = Math.floor(1000 + Math.random() * 9000).toString();
+    return `HD${year}${random}`;
   };
+
+  const generateCardCode = (invCode: string) => {
+    const random = Math.floor(10 + Math.random() * 90).toString();
+    return `P${random}${invCode}`;
+  };
+
+  const [currentInvoiceCode, setCurrentInvoiceCode] = useState(generateInvoiceCode());
   const [customerPhone, setCustomerPhone] = useState('');
   const [pkgCustomerName, setPkgCustomerName] = useState('');
-  const [pkgCardCode, setPkgCardCode] = useState(generateCardCode());
+  const [pkgCardCode, setPkgCardCode] = useState(generateCardCode(currentInvoiceCode));
   const [selectedPkgId, setSelectedPkgId] = useState('');
   const [sellerId, setSellerId] = useState('');
   const [pkgDiscountType, setPkgDiscountType] = useState<'amount' | 'percent'>('amount');
@@ -183,7 +187,8 @@ const POS = () => {
       pkg_sale_price: basePrice,
       commission_sale_type: pkg.commission_sale_type,
       commission_sale_value: pkg.commission_sale_value,
-      pkg_name: pkg.name
+      pkg_name: pkg.name,
+      invoiceCode: currentInvoiceCode
     });
   };
 
@@ -196,10 +201,11 @@ const POS = () => {
          // Tính năng này đã chuyển sang Beds.tsx (Thanh toán sau khi làm xong)
          // Đoạn code này được giữ lại để phòng hờ, nhưng hiện tại POS không gọi setPreviewInvoiceData('retail') nữa.
       } else if (previewInvoiceData.type === 'sell_package') {
-        const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
+        const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name, invoiceCode } = previewInvoiceData;
         
         const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
           shop_id: shopId,
+          invoice_code: invoiceCode,
           customer_name: customerName,
           customer_phone: customerPhone,
           created_by: profile?.id,
@@ -255,11 +261,15 @@ const POS = () => {
         setCompletedInvoice({ 
           ...inv, 
           items: [{ name: pkg_name, price: original_price }],
-          staff_name: staff.find(s => s.id === sellerId)?.full_name || profile?.full_name || 'Thu ngân'
+          staff_name: staff.find(s => s.id === sellerId)?.full_name || profile?.full_name || 'Thu ngân',
+          display_id: inv.invoice_code || inv.id.slice(0,8)
         });
+        
+        const nextInvCode = generateInvoiceCode();
+        setCurrentInvoiceCode(nextInvCode);
         setCustomerPhone('');
         setPkgCustomerName('');
-        setPkgCardCode(generateCardCode());
+        setPkgCardCode(generatePackageCode(nextInvCode));
         setSelectedPkgId('');
         setPkgDiscountValue(0);
       } else if (previewInvoiceData.type === 'use_package') {
@@ -267,8 +277,21 @@ const POS = () => {
         const svc = cp.packages.services;
         const unitPrice = cp.sale_price / cp.total_sessions;
 
+        // Generate session code: P + 2 random + invoice_code of the package
+        // If cardCode already contains the invoice code (P12HD261234), we can extract it or just generate a new one
+        const extractedInvCode = cp.card_code ? cp.card_code.substring(3) : '';
+        const sessionCode = `P${Math.floor(10 + Math.random() * 90)}${extractedInvCode}`;
+
         const comm = svc.commission_type === 'percent' ? (svc.price * svc.commission_value) / 100 : svc.commission_value;
-        const { data: sess, error: sessErr } = await supabase.from('service_sessions').insert([{ shop_id: shopId, service_id: svc.id, staff_id: technicianId, customer_package_id: cp.id, revenue_amount: unitPrice, commission_amount: comm }]).select().single();
+        const { data: sess, error: sessErr } = await supabase.from('service_sessions').insert([{ 
+          shop_id: shopId, 
+          session_code: sessionCode,
+          service_id: svc.id, 
+          staff_id: technicianId, 
+          customer_package_id: cp.id, 
+          revenue_amount: unitPrice, 
+          commission_amount: comm 
+        }]).select().single();
         if (sessErr || !sess) throw new Error(`Lỗi trừ buổi: ${sessErr?.message || ''}`);
 
         await supabase.from('customer_packages').update({ used_sessions: cp.used_sessions + 1, status: cp.used_sessions + 1 >= cp.total_sessions ? 'completed' : 'active' }).eq('id', cp.id);
@@ -279,6 +302,7 @@ const POS = () => {
 
         setCompletedInvoice({
           id: sess.id,
+          display_id: sess.session_code || sess.id.slice(0,8),
           created_at: new Date().toISOString(),
           customer_name: customerName,
           customer_phone: customerPhone,
@@ -506,7 +530,7 @@ const POS = () => {
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
             <h3 style={{ marginBottom: '0.5rem' }}>Thanh toán thành công</h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Hoá đơn #{completedInvoice.id.slice(0,8)}</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Hoá đơn #{completedInvoice.display_id || completedInvoice.id.slice(0,8)}</p>
             <button onClick={handlePrint} className="btn btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}><Printer size={18} /> In hoá đơn</button>
             <button onClick={() => setCompletedInvoice(null)} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Tiếp tục bán hàng</button>
           </div>
