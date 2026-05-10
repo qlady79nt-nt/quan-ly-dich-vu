@@ -99,7 +99,7 @@ const Reports = () => {
       const ssIds = [...new Set(revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean))];
 
       if (invIdsToFetch.length > 0) {
-         const { data: invs } = await supabase.from('invoices').select('id, customer_id, customer_name, customers(name)').in('id', invIdsToFetch);
+         const { data: invs } = await supabase.from('invoices').select('id, invoice_code, customer_id, customer_name, customers(name)').in('id', invIdsToFetch);
          if (invs) {
             relatedInvoices = invs;
             const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIdsToFetch).eq('type', 'service');
@@ -108,12 +108,12 @@ const Reports = () => {
       }
       
       if (psIds.length > 0) {
-         const { data: psData } = await supabase.from('package_sales').select('*, customer_packages(customer_name)').in('id', psIds);
+         const { data: psData } = await supabase.from('package_sales').select('*, customer_packages(customer_name, card_code), invoices(invoice_code)').in('id', psIds);
          if (psData) relatedPkgSales = psData;
       }
 
       if (ssIds.length > 0) {
-         const { data: ssData } = await supabase.from('service_sessions').select('*, customer_packages(customer_name)').in('id', ssIds);
+         const { data: ssData } = await supabase.from('service_sessions').select('*, customer_packages(customer_name, card_code)').in('id', ssIds);
          if (ssData) relatedSessions = ssData;
       }
 
@@ -138,38 +138,59 @@ const Reports = () => {
       // Gắn invoice_id và customer_name vào revenue_logs để hiển thị trực tiếp trên danh sách
       const mappedRevLogs = revLog.map((r: any) => {
         let invId: string | null = null;
+        let invCode: string | null = null;
         let cName = 'Khách lẻ';
         let sessId: string | null = null;
+        let sessCode: string | null = null;
+        let cardCode: string | null = null;
         
         if (r.type === 'retail') {
            invId = r.invoice_id || r.reference_id;
            const inv = relatedInvoices.find(i => i.id === invId);
-           if (inv) cName = inv.customers?.name || inv.customer_name || 'Khách lẻ';
+           if (inv) {
+               cName = inv.customers?.name || inv.customer_name || 'Khách lẻ';
+               invCode = inv.invoice_code || inv.id.slice(0,8);
+           }
         } else if (r.type === 'package_sale') {
            if (r.package_sale_id) {
                // Dữ liệu mới (sử dụng package_sale_id chuẩn)
                const ps = relatedPkgSales.find((p: any) => p.id === r.package_sale_id);
                if (ps) {
                  invId = ps.invoice_id;
-                 if (ps.customer_packages?.customer_name) cName = ps.customer_packages.customer_name;
+                 invCode = ps.invoices?.invoice_code || ps.invoice_id?.slice(0,8) || null;
+                 if (ps.customer_packages) {
+                     cName = ps.customer_packages.customer_name || 'Khách thẻ';
+                     cardCode = ps.customer_packages.card_code || null;
+                 }
                }
            } else if (r.reference_id) {
                // Dữ liệu cũ (reference_id đang lưu invoice_id)
                invId = r.reference_id;
                const inv = relatedInvoices.find(i => i.id === invId);
-               if (inv) cName = inv.customers?.name || inv.customer_name || 'Khách mua thẻ liệu trình';
+               if (inv) {
+                   cName = inv.customers?.name || inv.customer_name || 'Khách mua thẻ liệu trình';
+                   invCode = inv.invoice_code || inv.id.slice(0,8);
+               }
            }
         } else if (r.type === 'package_session') {
            sessId = r.service_session_id || r.reference_id;
            const sess = relatedSessions.find(s => s.id === sessId);
-           if (sess && sess.customer_packages) {
-              cName = sess.customer_packages.customer_name || 'Khách thẻ';
-              // Tìm invoice gốc thông qua relatedPkgSales hoặc fetch thêm nếu cần
-              const ps = relatedPkgSales.find((p: any) => p.customer_package_id === sess.customer_package_id);
-              if (ps) invId = ps.invoice_id;
+           if (sess) {
+               sessCode = sess.session_code || sess.id.slice(0,8);
+               if (sess.customer_packages) {
+                  cName = sess.customer_packages.customer_name || 'Khách thẻ';
+                  cardCode = sess.customer_packages.card_code || null;
+                  
+                  // Tìm invoice gốc thông qua relatedPkgSales hoặc fetch thêm nếu cần
+                  const ps = relatedPkgSales.find((p: any) => p.customer_package_id === sess.customer_package_id);
+                  if (ps) {
+                      invId = ps.invoice_id;
+                      invCode = ps.invoices?.invoice_code || ps.invoice_id?.slice(0,8) || null;
+                  }
+               }
            }
         }
-        return { ...r, mapped_invoice_id: invId, mapped_session_id: sessId, customer_name: cName };
+        return { ...r, mapped_invoice_id: invId, mapped_invoice_code: invCode, mapped_session_id: sessId, mapped_session_code: sessCode, card_code: cardCode, customer_name: cName };
       });
 
       setRevenueData(mappedRevLogs);
@@ -382,10 +403,13 @@ const Reports = () => {
                               {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
                               
                               {/* Mã hóa đơn cho cả 3 loại */}
-                              {r.mapped_invoice_id ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_id.slice(0,6)}</span> : ''}
+                              {r.mapped_invoice_code ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_code}</span> : ''}
+                              
+                              {/* Mã thẻ liệu trình cho Bán liệu trình và Trừ buổi */}
+                              {r.card_code && (r.type === 'package_sale' || r.type === 'package_session') ? <span style={{ color: 'var(--warning)', marginLeft: '0.25rem' }}>Thẻ: {r.card_code}</span> : ''}
                               
                               {/* Mã phiếu trừ buổi riêng cho Sử dụng liệu trình */}
-                              {r.type === 'package_session' && r.mapped_session_id ? <span style={{ color: 'var(--success)', marginLeft: '0.25rem' }}>Phiếu: #{r.mapped_session_id.slice(0,6)}</span> : ''}
+                              {r.type === 'package_session' && r.mapped_session_code ? <span style={{ color: 'var(--success)', marginLeft: '0.25rem' }}>Phiếu: #{r.mapped_session_code}</span> : ''}
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
                               <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{r.customer_name}</span>
