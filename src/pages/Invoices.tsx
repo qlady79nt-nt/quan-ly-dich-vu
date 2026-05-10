@@ -16,6 +16,8 @@ const Invoices = () => {
   const [detailModal, setDetailModal] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (shopId) fetchData();
@@ -369,6 +371,62 @@ const Invoices = () => {
     setLoading(false);
   };
 
+  const handleDeleteMultiple = async () => {
+    if (!window.confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedInvoices.length} hóa đơn đã chọn và toàn bộ dữ liệu liên quan (báo cáo, hoa hồng, gói...)? Thao tác này KHÔNG THỂ HOÀN TÁC.`)) return;
+
+    setIsDeleting(true);
+    try {
+      for (const invId of selectedInvoices) {
+        // 1. Tìm invoice_items
+        const { data: invItems } = await supabase.from('invoice_items').select('id').eq('invoice_id', invId);
+        if (invItems && invItems.length > 0) {
+          const itemIds = invItems.map(i => i.id);
+          await supabase.from('commission_logs').delete().in('invoice_item_id', itemIds);
+          await supabase.from('invoice_items').delete().eq('invoice_id', invId);
+        }
+
+        // 2. Tìm package_sales
+        const { data: pkgSales } = await supabase.from('package_sales').select('id, customer_package_id').eq('invoice_id', invId);
+        if (pkgSales && pkgSales.length > 0) {
+          const psIds = pkgSales.map(ps => ps.id);
+          const cpIds = pkgSales.map(ps => ps.customer_package_id).filter(Boolean);
+          
+          await supabase.from('commission_logs').delete().in('package_sale_id', psIds);
+          await supabase.from('revenue_logs').delete().in('package_sale_id', psIds);
+          await supabase.from('package_sales').delete().eq('invoice_id', invId);
+          
+          if (cpIds.length > 0) {
+            await supabase.from('service_sessions').delete().in('customer_package_id', cpIds);
+            await supabase.from('revenue_logs').delete().in('reference_id', cpIds);
+            await supabase.from('customer_packages').delete().in('id', cpIds);
+          }
+        }
+
+        // 3. Xoá revenue_logs theo invoice_id (bao gồm reference_id cũ)
+        await supabase.from('revenue_logs').delete().eq('invoice_id', invId);
+        await supabase.from('revenue_logs').delete().eq('reference_id', invId);
+
+        // 4. Xóa hóa đơn
+        await supabase.from('invoices').delete().eq('id', invId);
+
+        await supabase.from('audit_logs').insert([{
+          shop_id: shopId,
+          actor_id: profile?.id,
+          action_type: 'HARD_DELETE_INVOICE',
+          entity_type: 'INVOICE',
+          entity_id: invId,
+          description: `Đã XÓA VĨNH VIỄN hóa đơn #${invId.slice(0, 8)} và tất cả dữ liệu liên quan.`
+        }]);
+      }
+      alert('Đã xóa thành công!');
+      setSelectedInvoices([]);
+      fetchData();
+    } catch (error: any) {
+      alert('Lỗi trong quá trình xóa: ' + error.message);
+    }
+    setIsDeleting(false);
+  };
+
   if (!hasPermission('report.invoice.view')) {
     return <div style={{ textAlign: 'center', padding: '5rem' }}>Bạn không có quyền xem danh sách hoá đơn</div>;
   }
@@ -382,6 +440,16 @@ const Invoices = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem' }}>
+          {selectedInvoices.length > 0 && view === 'retail' && (
+            <button 
+              onClick={handleDeleteMultiple} 
+              className="btn" 
+              style={{ background: 'var(--danger)', color: 'white' }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="animate-spin" size={18} /> : `Xóa ${selectedInvoices.length} hoá đơn`}
+            </button>
+          )}
           <div className="search-container" style={{ width: '300px' }}>
             <Search size={18} />
             <input
@@ -410,6 +478,16 @@ const Invoices = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                <th style={{ width: '40px', padding: '1rem' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedInvoices(filteredInvoices.map(i => i.id));
+                      else setSelectedInvoices([]);
+                    }}
+                  />
+                </th>
                 <th style={{ padding: '1rem' }}>Mã Hoá Đơn</th>
                 <th>Khách hàng</th>
                 <th>Ngày bán</th>
@@ -427,6 +505,16 @@ const Invoices = () => {
                   onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
+                  <td style={{ padding: '1rem' }} onClick={(e) => e.stopPropagation()}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedInvoices.includes(inv.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedInvoices(prev => [...prev, inv.id]);
+                        else setSelectedInvoices(prev => prev.filter(id => id !== inv.id));
+                      }}
+                    />
+                  </td>
                   <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.invoice_code || inv.id.slice(0, 8)}</td>
                   <td>{inv.customer_name || 'Khách lẻ'}</td>
                   <td>{new Date(inv.created_at).toLocaleString()}</td>
@@ -440,7 +528,7 @@ const Invoices = () => {
                 </tr>
               ))}
               {filteredInvoices.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có dữ liệu hoá đơn</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có dữ liệu hoá đơn</td></tr>
               )}
             </tbody>
           </table>
