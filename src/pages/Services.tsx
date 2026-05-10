@@ -29,7 +29,7 @@ const Services = () => {
 
   const fetchServices = async () => {
     setLoading(true);
-    let query = supabase.from('services').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+    let query = supabase.from('services').select('*').order('created_at', { ascending: false });
     
     // Nếu không phải super_admin thì mới lọc theo shop_id
     if (profile?.role !== 'super_admin') {
@@ -70,16 +70,31 @@ const Services = () => {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleToggleStatus = async (s: any) => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
-    if (!window.confirm('Bạn có chắc chắn muốn xoá dịch vụ này? Dữ liệu liên quan sẽ bị xoá.')) return;
+    const isInactive = s.status === 'inactive';
+    const action = isInactive ? 'Bán lại' : 'Ngưng bán';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} dịch vụ này?`)) return;
     
     setLoading(true);
-    const { error } = await supabase.from('services').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('services').update({ status: isInactive ? 'active' : 'inactive' }).eq('id', s.id);
     if (!error) {
       fetchServices();
     } else {
-      alert('Lỗi khi xoá: ' + error.message);
+      alert(`Lỗi khi ${action}: ` + error.message);
+      setLoading(false);
+    }
+  };
+
+  const handleHardDelete = async (id: string) => {
+    if (profile?.role !== 'super_admin') return;
+    if (!window.confirm('XÓA VĨNH VIỄN dịch vụ này khỏi database? Hành động này DÀNH CHO SUPER ADMIN để xóa data test/bug và KHÔNG THỂ HOÀN TÁC.')) return;
+    setLoading(true);
+    const { error } = await supabase.from('services').delete().eq('id', id);
+    if (!error) {
+      fetchServices();
+    } else {
+      alert('Lỗi khi xóa cứng: ' + error.message);
       setLoading(false);
     }
   };
@@ -129,27 +144,35 @@ const Services = () => {
       ) : (
         <div className="grid grid-cols-2">
           {filteredServices.map((s) => (
-            <div key={s.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(109, 40, 217, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
+            <div key={s.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', opacity: s.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: s.status === 'inactive' ? 'rgba(0,0,0,0.05)' : 'rgba(109, 40, 217, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.status === 'inactive' ? 'var(--text-light)' : 'var(--primary)', flexShrink: 0 }}>
                 <Scissors size={28} />
               </div>
               <div style={{ flex: 1 }}>
-                <h4 style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>{s.name}</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <h4 style={{ fontSize: '1.1rem', textDecoration: s.status === 'inactive' ? 'line-through' : 'none', margin: 0 }}>{s.name}</h4>
+                  {s.status === 'inactive' && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>NGƯNG BÁN</span>}
+                </div>
                 <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontWeight: '700' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: s.status === 'inactive' ? 'var(--text-secondary)' : 'var(--primary)', fontWeight: '700' }}>
                     {Number(s.price).toLocaleString()}đ
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-secondary)' }}>
                     ⏱ {s.duration_minutes} phút
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--success)', fontWeight: '600' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: s.status === 'inactive' ? 'var(--text-secondary)' : 'var(--success)', fontWeight: '600' }}>
                     Hoa hồng: {s.commission_type === 'percent' ? `${s.commission_value}%` : `${Number(s.commission_value).toLocaleString()}đ`}
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={handleEdit} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={16} /></button>
-                <button onClick={() => handleDelete(s.id)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
+                <button onClick={() => handleToggleStatus(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                  {s.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
+                </button>
+                {profile?.role === 'super_admin' && (
+                  <button onClick={() => handleHardDelete(s.id)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={16} /></button>
+                )}
               </div>
             </div>
           ))}

@@ -38,6 +38,7 @@ const Customers = () => {
       .from('customer_packages')
       .select('*')
       .eq('shop_id', shopId)
+      .neq('status', 'archived')
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -89,6 +90,33 @@ const Customers = () => {
       alert('Lỗi khi thêm khách: ' + error.message);
     } else {
       fetchCustomers();
+    }
+  };
+
+  const handleUpdatePackageStatus = async (cpId: string, newStatus: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn chuyển trạng thái thẻ này thành: ${newStatus}?`)) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from('customer_packages').update({ status: newStatus }).eq('id', cpId);
+    if (!error) {
+      fetchPackageCustomers();
+    } else {
+      alert('Lỗi cập nhật: ' + error.message);
+      setLoading(false);
+    }
+  };
+
+  const handleHardDeletePackage = async (cpId: string) => {
+    if (profile?.role !== 'super_admin') return;
+    if (!window.confirm('XÓA VĨNH VIỄN thẻ liệu trình này? Hành động DÀNH CHO SUPER ADMIN để xóa data test và KHÔNG THỂ HOÀN TÁC.')) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from('customer_packages').delete().eq('id', cpId);
+    if (!error) {
+      fetchPackageCustomers();
+    } else {
+      alert('Lỗi xóa cứng: ' + error.message);
+      setLoading(false);
     }
   };
 
@@ -185,13 +213,17 @@ const Customers = () => {
                   </div>
                 </div>
                 {cp.status === 'completed' ? (
-                  <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>Hết buổi</span>
+                  <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Hết buổi</span>
+                ) : cp.status === 'cancelled' ? (
+                  <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>Đã hủy</span>
+                ) : cp.status === 'archived' ? (
+                  <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)' }}>Đã lưu trữ</span>
                 ) : (
                   <span className="badge badge-success">Đang dùng</span>
                 )}
               </div>
               
-              <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.5rem', marginTop: '0.5rem' }}>
+              <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.5rem', marginTop: '0.5rem', opacity: (cp.status === 'cancelled' || cp.status === 'archived') ? 0.6 : 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
                   <Package size={16} className="text-primary" />
                   {cp.packages?.name || 'Gói không xác định'}
@@ -207,6 +239,17 @@ const Customers = () => {
                 <div style={{ marginTop: '0.5rem', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
                   <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
                 </div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {cp.used_sessions === 0 && cp.status !== 'cancelled' && (
+                  <button onClick={() => handleUpdatePackageStatus(cp.id, 'cancelled')} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', flex: 1, background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Hủy thẻ</button>
+                )}
+                {cp.used_sessions > 0 && cp.status !== 'archived' && (
+                  <button onClick={() => handleUpdatePackageStatus(cp.id, 'archived')} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', flex: 1, background: 'var(--bg-main)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>Lưu trữ</button>
+                )}
+                {profile?.role === 'super_admin' && (
+                  <button onClick={() => handleHardDeletePackage(cp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)' }}>Xóa vĩnh viễn</button>
+                )}
               </div>
             </div>
           ))}

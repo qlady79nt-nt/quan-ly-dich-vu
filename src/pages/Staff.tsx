@@ -51,7 +51,7 @@ const Staff = () => {
   const fetchStaff = async () => {
     setLoading(true);
     // Fetch staffs và các tài khoản (profiles) liên kết với nó
-    let query = supabase.from('staffs').select('*, profiles(id, username, role, status)').is('deleted_at', null).order('created_at', { ascending: false });
+    let query = supabase.from('staffs').select('*, profiles(id, username, role, status)').order('created_at', { ascending: false });
 
     if (currentUser?.role !== 'super_admin') {
       if (!shopId) { setLoading(false); return; }
@@ -216,19 +216,33 @@ const Staff = () => {
     setAccountFormData({ username: '', password: '', role: 'staff', permissions: [], profile_id: null });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleToggleStatus = async (s: any) => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
-    if (!window.confirm('Bạn có chắc chắn muốn xoá nhân sự này? (Xoá mềm, không mất dữ liệu cũ)')) return;
+    const isInactive = s.status === 'inactive';
+    const action = isInactive ? 'Kích hoạt lại' : 'Ngưng hoạt động';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} nhân sự này?`)) return;
     
     setLoading(true);
     const { error } = await supabase.from('staffs').update({ 
-      deleted_at: new Date().toISOString(),
-      status: 'inactive'
-    }).eq('id', id);
+      status: isInactive ? 'active' : 'inactive'
+    }).eq('id', s.id);
     if (!error) {
       fetchStaff();
     } else {
-      alert('Lỗi khi xoá: ' + error.message);
+      alert(`Lỗi khi ${action}: ` + error.message);
+      setLoading(false);
+    }
+  };
+
+  const handleHardDelete = async (id: string) => {
+    if (currentUser?.role !== 'super_admin') return;
+    if (!window.confirm('XÓA VĨNH VIỄN nhân sự này khỏi database? Hành động này DÀNH CHO SUPER ADMIN để xóa data test/bug và KHÔNG THỂ HOÀN TÁC.')) return;
+    setLoading(true);
+    const { error } = await supabase.from('staffs').delete().eq('id', id);
+    if (!error) {
+      fetchStaff();
+    } else {
+      alert('Lỗi khi xóa cứng: ' + error.message);
       setLoading(false);
     }
   };
@@ -275,15 +289,16 @@ const Staff = () => {
       ) : (
         <div className="grid grid-cols-3">
           {filteredStaff.map((s) => (
-            <div key={s.id} className="premium-card" style={{ borderTop: s.profile?.role === 'shop_admin' ? '4px solid var(--secondary)' : '1px solid var(--border)' }}>
+            <div key={s.id} className="premium-card" style={{ borderTop: s.profile?.role === 'shop_admin' ? '4px solid var(--secondary)' : '1px solid var(--border)', opacity: s.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: s.status === 'inactive' ? 'var(--text-light)' : 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
                   {(s.full_name || '?').charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ marginBottom: '0.25rem' }}>{s.full_name}</h4>
-                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem' }}>
+                  <h4 style={{ marginBottom: '0.25rem', textDecoration: s.status === 'inactive' ? 'line-through' : 'none' }}>{s.full_name}</h4>
+                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', flexWrap: 'wrap' }}>
                     <span className="badge badge-success" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}><Briefcase size={12} style={{ display: 'inline', marginRight: '4px' }}/>{s.position}</span>
+                    {s.status === 'inactive' && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>NGƯNG HOẠT ĐỘNG</span>}
                   </div>
                 </div>
               </div>
@@ -309,7 +324,12 @@ const Staff = () => {
                 <button onClick={() => openAccountEdit(s)} className="btn btn-primary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}>
                   {s.profile ? 'Sửa Quyền' : 'Cấp Account'}
                 </button>
-                <button onClick={() => handleDelete(s.id)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
+                <button onClick={() => handleToggleStatus(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                  {s.status === 'inactive' ? 'Mở lại' : 'Ngưng HĐ'}
+                </button>
+                {currentUser?.role === 'super_admin' && (
+                  <button onClick={() => handleHardDelete(s.id)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={16} /></button>
+                )}
               </div>
             </div>
           ))}

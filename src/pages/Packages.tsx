@@ -43,7 +43,7 @@ const Packages = () => {
 
   const fetchPackages = async () => {
     setLoading(true);
-    let query = supabase.from('packages').select('*, services(name)').is('deleted_at', null).order('created_at', { ascending: false });
+    let query = supabase.from('packages').select('*, services(name)').order('created_at', { ascending: false });
 
     if (profile?.role !== 'super_admin') {
       if (!shopId) {
@@ -160,16 +160,31 @@ const Packages = () => {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleToggleStatus = async (p: any) => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
-    if (!window.confirm('Bạn có chắc chắn muốn xoá liệu trình này?')) return;
+    const isInactive = p.status === 'inactive';
+    const action = isInactive ? 'Bán lại' : 'Ngưng bán';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} liệu trình này?`)) return;
     
     setLoading(true);
-    const { error } = await supabase.from('packages').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    const { error } = await supabase.from('packages').update({ status: isInactive ? 'active' : 'inactive' }).eq('id', p.id);
     if (!error) {
       fetchPackages();
     } else {
-      alert('Lỗi khi xoá: ' + error.message);
+      alert(`Lỗi khi ${action}: ` + error.message);
+      setLoading(false);
+    }
+  };
+
+  const handleHardDelete = async (id: string) => {
+    if (profile?.role !== 'super_admin') return;
+    if (!window.confirm('XÓA VĨNH VIỄN liệu trình này khỏi database? Hành động này DÀNH CHO SUPER ADMIN để xóa data test/bug và KHÔNG THỂ HOÀN TÁC.')) return;
+    setLoading(true);
+    const { error } = await supabase.from('packages').delete().eq('id', id);
+    if (!error) {
+      fetchPackages();
+    } else {
+      alert('Lỗi khi xóa cứng: ' + error.message);
       setLoading(false);
     }
   };
@@ -231,21 +246,24 @@ const Packages = () => {
       ) : activeTab === 'config' ? (
         <div className="grid grid-cols-2">
           {packages.map((p) => (
-            <div key={p.id} className="premium-card">
+            <div key={p.id} className="premium-card" style={{ opacity: p.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary)' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: p.status === 'inactive' ? 'rgba(0,0,0,0.05)' : 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: p.status === 'inactive' ? 'var(--text-light)' : 'var(--secondary)' }}>
                     <PackageIcon size={24} />
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '1.1rem' }}>{p.name}</h4>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <h4 style={{ fontSize: '1.1rem', margin: 0, textDecoration: p.status === 'inactive' ? 'line-through' : 'none' }}>{p.name}</h4>
+                      {p.status === 'inactive' && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>NGƯNG BÁN</span>}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                       <Link2 size={14} /> Gắn với: {p.services?.name}
                     </div>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>{Number(p.sale_price).toLocaleString()}đ</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '800', color: p.status === 'inactive' ? 'var(--text-secondary)' : 'var(--primary)' }}>{Number(p.sale_price).toLocaleString()}đ</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', textDecoration: 'line-through' }}>{Number(p.original_price).toLocaleString()}đ</div>
                 </div>
               </div>
@@ -257,7 +275,12 @@ const Packages = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button onClick={() => handleEdit(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
-                  <button onClick={() => handleDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={14} /></button>
+                  <button onClick={() => handleToggleStatus(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: p.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                    {p.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
+                  </button>
+                  {profile?.role === 'super_admin' && (
+                    <button onClick={() => handleHardDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={14} /></button>
+                  )}
                 </div>
               </div>
             </div>

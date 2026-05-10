@@ -157,7 +157,7 @@ const POS = () => {
   const handleSellPackageClick = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán gói');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thực hiện');
-    if (!customerPhone || !selectedPkgId || !pkgCardCode) return alert('Vui lòng nhập đầy đủ SĐT, Mã thẻ và chọn gói');
+    if (!customerPhone || !selectedPkgId) return alert('Vui lòng nhập đầy đủ SĐT và chọn gói');
     if (!sellerId) {
       if (!window.confirm("⚠️ Chưa chọn người bán!\n\nGiao dịch này sẽ KHÔNG được tính hoa hồng cho bất kỳ ai.\nBạn có chắc chắn muốn tiếp tục thanh toán?")) return;
     }
@@ -200,8 +200,11 @@ const POS = () => {
       } else if (previewInvoiceData.type === 'sell_package') {
         const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
 
+        const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+
         const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
           shop_id: shopId,
+          invoice_code: invCode,
           customer_name: customerName,
           customer_phone: customerPhone,
           created_by: profile?.id,
@@ -212,12 +215,14 @@ const POS = () => {
         }]).select().single();
         if (invErr) throw new Error(`Lỗi tạo hoá đơn: ${invErr.message}`);
 
+        const finalCardCode = 'P' + Math.floor(Math.random() * 100).toString().padStart(2, '0') + invCode;
+
         const { data: custPkg, error: cpErr } = await supabase.from('customer_packages').insert([{
           shop_id: shopId,
           package_id: selectedPkgId,
           customer_name: customerName,
           customer_phone: customerPhone,
-          card_code: cardCode,
+          card_code: finalCardCode,
           total_sessions: total_sessions,
           used_sessions: 0,
           sale_price: finalTotal,
@@ -422,8 +427,8 @@ const POS = () => {
                 </div>
               </div>
               <div>
-                <label className="form-label" style={{ fontWeight: '600' }}>Mã thẻ liệu trình *</label>
-                <input type="text" className="form-input" value={pkgCardCode} onChange={e => setPkgCardCode(e.target.value)} />
+                <label className="form-label" style={{ fontWeight: '600' }}>Mã thẻ liệu trình</label>
+                <input type="text" className="form-input" disabled value="Hệ thống tự động tạo mã P..." style={{ background: 'var(--bg-main)', color: 'var(--text-light)' }} />
               </div>
               <div>
                 <label className="form-label" style={{ fontWeight: '600' }}>Chọn gói</label>

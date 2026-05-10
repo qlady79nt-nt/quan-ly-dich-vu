@@ -440,7 +440,7 @@ const Invoices = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem' }}>
-          {selectedInvoices.length > 0 && view === 'retail' && (
+          {selectedInvoices.length > 0 && view === 'retail' && profile?.role === 'super_admin' && (
             <button 
               onClick={handleDeleteMultiple} 
               className="btn" 
