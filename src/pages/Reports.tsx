@@ -87,16 +87,35 @@ const Reports = () => {
 
       let retailItems: any[] = [];
       
-      // Fetch related entities by IDs found in revLog (TRÁNH LỖI LỆCH NGÀY GIỜ VÀ HỖ TRỢ DỮ LIỆU CŨ)
+      // Fetch related entities by IDs found in revLog và commLog
       let relatedInvoices: any[] = [];
       let relatedPkgSales: any[] = [];
       let relatedSessions: any[] = [];
       
-      // Lấy danh sách ID Hóa đơn cần fetch:
-      // Bao gồm 'retail' và cả 'package_sale' cũ (trước kia dùng reference_id lưu invoice_id)
-      const invIdsToFetch = [...new Set(revLog.filter((r: any) => r.type === 'retail' || (r.type === 'package_sale' && !r.package_sale_id)).map((r: any) => r.invoice_id || r.reference_id).filter(Boolean))];
-      const psIds = [...new Set(revLog.filter((r: any) => r.type === 'package_sale' && r.package_sale_id).map((r: any) => r.package_sale_id).filter(Boolean))];
-      const ssIds = [...new Set(revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean))];
+      const commInvItemIds = [...new Set(commLog.map(c => c.invoice_item_id).filter(Boolean))];
+      const commPkgSaleIds = [...new Set(commLog.map(c => c.package_sale_id).filter(Boolean))];
+      const commSessionIds = [...new Set(commLog.map(c => c.service_session_id).filter(Boolean))];
+
+      let invIdsToFetch = [...new Set([
+        ...revLog.filter((r: any) => r.type === 'retail' || (r.type === 'package_sale' && !r.package_sale_id)).map((r: any) => r.invoice_id || r.reference_id).filter(Boolean)
+      ])];
+      const psIds = [...new Set([
+        ...revLog.filter((r: any) => r.type === 'package_sale' && r.package_sale_id).map((r: any) => r.package_sale_id).filter(Boolean),
+        ...commPkgSaleIds
+      ])];
+      const ssIds = [...new Set([
+        ...revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean),
+        ...commSessionIds
+      ])];
+
+      let commItemsMap: any[] = [];
+      if (commInvItemIds.length > 0) {
+         const { data: cItems } = await supabase.from('invoice_items').select('id, invoice_id, services(name), packages(name)').in('id', commInvItemIds);
+         if (cItems) {
+           commItemsMap = cItems;
+           cItems.forEach((ci: any) => { if (ci.invoice_id && !invIdsToFetch.includes(ci.invoice_id)) invIdsToFetch.push(ci.invoice_id); });
+         }
+      }
 
       if (invIdsToFetch.length > 0) {
          const { data: invs } = await supabase.from('invoices').select('id, invoice_code, customer_id, customer_name, customers(name)').in('id', invIdsToFetch);
@@ -113,7 +132,7 @@ const Reports = () => {
       }
 
       if (ssIds.length > 0) {
-         const { data: ssData } = await supabase.from('service_sessions').select('*, customer_packages(customer_name, card_code)').in('id', ssIds);
+         const { data: ssData } = await supabase.from('service_sessions').select('*, customer_packages(customer_name, card_code), services(name)').in('id', ssIds);
          if (ssData) relatedSessions = ssData;
       }
 
@@ -205,8 +224,38 @@ const Reports = () => {
         if (!staffMap[id]) staffMap[id] = { id, name: getStaffName(id), execution: 0, sales: 0, logs: [], revenueGenerated: 0 };
       };
 
+      const mappedCommLogs = commLog.map((c: any) => {
+        let mappedCode = null;
+        let cName = null;
+
+        if (c.service_session_id) {
+          const s = relatedSessions.find((x: any) => x.id === c.service_session_id);
+          if (s) {
+            mappedCode = s.session_code || s.id.slice(0, 8);
+            cName = s.retail_customer_name || s.customer_packages?.customer_name;
+          }
+        } else if (c.package_sale_id) {
+          const p = relatedPkgSales.find((x: any) => x.id === c.package_sale_id);
+          if (p) {
+            mappedCode = p.invoices?.invoice_code || p.invoice_id?.slice(0, 8);
+            cName = p.customer_packages?.customer_name;
+          }
+        } else if (c.invoice_item_id) {
+          const ci = commItemsMap.find((x: any) => x.id === c.invoice_item_id);
+          if (ci && ci.invoice_id) {
+            const inv = relatedInvoices.find((x: any) => x.id === ci.invoice_id);
+            if (inv) {
+              mappedCode = inv.invoice_code || inv.id.slice(0, 8);
+              cName = inv.customer_name || inv.customers?.name;
+            }
+          }
+        }
+        
+        return { ...c, mapped_code: mappedCode, customer_name: cName };
+      });
+
       // Đưa những người có commission_logs vào map
-      commLog.forEach((c: any) => {
+      mappedCommLogs.forEach((c: any) => {
         const id = c.staff_id;
         if (id) {
           ensureStaff(id);
@@ -286,26 +335,61 @@ const Reports = () => {
           }
         }
         setDetailModal({ type: 'generic', data: sale || { message: 'Không tìm thấy dữ liệu' }, title: `Chi tiết Bán gói` });
-      } else if (log.type === 'package_session' || log.type === 'service_execution') {
+      } else if (log.type === 'package_session' || log.type === 'service_execution' || (!log.type && log.service_session_id) || log.type === 'retail') {
         const idToLook = log.service_session_id || log.reference_id;
+        
         if (!idToLook) {
+          if (log.invoice_item_id) {
+            const { data: invItem } = await supabase.from('invoice_items').select('invoice_id').eq('id', log.invoice_item_id).single();
+            if (invItem && invItem.invoice_id) {
+               const { data: inv } = await supabase.from('invoices').select('*, profiles:created_by(full_name)').eq('id', invItem.invoice_id).single();
+               const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', invItem.invoice_id);
+               setDetailModal({ 
+                 type: 'invoice', 
+                 data: { ...inv, staff_name: inv?.profiles?.full_name || 'Thu ngân', items: items || [] }, 
+                 title: `Hoá đơn #${inv?.invoice_code || invItem.invoice_id.slice(0,8) || 'N/A'}` 
+               });
+               return;
+            }
+          } else if (log.invoice_id) {
+               const { data: inv } = await supabase.from('invoices').select('*, profiles:created_by(full_name)').eq('id', log.invoice_id).single();
+               const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', log.invoice_id);
+               setDetailModal({ 
+                 type: 'invoice', 
+                 data: { ...inv, staff_name: inv?.profiles?.full_name || 'Thu ngân', items: items || [] }, 
+                 title: `Hoá đơn #${inv?.invoice_code || log.invoice_id.slice(0,8) || 'N/A'}` 
+               });
+               return;
+          }
           setDetailModal({ type: 'generic', data: log, title: `Chi tiết Dịch vụ` });
           return;
         }
-        const { data: sess } = await supabase.from('service_sessions').select('*').eq('id', idToLook).single();
-        if (sess && sess.customer_package_id) {
-          const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', sess.customer_package_id).single();
-          const { data: prof } = sess.staff_id ? await supabase.from('staffs').select('full_name').eq('id', sess.staff_id).single() : { data: null };
-          if (cp) {
-            const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
-            setDetailModal({ 
-              type: 'package_session', 
-              data: { ...sess, customer: cp, packageName: pkg?.name || 'Gói không xác định', staff_name: prof?.full_name || 'Kỹ thuật viên' }, 
-              title: `Chi tiết Trừ buổi liệu trình` 
-            });
-            return;
-          }
+
+        const { data: sess } = await supabase.from('service_sessions').select('*, services(name)').eq('id', idToLook).single();
+        if (sess) {
+           const { data: prof } = sess.staff_id ? await supabase.from('staffs').select('full_name').eq('id', sess.staff_id).single() : { data: null };
+           
+           if (sess.is_retail || !sess.customer_package_id) {
+             setDetailModal({ 
+                type: 'retail_session', 
+                data: { ...sess, staff_name: prof?.full_name || 'Kỹ thuật viên' }, 
+                title: `Chi tiết Thực hiện dịch vụ (Lẻ)` 
+             });
+             return;
+           } else {
+             const { data: cp } = await supabase.from('customer_packages').select('*').eq('id', sess.customer_package_id).single();
+             if (cp) {
+               const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
+               setDetailModal({ 
+                 type: 'package_session', 
+                 data: { ...sess, customer: cp, packageName: pkg?.name || 'Gói không xác định', staff_name: prof?.full_name || 'Kỹ thuật viên' }, 
+                 title: `Chi tiết Trừ buổi liệu trình` 
+               });
+               return;
+             }
+           }
         }
+        
         setDetailModal({ type: 'generic', data: sess || log || { message: 'Không tìm thấy dữ liệu' }, title: `Chi tiết Thực hiện dịch vụ` });
       }
     } catch (e: any) {
@@ -494,7 +578,7 @@ const Reports = () => {
                                     onClick={() => openRevenueDetail(log)}
                                     style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                                   >
-                                    #{(log.service_session_id || log.package_sale_id || log.invoice_id || log.reference_id || 'N/A')?.slice(0,8)} <FileText size={12} />
+                                    #{log.mapped_code || (log.service_session_id || log.package_sale_id || log.invoice_id || log.reference_id || 'N/A')?.slice(0,8)} <FileText size={12} />
                                   </button>
                                 </td>
                                 <td style={{ padding: '0.75rem 0.5rem' }}>
@@ -728,6 +812,43 @@ const Reports = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: 'var(--primary)', marginTop: '0.5rem' }}>
                       <span>Còn lại:</span>
                       <span>{detailModal.data.customer?.total_sessions - detailModal.data.customer?.used_sessions} buổi</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {detailModal.type === 'retail_session' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Mã Phiếu:</span>
+                    <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.session_code || detailModal.data.id.slice(0,8)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Dịch vụ:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.services?.name || 'Dịch vụ lẻ'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.retail_customer_name || 'Khách lẻ'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Nhân viên:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.staff_name}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Ngày dùng:</span>
+                    <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
+                  </div>
+                  
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Tài chính</h4>
+                  <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Doanh thu tính HH:</span>
+                      <span>{Number(detailModal.data.revenue_amount).toLocaleString()}đ</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: 'var(--primary)', marginTop: '0.5rem' }}>
+                      <span>Hoa hồng nhận:</span>
+                      <span>{Number(detailModal.data.commission_amount).toLocaleString()}đ</span>
                     </div>
                   </div>
                 </div>
