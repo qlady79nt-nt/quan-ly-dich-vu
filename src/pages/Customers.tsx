@@ -34,12 +34,38 @@ const Customers = () => {
 
   const fetchPackageCustomers = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data: cpData, error } = await supabase
       .from('customer_packages')
-      .select('*, packages(name)')
+      .select('*')
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
-    setPackageCustomers(data || []);
+    
+    if (error) {
+      console.error('Error fetching package customers:', error);
+      setPackageCustomers([]);
+      setLoading(false);
+      return;
+    }
+    
+    if (cpData && cpData.length > 0) {
+      const packageIds = [...new Set(cpData.map(cp => cp.package_id).filter(Boolean))];
+      let packagesData: any[] = [];
+      if (packageIds.length > 0) {
+        const { data: pkgs } = await supabase.from('packages')
+          .select('id, name')
+          .in('id', packageIds);
+        if (pkgs) packagesData = pkgs;
+      }
+      
+      const finalData = cpData.map(cp => ({
+        ...cp,
+        packages: packagesData.find(p => p.id === cp.package_id) || { name: 'Gói không xác định' }
+      }));
+      setPackageCustomers(finalData);
+    } else {
+      setPackageCustomers([]);
+    }
+    
     setLoading(false);
   };
 
@@ -66,16 +92,24 @@ const Customers = () => {
     }
   };
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.phone?.includes(searchTerm)
-  );
+  const filteredCustomers = customers.filter(c => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (c.name || '').toLowerCase().includes(term) ||
+      (c.phone || '').includes(term)
+    );
+  });
 
-  const filteredPackageCustomers = packageCustomers.filter(c => 
-    c.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.customer_phone?.includes(searchTerm) ||
-    c.card_code?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPackageCustomers = packageCustomers.filter(c => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (c.customer_name || '').toLowerCase().includes(term) ||
+      (c.customer_phone || '').includes(term) ||
+      (c.card_code || '').toLowerCase().includes(term)
+    );
+  });
 
   return (
     <div className="animate-fade">

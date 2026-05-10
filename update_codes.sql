@@ -43,3 +43,12 @@ AND ss.session_code IS NULL;
 UPDATE service_sessions 
 SET session_code = 'P' || lpad(floor(random() * 100)::text, 2, '0') || 'HD' || to_char(created_at, 'YY') || lpad(floor(random() * 10000)::text, 4, '0')
 WHERE session_code IS NULL;
+
+-- B? sung khóa ngo?i (Foreign Key) cho customer_packages liên k?t v?i packages
+DO 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customer_packages_package_id_fkey') THEN
+        ALTER TABLE customer_packages ADD CONSTRAINT customer_packages_package_id_fkey FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE SET NULL;
+    END IF;
+END ;
+

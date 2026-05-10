@@ -45,7 +45,7 @@ const Beds = () => {
     setLoading(true);
     const [bRes, sRes, svcRes, stfRes] = await Promise.all([
       supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
-      supabase.from('service_sessions').select('*, customer_packages(customer_name)').eq('shop_id', shopId).eq('status', 'in_progress'),
+      supabase.from('service_sessions').select('*').eq('shop_id', shopId).eq('status', 'in_progress'),
       supabase.from('services').select('*').eq('shop_id', shopId),
       supabase.from('staffs').select('*').eq('shop_id', shopId)
     ]);
@@ -58,13 +58,21 @@ const Beds = () => {
     const servicesData = svcRes.data || [];
     const staffsData = stfRes.data || [];
 
+    const cpIds = sessionsData.map(s => s.customer_package_id).filter(Boolean);
+    let cps: any[] = [];
+    if (cpIds.length > 0) {
+      const { data } = await supabase.from('customer_packages').select('id, customer_name').in('id', cpIds);
+      if (data) cps = data;
+    }
+
     const mapped = bedsData.map(b => {
       let session = sessionsData.find(s => s.bed_id === b.id) || null;
       if (session) {
         session = {
           ...session,
           services: servicesData.find(svc => svc.id === session.service_id) || null,
-          staffs: staffsData.find(stf => stf.id === session.staff_id) || null
+          staffs: staffsData.find(stf => stf.id === session.staff_id) || null,
+          customer_packages: cps.find(c => c.id === session.customer_package_id) || null
         };
       }
       return {
@@ -116,11 +124,19 @@ const Beds = () => {
       
       if (sess.customer_package_id) {
         // --- XỬ LÝ THANH TOÁN GÓI LIỆU TRÌNH ---
-        const { data: cp } = await supabase.from('customer_packages').select('*, packages(name, services(commission_type, commission_value))').eq('id', sess.customer_package_id).single();
-        if (!cp) throw new Error('Không tìm thấy gói liệu trình khách hàng');
+        const { data: cp, error: cpErr } = await supabase.from('customer_packages').select('*').eq('id', sess.customer_package_id).single();
+        if (cpErr || !cp) throw new Error('Không tìm thấy gói liệu trình khách hàng: ' + (cpErr?.message || ''));
+
+        // Lấy thông tin package
+        const { data: pkg } = await supabase.from('packages').select('name, service_id').eq('id', cp.package_id).single();
+        let svcDetails = svc;
+        if (pkg?.service_id) {
+           const { data: s } = await supabase.from('services').select('commission_type, commission_value').eq('id', pkg.service_id).single();
+           if (s) svcDetails = { ...svc, ...s };
+        }
 
         const unitPrice = cp.sale_price / cp.total_sessions;
-        const comm = svc.commission_type === 'percent' ? (svc.price * svc.commission_value) / 100 : svc.commission_value;
+        const comm = svcDetails.commission_type === 'percent' ? (svc.price * svcDetails.commission_value) / 100 : svcDetails.commission_value;
 
         // Cập nhật trạng thái session
         const { error: updErr } = await supabase.from('service_sessions').update({
@@ -144,7 +160,7 @@ const Beds = () => {
         if (revErr) throw revErr;
 
         const { error: commErr } = await supabase.from('commission_logs').insert([{ 
-          shop_id: shopId, staff_id: sess.staff_id, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dùng liệu trình: ${cp.packages?.name || svc.name}` 
+          shop_id: shopId, staff_id: sess.staff_id, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dùng liệu trình: ${pkg?.name || svc.name}` 
         }]);
         if (commErr) throw commErr;
 
@@ -154,7 +170,7 @@ const Beds = () => {
           customer_name: cp.customer_name || sess.retail_customer_name || 'Khách liệu trình',
           customer_phone: cp.customer_phone || sess.retail_customer_phone,
           staff_name: sess.staffs?.full_name || 'KTV',
-          items: [{ name: `Trừ 1 buổi: ${cp.packages?.name || svc.name}`, price: '-' }],
+          items: [{ name: `Trừ 1 buổi: ${pkg?.name || svc.name}`, price: '-' }],
           total_amount: 0,
           discount_amount: 0,
           final_amount: 0,
