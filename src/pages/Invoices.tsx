@@ -88,11 +88,13 @@ const Invoices = () => {
   };
 
   const filteredInvoices = invoices.filter(inv =>
+    (inv.invoice_code && inv.invoice_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
     inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (inv.customer_name && inv.customer_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const filteredSessions = sessions.filter(sess =>
+    (sess.session_code && sess.session_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
     sess.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (sess.customer_packages?.customer_name && sess.customer_packages.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (sess.customer_packages?.customer_phone && sess.customer_packages.customer_phone.includes(searchTerm))
@@ -425,7 +427,7 @@ const Invoices = () => {
                   onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.id.slice(0, 8)}</td>
+                  <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.invoice_code || inv.id.slice(0, 8)}</td>
                   <td>{inv.customer_name || 'Khách lẻ'}</td>
                   <td>{new Date(inv.created_at).toLocaleString()}</td>
                   <td>{inv.profiles?.full_name || 'Hệ thống'}</td>
@@ -465,7 +467,7 @@ const Invoices = () => {
                   onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.id.slice(0, 8)}</td>
+                  <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.session_code || sess.id.slice(0, 8)}</td>
                   <td>
                     <div style={{ fontWeight: '600' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{sess.customer_packages?.customer_phone}</div>
