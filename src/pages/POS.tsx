@@ -198,7 +198,7 @@ const POS = () => {
         // Tính năng này đã chuyển sang Beds.tsx (Thanh toán sau khi làm xong)
         // Đoạn code này được giữ lại để phòng hờ, nhưng hiện tại POS không gọi setPreviewInvoiceData('retail') nữa.
       } else if (previewInvoiceData.type === 'sell_package') {
-        const { subtotal, discount, finalTotal, customerName, customerPhone, cardCode, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
+        const { subtotal, discount, finalTotal, customerName, customerPhone, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
 
         const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
 
