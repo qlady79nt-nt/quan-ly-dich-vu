@@ -74,6 +74,7 @@ const Packages = () => {
     setLoading(true);
     let query = supabase.from('customer_packages')
       .select('*')
+      .neq('status', 'cancelled')
       .order('created_at', { ascending: false });
 
     if (profile?.role !== 'super_admin') {

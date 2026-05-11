@@ -39,6 +39,7 @@ const Customers = () => {
       .select('*')
       .eq('shop_id', shopId)
       .neq('status', 'archived')
+      .neq('status', 'cancelled')
       .order('created_at', { ascending: false });
     
     if (error) {
