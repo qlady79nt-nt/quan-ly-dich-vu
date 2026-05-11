@@ -215,7 +215,7 @@ const POS = () => {
         }]).select().single();
         if (invErr) throw new Error(`Lỗi tạo hoá đơn: ${invErr.message}`);
 
-        const finalCardCode = 'P' + Math.floor(Math.random() * 100).toString().padStart(2, '0') + invCode;
+        const finalCardCode = 'T' + Math.floor(Math.random() * 100).toString().padStart(2, '0') + invCode;
 
         const { data: custPkg, error: cpErr } = await supabase.from('customer_packages').insert([{
           shop_id: shopId,
@@ -273,6 +273,8 @@ const POS = () => {
         const { cp, technicianId, bedId } = previewInvoiceData;
         const svc = cp.packages.services;
 
+        const sessCode = 'P' + Math.floor(Math.random() * 100).toString().padStart(2, '0') + cp.card_code;
+
         const { data: sess, error: sessErr } = await supabase.from('service_sessions').insert([{ 
           shop_id: shopId, 
           service_id: svc.id, 
@@ -280,7 +282,8 @@ const POS = () => {
           customer_package_id: cp.id,
           bed_id: bedId,
           status: 'in_progress',
-          is_retail: false
+          is_retail: false,
+          session_code: sessCode
         }]).select().single();
         if (sessErr || !sess) throw new Error(`Lỗi xếp chỗ trừ buổi: ${sessErr?.message || ''}`);
 
