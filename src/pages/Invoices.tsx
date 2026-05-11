@@ -377,32 +377,44 @@ const Invoices = () => {
     setIsDeleting(true);
     try {
       for (const invId of selectedInvoices) {
-        // 1. Tìm invoice_items
-        const { data: invItems } = await supabase.from('invoice_items').select('id').eq('invoice_id', invId);
+        // 1. Kiểm tra invoice_items để xem có phải hóa đơn bán gói không
+        const { data: invItems } = await supabase.from('invoice_items').select('id, type').eq('invoice_id', invId);
+        const hasPackageItem = invItems?.some(i => i.type === 'package_sale' || i.type === 'package');
+
+        // 2. Tìm package_sales (Cấu trúc mới)
+        const { data: pkgSales } = await supabase.from('package_sales').select('id, customer_package_id').eq('invoice_id', invId);
+        
+        // --- SAFEGUARD: NGĂN CHẶN XÓA VĨNH VIỄN HÓA ĐƠN CŨ ---
+        // Nếu là hóa đơn bán gói nhưng lại KHÔNG CÓ liên kết chuẩn package_sales (Dữ liệu Legacy)
+        if (hasPackageItem && (!pkgSales || pkgSales.length === 0)) {
+          throw new Error(`Hóa đơn #${invId.slice(0,8)} là dữ liệu cũ (Legacy) thiếu liên kết chuẩn. Để bảo toàn lịch sử hoạt động, vui lòng không "Xóa vĩnh viễn". Hãy bấm vào xem chi tiết và sử dụng nút "Hủy hóa đơn".`);
+        }
+
+        let cpIds: string[] = [];
+
+        if (pkgSales && pkgSales.length > 0) {
+          const psIds = pkgSales.map(ps => ps.id);
+          cpIds = pkgSales.map(ps => ps.customer_package_id).filter(Boolean);
+          
+          await supabase.from('commission_logs').delete().in('package_sale_id', psIds);
+          await supabase.from('revenue_logs').delete().in('package_sale_id', psIds);
+          await supabase.from('package_sales').delete().eq('invoice_id', invId);
+        }
+
+        if (cpIds.length > 0) {
+          await supabase.from('service_sessions').delete().in('customer_package_id', cpIds);
+          await supabase.from('revenue_logs').delete().in('reference_id', cpIds);
+          await supabase.from('customer_packages').delete().in('id', cpIds);
+        }
+
+        // 3. Xoá commission_logs và invoice_items
         if (invItems && invItems.length > 0) {
           const itemIds = invItems.map(i => i.id);
           await supabase.from('commission_logs').delete().in('invoice_item_id', itemIds);
           await supabase.from('invoice_items').delete().eq('invoice_id', invId);
         }
 
-        // 2. Tìm package_sales
-        const { data: pkgSales } = await supabase.from('package_sales').select('id, customer_package_id').eq('invoice_id', invId);
-        if (pkgSales && pkgSales.length > 0) {
-          const psIds = pkgSales.map(ps => ps.id);
-          const cpIds = pkgSales.map(ps => ps.customer_package_id).filter(Boolean);
-          
-          await supabase.from('commission_logs').delete().in('package_sale_id', psIds);
-          await supabase.from('revenue_logs').delete().in('package_sale_id', psIds);
-          await supabase.from('package_sales').delete().eq('invoice_id', invId);
-          
-          if (cpIds.length > 0) {
-            await supabase.from('service_sessions').delete().in('customer_package_id', cpIds);
-            await supabase.from('revenue_logs').delete().in('reference_id', cpIds);
-            await supabase.from('customer_packages').delete().in('id', cpIds);
-          }
-        }
-
-        // 3. Xoá revenue_logs theo invoice_id (bao gồm reference_id cũ)
+        // 4. Xoá revenue_logs theo invoice_id (bao gồm reference_id cũ)
         await supabase.from('revenue_logs').delete().eq('invoice_id', invId);
         await supabase.from('revenue_logs').delete().eq('reference_id', invId);
 
@@ -440,7 +452,7 @@ const Invoices = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem' }}>
-          {selectedInvoices.length > 0 && view === 'retail' && profile?.role === 'super_admin' && (
+          {selectedInvoices.length > 0 && view === 'retail' && hasPermission('sale.delete') && (
             <button 
               onClick={handleDeleteMultiple} 
               className="btn" 

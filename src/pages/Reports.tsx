@@ -118,7 +118,7 @@ const Reports = () => {
       }
 
       if (psIds.length > 0) {
-         const { data: psData } = await supabase.from('package_sales').select('*, customer_packages(customer_name, card_code)').in('id', psIds);
+         const { data: psData } = await supabase.from('package_sales').select('*, invoices(invoice_code), customer_packages(customer_name, card_code)').in('id', psIds);
          if (psData) {
             relatedPkgSales = psData;
             psData.forEach((ps: any) => { if (ps.invoice_id && !invIdsToFetch.includes(ps.invoice_id)) invIdsToFetch.push(ps.invoice_id); });
@@ -179,7 +179,8 @@ const Reports = () => {
                const ps = relatedPkgSales.find((p: any) => p.id === r.package_sale_id);
                if (ps) {
                  invId = ps.invoice_id;
-                 invCode = ps.invoices?.invoice_code || ps.invoice_id?.slice(0,8) || null;
+                 // Ưu tiên lấy invoice_code từ dữ liệu đã fetch hoặc relatedInvoices
+                 invCode = ps.invoices?.invoice_code || relatedInvoices.find(i => i.id === invId)?.invoice_code || ps.invoice_id?.slice(0,8) || null;
                  if (ps.customer_packages) {
                      cName = ps.customer_packages.customer_name || 'Khách thẻ';
                      cardCode = ps.customer_packages.card_code || null;
@@ -332,10 +333,11 @@ const Reports = () => {
           const { data: prof } = sale.seller_id ? await supabase.from('staffs').select('full_name').eq('id', sale.seller_id).single() : { data: null };
           if (cp) {
             const { data: pkg } = await supabase.from('packages').select('name').eq('id', cp.package_id).single();
+            const { data: inv } = sale.invoice_id ? await supabase.from('invoices').select('invoice_code').eq('id', sale.invoice_id).single() : { data: null };
             setDetailModal({ 
               type: 'package_sale', 
-              data: { ...sale, customer: cp, packageName: pkg?.name || 'Gói không xác định', staff_name: prof?.full_name || 'Thu ngân / Người bán' }, 
-              title: sale.invoice_id ? `Chi tiết Bán liệu trình #${sale.invoice_id.slice(0,8)}` : `Chi tiết Bán liệu trình` 
+              data: { ...sale, customer: cp, packageName: pkg?.name || 'Gói không xác định', staff_name: prof?.full_name || 'Thu ngân / Người bán', invoice_code: inv?.invoice_code }, 
+              title: inv?.invoice_code ? `Chi tiết Bán liệu trình #${inv.invoice_code}` : (sale.invoice_id ? `Chi tiết Bán liệu trình #${sale.invoice_id.slice(0,8)}` : `Chi tiết Bán liệu trình`)
             });
             return;
           }
@@ -747,7 +749,7 @@ const Reports = () => {
                   {detailModal.data.invoice_id && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Mã Hóa Đơn:</span>
-                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.invoice_id.slice(0,8)}</span>
+                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.invoice_code || detailModal.data.invoice_id.slice(0,8)}</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
