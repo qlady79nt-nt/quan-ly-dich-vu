@@ -6,7 +6,7 @@ import { useAuth } from '../lib/auth';
 const Customers = () => {
   const { profile, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
-  const [activeTab, setActiveTab] = useState<'general' | 'packages'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'packages' | 'archived'>('general');
   const [customers, setCustomers] = useState<any[]>([]);
   const [packageCustomers, setPackageCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +15,7 @@ const Customers = () => {
   useEffect(() => {
     if (shopId) {
       if (activeTab === 'general') fetchCustomers();
-      else fetchPackageCustomers();
+      else fetchPackageCustomers(activeTab === 'archived' ? 'archived' : 'active');
     } else if (profile?.role === 'super_admin') {
       setLoading(false);
     }
@@ -32,15 +32,21 @@ const Customers = () => {
     setLoading(false);
   };
 
-  const fetchPackageCustomers = async () => {
+  const fetchPackageCustomers = async (type: 'active' | 'archived') => {
     setLoading(true);
-    const { data: cpData, error } = await supabase
+    let query = supabase
       .from('customer_packages')
       .select('*')
       .eq('shop_id', shopId)
-      .neq('status', 'archived')
-      .neq('status', 'cancelled')
       .order('created_at', { ascending: false });
+
+    if (type === 'active') {
+      query = query.neq('status', 'archived').neq('status', 'cancelled');
+    } else {
+      query = query.eq('status', 'archived');
+    }
+
+    const { data: cpData, error } = await query;
     
     if (error) {
       console.error('Error fetching package customers:', error);
@@ -100,7 +106,7 @@ const Customers = () => {
     setLoading(true);
     const { error } = await supabase.from('customer_packages').update({ status: newStatus }).eq('id', cpId);
     if (!error) {
-      fetchPackageCustomers();
+      fetchPackageCustomers(activeTab === 'archived' ? 'archived' : 'active');
     } else {
       alert('Lỗi cập nhật: ' + error.message);
       setLoading(false);
@@ -114,7 +120,7 @@ const Customers = () => {
     setLoading(true);
     const { error } = await supabase.from('customer_packages').delete().eq('id', cpId);
     if (!error) {
-      fetchPackageCustomers();
+      fetchPackageCustomers(activeTab === 'archived' ? 'archived' : 'active');
     } else {
       alert('Lỗi xóa cứng: ' + error.message);
       setLoading(false);
@@ -160,6 +166,9 @@ const Customers = () => {
         </button>
         <button onClick={() => setActiveTab('packages')} className="btn" style={{ background: activeTab === 'packages' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'packages' ? 'white' : 'inherit' }}>
           <Package size={18} /> Khách hàng liệu trình
+        </button>
+        <button onClick={() => setActiveTab('archived')} className="btn" style={{ background: activeTab === 'archived' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'archived' ? 'white' : 'inherit' }}>
+          <CreditCard size={18} /> Đã lưu trữ
         </button>
       </div>
 
@@ -247,6 +256,9 @@ const Customers = () => {
                 )}
                 {cp.used_sessions > 0 && cp.status !== 'archived' && (
                   <button onClick={() => handleUpdatePackageStatus(cp.id, 'archived')} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', flex: 1, background: 'var(--bg-main)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>Lưu trữ</button>
+                )}
+                {cp.status === 'archived' && (
+                  <button onClick={() => handleUpdatePackageStatus(cp.id, 'active')} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', flex: 1, background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid var(--success)' }}>Khôi phục</button>
                 )}
                 {profile?.role === 'super_admin' && (
                   <button onClick={() => handleHardDeletePackage(cp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)' }}>Xóa vĩnh viễn</button>
