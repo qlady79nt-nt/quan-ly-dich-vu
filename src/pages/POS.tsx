@@ -122,7 +122,8 @@ const POS = () => {
       status: 'in_progress',
       is_retail: true,
       retail_customer_name: finalCustName,
-      retail_customer_phone: finalCustPhone
+      retail_customer_phone: finalCustPhone,
+      session_code: 'S' + new Date().getFullYear().toString().slice(-2) + Math.floor(1000 + Math.random() * 9000).toString()
     }]);
 
     if (error) {
@@ -518,7 +519,7 @@ const POS = () => {
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
             <h3 style={{ marginBottom: '0.5rem' }}>Thanh toán thành công</h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Hoá đơn #{completedInvoice.id.slice(0, 8)}</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Hoá đơn #{completedInvoice.invoice_code || '---'}</p>
             <button onClick={handlePrint} className="btn btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}><Printer size={18} /> In hoá đơn</button>
             <button onClick={() => setCompletedInvoice(null)} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Tiếp tục bán hàng</button>
           </div>

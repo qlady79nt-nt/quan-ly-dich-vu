@@ -166,7 +166,7 @@ const Beds = () => {
 
         setCompletedInvoice({
           id: sess.id,
-          display_id: sess.id.slice(0,8),
+          display_id: sess.session_code || '---',
           customer_name: cp.customer_name || sess.retail_customer_name || 'Khách liệu trình',
           customer_phone: cp.customer_phone || sess.retail_customer_phone,
           staff_name: sess.staffs?.full_name || 'KTV',
@@ -232,7 +232,7 @@ const Beds = () => {
 
         setCompletedInvoice({
           id: inv.id,
-          display_id: inv.invoice_code || inv.id.slice(0,8),
+          display_id: inv.invoice_code || '---',
           customer_name: sess.retail_customer_name || 'Khách lẻ',
           customer_phone: sess.retail_customer_phone,
           staff_name: sess.staffs?.full_name || 'KTV',
@@ -412,7 +412,7 @@ const Beds = () => {
               <CheckCircle2 size={32} />
             </div>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Thanh toán thành công!</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Hoá đơn #{completedInvoice.display_id || completedInvoice.id.slice(0,8)} đã được ghi nhận vào hệ thống.</p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Hoá đơn #{completedInvoice.display_id || '---'} đã được ghi nhận vào hệ thống.</p>
             
             <button onClick={handlePrint} className="btn btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}><Printer size={18} /> In hoá đơn</button>
             <button onClick={() => { setCompletedInvoice(null); fetchBedsAndSessions(); }} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Quay lại Màn hình Chỗ</button>

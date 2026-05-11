@@ -39,7 +39,7 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ invoice, confi
       </div>
       
       <div className="receipt-section">
-        <p>Mã: #{invoice.id?.slice(0,8)}</p>
+        <p>Mã: #{invoice.invoice_code || '---'}</p>
         <p>Khách: {invoice.customer_name}</p>
         {invoice.customer_phone && <p>SĐT: {invoice.customer_phone}</p>}
         {invoice.card_code && <p>Mã thẻ: {invoice.card_code}</p>}

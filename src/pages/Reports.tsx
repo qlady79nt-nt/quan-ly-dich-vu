@@ -171,7 +171,7 @@ const Reports = () => {
            const inv = relatedInvoices.find(i => i.id === invId);
            if (inv) {
                cName = inv.customers?.name || inv.customer_name || 'Khách lẻ';
-               invCode = inv.invoice_code || inv.id.slice(0,8);
+               invCode = inv.invoice_code || '---';
            }
         } else if (r.type === 'package_sale') {
            if (r.package_sale_id) {
@@ -180,7 +180,7 @@ const Reports = () => {
                if (ps) {
                  invId = ps.invoice_id;
                  // Ưu tiên lấy invoice_code từ dữ liệu đã fetch hoặc relatedInvoices
-                 invCode = ps.invoices?.invoice_code || relatedInvoices.find(i => i.id === invId)?.invoice_code || ps.invoice_id?.slice(0,8) || null;
+                 invCode = ps.invoices?.invoice_code || relatedInvoices.find((i: any) => i.id === invId)?.invoice_code || '---';
                  if (ps.customer_packages) {
                      cName = ps.customer_packages.customer_name || 'Khách thẻ';
                      cardCode = ps.customer_packages.card_code || null;
@@ -192,14 +192,14 @@ const Reports = () => {
                const inv = relatedInvoices.find(i => i.id === invId);
                if (inv) {
                    cName = inv.customers?.name || inv.customer_name || 'Khách mua thẻ liệu trình';
-                   invCode = inv.invoice_code || inv.id.slice(0,8);
+                   invCode = inv.invoice_code || '---';
                }
            }
         } else if (r.type === 'package_session') {
            sessId = r.service_session_id || r.reference_id;
            const sess = relatedSessions.find(s => s.id === sessId);
            if (sess) {
-               sessCode = sess.session_code || sess.id.slice(0,8);
+               sessCode = sess.session_code || '---';
                if (sess.customer_packages) {
                   cName = sess.customer_packages.customer_name || 'Khách thẻ';
                   cardCode = sess.customer_packages.card_code || null;
@@ -209,7 +209,7 @@ const Reports = () => {
                   if (ps) {
                       invId = ps.invoice_id;
                       const psInv = relatedInvoices.find((i: any) => i.id === invId);
-                      invCode = psInv?.invoice_code || ps.invoice_id?.slice(0,8) || null;
+                      invCode = psInv?.invoice_code || '---';
                   }
                }
            }
@@ -236,14 +236,14 @@ const Reports = () => {
         if (c.service_session_id) {
           const s = relatedSessions.find((x: any) => x.id === c.service_session_id);
           if (s) {
-            mappedCode = s.session_code || s.id.slice(0, 8);
+            mappedCode = s.session_code || '---';
             cName = s.retail_customer_name || s.customer_packages?.customer_name;
           }
         } else if (c.package_sale_id) {
           const p = relatedPkgSales.find((x: any) => x.id === c.package_sale_id);
           if (p) {
             const pInv = relatedInvoices.find((x: any) => x.id === p.invoice_id);
-            mappedCode = pInv?.invoice_code || p.invoice_id?.slice(0, 8);
+            mappedCode = pInv?.invoice_code || '---';
             cName = p.customer_packages?.customer_name;
           }
         } else if (c.invoice_item_id) {
@@ -251,7 +251,7 @@ const Reports = () => {
           if (ci && ci.invoice_id) {
             const inv = relatedInvoices.find((x: any) => x.id === ci.invoice_id);
             if (inv) {
-              mappedCode = inv.invoice_code || inv.id.slice(0, 8);
+              mappedCode = inv.invoice_code || '---';
               cName = inv.customer_name;
             }
           }
@@ -323,7 +323,7 @@ const Reports = () => {
         setDetailModal({ 
           type: 'invoice', 
           data: { ...inv, staff_name: staff?.full_name || 'Thu ngân', items: items || [] }, 
-          title: `Hoá đơn #${inv?.invoice_code || idToLook?.slice(0,8) || 'N/A'}` 
+          title: `Hoá đơn #${inv?.invoice_code || '---'}` 
         });
       } else if (log.type === 'package_sale') {
         const idToLook = log.package_sale_id || log.reference_id;
@@ -337,7 +337,7 @@ const Reports = () => {
             setDetailModal({ 
               type: 'package_sale', 
               data: { ...sale, customer: cp, packageName: pkg?.name || 'Gói không xác định', staff_name: prof?.full_name || 'Thu ngân / Người bán', invoice_code: inv?.invoice_code }, 
-              title: inv?.invoice_code ? `Chi tiết Bán liệu trình #${inv.invoice_code}` : (sale.invoice_id ? `Chi tiết Bán liệu trình #${sale.invoice_id.slice(0,8)}` : `Chi tiết Bán liệu trình`)
+              title: inv?.invoice_code ? `Chi tiết Bán liệu trình #${inv.invoice_code}` : `Chi tiết Bán liệu trình`
             });
             return;
           }
@@ -356,7 +356,7 @@ const Reports = () => {
                setDetailModal({ 
                  type: 'invoice', 
                  data: { ...inv, staff_name: staff?.full_name || 'Thu ngân', items: items || [] }, 
-                 title: `Hoá đơn #${inv?.invoice_code || invItem.invoice_id.slice(0,8) || 'N/A'}` 
+                 title: `Hoá đơn #${inv?.invoice_code || '---'}` 
                });
                return;
             }
@@ -367,7 +367,7 @@ const Reports = () => {
                setDetailModal({ 
                  type: 'invoice', 
                  data: { ...inv, staff_name: staff?.full_name || 'Thu ngân', items: items || [] }, 
-                 title: `Hoá đơn #${inv?.invoice_code || log.invoice_id.slice(0,8) || 'N/A'}` 
+                 title: `Hoá đơn #${inv?.invoice_code || '---'}` 
                });
                return;
           }
@@ -597,7 +597,7 @@ const Reports = () => {
                                     onClick={() => openRevenueDetail(log)}
                                     style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                                   >
-                                    #{log.mapped_code || (log.service_session_id || log.package_sale_id || log.invoice_id || log.reference_id || 'N/A')?.slice(0,8)}
+                                    #{log.mapped_code || '---'}
                                     {!log.mapped_code && <span style={{fontSize: '0.7rem', color: 'var(--danger)', marginLeft: '0.25rem'}}>(Đã xoá)</span>}
                                     <FileText size={12} />
                                   </button>
@@ -650,7 +650,7 @@ const Reports = () => {
                               <tr key={idx} style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.2)' }}>
                                 <td style={{ padding: '0.75rem 0.5rem' }}>{new Date(m.date).toLocaleString()}</td>
                                 <td style={{ padding: '0.75rem 0.5rem', fontWeight: '600' }}>{m.type}</td>
-                                <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'monospace' }}>#{m.id?.slice(0,8)}</td>
+                                <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'monospace' }}>#{m.mapped_invoice_code || m.mapped_session_code || '---'}</td>
                                 <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '700', color: 'var(--danger)' }}>
                                   {Number(m.amount).toLocaleString()}đ
                                 </td>
@@ -749,7 +749,7 @@ const Reports = () => {
                   {detailModal.data.invoice_id && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Mã Hóa Đơn:</span>
-                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.invoice_code || detailModal.data.invoice_id.slice(0,8)}</span>
+                      <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.invoice_code || '---'}</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -842,7 +842,7 @@ const Reports = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Mã Phiếu:</span>
-                    <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.session_code || detailModal.data.id.slice(0,8)}</span>
+                    <span style={{ fontWeight: '600', color: 'var(--primary)' }}>#{detailModal.data.session_code || '---'}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Dịch vụ:</span>
@@ -882,7 +882,7 @@ const Reports = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Mã tham chiếu:</span>
-                    <span style={{ fontWeight: '600', fontFamily: 'monospace' }}>#{detailModal.data.service_session_id?.slice(0,8) || detailModal.data.package_sale_id?.slice(0,8) || detailModal.data.invoice_id?.slice(0,8) || detailModal.data.reference_id?.slice(0,8) || 'N/A'}</span>
+                    <span style={{ fontWeight: '600', fontFamily: 'monospace' }}>Dữ liệu hệ thống</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Nội dung:</span>

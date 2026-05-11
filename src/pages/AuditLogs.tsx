@@ -135,7 +135,7 @@ const AuditLogs = () => {
                   </td>
                   <td>
                     <div style={{ fontWeight: '600' }}>{log.profiles?.full_name || 'Hệ thống'}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>ID: {log.actor_id?.slice(0,8)}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Người dùng nội bộ</div>
                   </td>
                   {profile?.role === 'super_admin' && (
                     <td style={{ color: 'var(--primary)', fontWeight: '600' }}>
@@ -153,7 +153,7 @@ const AuditLogs = () => {
                   </td>
                   <td style={{ maxWidth: '300px' }}>
                     <div style={{ fontWeight: '500' }}>{log.description}</div>
-                    {log.entity_id && <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>Mã đối tượng: #{log.entity_id.slice(0,8)}</div>}
+                    {log.entity_id && <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>Dữ liệu hệ thống</div>}
                   </td>
                 </tr>
               ))}
