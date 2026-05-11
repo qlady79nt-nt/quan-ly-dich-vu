@@ -189,88 +189,131 @@ const Customers = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
       ) : activeTab === 'general' ? (
-        <div className="grid grid-cols-3">
-          {filteredCustomers.map((customer) => (
-            <div key={customer.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                <UserCircle size={28} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{customer.name}</h4>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  <Phone size={14} />
-                  {customer.phone || 'Chưa có SĐT'}
-                </div>
-              </div>
-            </div>
-          ))}
-          {filteredCustomers.length === 0 && (
-            <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
-              Không tìm thấy khách hàng phù hợp.
-            </div>
-          )}
+        <div className="premium-card">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                <th style={{ padding: '1rem' }}>Khách hàng</th>
+                <th>Số điện thoại</th>
+                <th>Ngày tạo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCustomers.map((customer) => (
+                <tr key={customer.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                        <UserCircle size={24} />
+                      </div>
+                      <span style={{ fontWeight: '600', fontSize: '1rem' }}>{customer.name}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+                      <Phone size={16} />
+                      {customer.phone || 'Chưa có SĐT'}
+                    </div>
+                  </td>
+                  <td style={{ color: 'var(--text-secondary)' }}>
+                    {new Date(customer.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+              {filteredCustomers.length === 0 && (
+                <tr>
+                  <td colSpan={3} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
+                    Không tìm thấy khách hàng phù hợp.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       ) : (
-        <div className="grid grid-cols-3">
-          {filteredPackageCustomers.map((cp) => (
-            <div key={cp.id} className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{cp.customer_name}</h4>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                    <Phone size={14} />
-                    {cp.customer_phone || 'Chưa có SĐT'}
-                  </div>
-                </div>
-                {cp.status === 'completed' ? (
-                  <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Hết buổi</span>
-                ) : cp.status === 'cancelled' ? (
-                  <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>Đã hủy</span>
-                ) : cp.status === 'archived' ? (
-                  <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)' }}>Đã lưu trữ</span>
-                ) : (
-                  <span className="badge badge-success">Đang dùng</span>
-                )}
-              </div>
-              
-              <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.5rem', marginTop: '0.5rem', opacity: (cp.status === 'cancelled' || cp.status === 'archived') ? 0.6 : 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
-                  <Package size={16} className="text-primary" />
-                  {cp.packages?.name || 'Gói không xác định'}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <CreditCard size={16} className="text-secondary" />
-                  Mã thẻ: <strong>{cp.card_code || 'N/A'}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  <span>Số buổi: <strong>{cp.total_sessions}</strong></span>
-                  <span>Đã dùng: <strong style={{ color: 'var(--warning)' }}>{cp.used_sessions}</strong></span>
-                </div>
-                <div style={{ marginTop: '0.5rem', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                {cp.used_sessions === 0 && cp.status !== 'cancelled' && (
-                  <button onClick={() => handleUpdatePackageStatus(cp.id, 'cancelled')} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', flex: 1, background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Hủy thẻ</button>
-                )}
-                {cp.used_sessions > 0 && cp.status !== 'archived' && (
-                  <button onClick={() => handleUpdatePackageStatus(cp.id, 'archived')} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', flex: 1, background: 'var(--bg-main)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>Lưu trữ</button>
-                )}
-                {cp.status === 'archived' && (
-                  <button onClick={() => handleUpdatePackageStatus(cp.id, 'active')} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', flex: 1, background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid var(--success)' }}>Khôi phục</button>
-                )}
-                {profile?.role === 'super_admin' && (
-                  <button onClick={() => handleHardDeletePackage(cp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)' }}>Xóa vĩnh viễn</button>
-                )}
-              </div>
-            </div>
-          ))}
-          {filteredPackageCustomers.length === 0 && (
-            <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
-              Không tìm thấy khách hàng liệu trình phù hợp.
-            </div>
-          )}
+        <div className="premium-card">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                <th style={{ padding: '1rem' }}>Khách hàng</th>
+                <th>Thông tin thẻ</th>
+                <th>Gói dịch vụ</th>
+                <th>Tiến độ sử dụng</th>
+                <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPackageCustomers.map((cp) => (
+                <tr key={cp.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', opacity: (cp.status === 'cancelled' || cp.status === 'archived') ? 0.6 : 1, transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '1rem' }}>
+                    <div style={{ fontWeight: '600', fontSize: '1rem', marginBottom: '0.25rem' }}>{cp.customer_name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      <Phone size={14} />
+                      {cp.customer_phone || 'Chưa có SĐT'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <CreditCard size={16} className="text-secondary" />
+                      Mã: <strong>{cp.card_code || 'N/A'}</strong>
+                    </div>
+                    <div style={{ fontSize: '0.75rem' }}>
+                      {cp.status === 'completed' ? (
+                        <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Hết buổi</span>
+                      ) : cp.status === 'cancelled' ? (
+                        <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>Đã hủy</span>
+                      ) : cp.status === 'archived' ? (
+                        <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)' }}>Đã lưu trữ</span>
+                      ) : (
+                        <span className="badge badge-success">Đang dùng</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                      <Package size={16} className="text-primary" />
+                      {cp.packages?.name || 'Gói không xác định'}
+                    </div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      Mua: {new Date(cp.created_at).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td style={{ minWidth: '150px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                      <span>Tổng: <strong>{cp.total_sessions}</strong></span>
+                      <span>Đã dùng: <strong style={{ color: 'var(--warning)' }}>{cp.used_sessions}</strong></span>
+                    </div>
+                    <div style={{ height: '8px', background: 'var(--bg-main)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
+                    </div>
+                  </td>
+                  <td style={{ paddingRight: '1rem', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      {cp.used_sessions === 0 && cp.status !== 'cancelled' && (
+                        <button onClick={() => handleUpdatePackageStatus(cp.id, 'cancelled')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Hủy thẻ</button>
+                      )}
+                      {cp.used_sessions > 0 && cp.status !== 'archived' && (
+                        <button onClick={() => handleUpdatePackageStatus(cp.id, 'archived')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'var(--bg-main)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>Lưu trữ</button>
+                      )}
+                      {cp.status === 'archived' && (
+                        <button onClick={() => handleUpdatePackageStatus(cp.id, 'active')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid var(--success)' }}>Khôi phục</button>
+                      )}
+                      {profile?.role === 'super_admin' && (
+                        <button onClick={() => handleHardDeletePackage(cp.id)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)' }}>Xóa vĩnh viễn</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredPackageCustomers.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
+                    Không tìm thấy khách hàng liệu trình phù hợp.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
