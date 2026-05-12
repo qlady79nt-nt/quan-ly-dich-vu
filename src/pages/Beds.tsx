@@ -226,7 +226,7 @@ const Beds = () => {
         if (commErr) throw commErr;
 
         const { error: revErr } = await supabase.from('revenue_logs').insert([{ 
-          shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id 
+          shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id, service_session_id: sess.id 
         }]);
         if (revErr) throw revErr;
 

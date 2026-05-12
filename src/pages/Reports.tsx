@@ -105,6 +105,7 @@ const Reports = () => {
       ])];
       const ssIds = [...new Set([
         ...revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean),
+        ...revLog.filter((r: any) => r.type === 'retail').map((r: any) => r.service_session_id).filter(Boolean),
         ...commSessionIds
       ])];
 
@@ -135,7 +136,7 @@ const Reports = () => {
       }
 
       if (ssIds.length > 0) {
-         const { data: ssData } = await supabase.from('service_sessions').select('*, customer_packages(customer_name, card_code)').in('id', ssIds);
+         const { data: ssData } = await supabase.from('service_sessions').select('*, customer_packages(customer_name, card_code), beds(name)').in('id', ssIds);
          if (ssData) relatedSessions = ssData;
       }
 
@@ -172,6 +173,9 @@ const Reports = () => {
            if (inv) {
                cName = inv.customers?.name || inv.customer_name || 'Khách lẻ';
                invCode = inv.invoice_code || '---';
+           }
+           if (r.service_session_id) {
+               sessId = r.service_session_id;
            }
         } else if (r.type === 'package_sale') {
            if (r.package_sale_id) {
@@ -214,7 +218,17 @@ const Reports = () => {
                }
            }
         }
-        return { ...r, mapped_invoice_id: invId, mapped_invoice_code: invCode, mapped_session_id: sessId, mapped_session_code: sessCode, card_code: cardCode, customer_name: cName };
+        
+        // Lookup bed name
+        let bedName = null;
+        if (sessId) {
+            const sess = relatedSessions.find(s => s.id === sessId);
+            if (sess && sess.beds) {
+                bedName = sess.beds.name;
+            }
+        }
+
+        return { ...r, mapped_invoice_id: invId, mapped_invoice_code: invCode, mapped_session_id: sessId, mapped_session_code: sessCode, card_code: cardCode, customer_name: cName, bed_name: bedName };
       });
 
       setRevenueData(mappedRevLogs);
@@ -513,6 +527,9 @@ const Reports = () => {
                               
                               {/* Mã phiếu trừ buổi riêng cho Sử dụng liệu trình */}
                               {r.type === 'package_session' && r.mapped_session_code ? <span style={{ color: 'var(--success)', marginLeft: '0.25rem' }}>Phiếu: #{r.mapped_session_code}</span> : ''}
+
+                              {/* Hiển thị chỗ/giường */}
+                              {r.bed_name ? <span style={{ color: 'var(--secondary)', marginLeft: '0.5rem', background: 'rgba(109, 40, 217, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>{r.bed_name}</span> : ''}
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
                               <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{r.customer_name}</span>
