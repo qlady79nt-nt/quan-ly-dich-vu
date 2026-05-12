@@ -5,7 +5,8 @@ import {
   Loader2,
   FileText,
   Lock,
-  Search
+  Search,
+  Info
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -31,7 +32,11 @@ const Reports = () => {
     totalRevenue: 0,
     totalProfit: 0,
     totalComm: 0,
-    totalCashFlow: 0
+    totalCashFlow: 0,
+    retailRev: 0,
+    packageSaleCash: 0,
+    totalUnrealizedValue: 0,
+    totalUnrealizedSessions: 0
   });
 
   useEffect(() => {
@@ -151,11 +156,30 @@ const Reports = () => {
       const totalCost = revLog.reduce((acc: number, r: any) => acc + Number(r.cost || 0), 0);
       const totalComm = commLog.reduce((acc: number, c: any) => acc + Number(c.amount), 0);
 
+      // Lấy Nợ dịch vụ (Unrealized revenue) từ customer_packages
+      let totalUnrealizedValue = 0;
+      let totalUnrealizedSessions = 0;
+      const { data: cpData } = await supabase.from('customer_packages').select('total_sessions, used_sessions, sale_price').eq('shop_id', shopId).in('status', ['active', 'pending']);
+      if (cpData) {
+         cpData.forEach((cp: any) => {
+             const remainingSessions = Math.max(0, (cp.total_sessions || 0) - (cp.used_sessions || 0));
+             if (remainingSessions > 0 && cp.total_sessions > 0) {
+                 const unitPrice = cp.sale_price / cp.total_sessions;
+                 totalUnrealizedValue += unitPrice * remainingSessions;
+                 totalUnrealizedSessions += remainingSessions;
+             }
+         });
+      }
+
       setStats({
         totalRevenue: totalRev,
         totalProfit: totalRev - totalCost - totalComm,
         totalComm: totalComm,
-        totalCashFlow: totalCashFlow
+        totalCashFlow: totalCashFlow,
+        retailRev,
+        packageSaleCash,
+        totalUnrealizedValue,
+        totalUnrealizedSessions
       });
 
       // Gắn invoice_id và customer_name vào revenue_logs để hiển thị trực tiếp trên danh sách
@@ -469,18 +493,43 @@ const Reports = () => {
         <>
           {hasPermission('report.revenue.view') ? (
             <>
-              <div className="grid grid-cols-3" style={{ marginBottom: '2rem' }}>
-                <div className="premium-card" style={{ borderLeft: '4px solid var(--secondary)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Thực thu (Tiền mặt Cashflow)</div>
+              <div className="grid grid-cols-4" style={{ marginBottom: '2rem' }}>
+                <div className="premium-card" style={{ borderLeft: '4px solid var(--secondary)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tiền thu vào (Tổng Cashflow)</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '800', marginTop: '0.25rem' }}>{stats.totalCashFlow.toLocaleString()}đ</div>
+                  <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px dashed var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Thu dịch vụ lẻ:</span>
+                      <strong style={{ color: 'var(--text-main)' }}>{stats.retailRev.toLocaleString()}đ</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Thu bán liệu trình:</span>
+                      <strong style={{ color: 'var(--text-main)' }}>{stats.packageSaleCash.toLocaleString()}đ</strong>
+                    </div>
+                  </div>
                 </div>
-                <div className="premium-card" style={{ borderLeft: '4px solid var(--primary)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Doanh thu dịch vụ (Nhận diện)</div>
+
+                <div className="premium-card" style={{ borderLeft: '4px solid var(--primary)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    Doanh thu đã thực hiện
+                    <span title="Doanh thu chỉ được ghi nhận khi khách sử dụng dịch vụ." style={{ cursor: 'help', color: 'var(--primary)', display: 'inline-flex' }}>
+                      <Info size={14} />
+                    </span>
+                  </div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '800', marginTop: '0.25rem' }}>{stats.totalRevenue.toLocaleString()}đ</div>
                 </div>
-                <div className="premium-card" style={{ borderLeft: '4px solid var(--success)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Lợi nhuận ròng</div>
+
+                <div className="premium-card" style={{ borderLeft: '4px solid var(--success)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Lợi nhuận vận hành</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '800', marginTop: '0.25rem' }}>{stats.totalProfit.toLocaleString()}đ</div>
+                </div>
+
+                <div className="premium-card" style={{ borderLeft: '4px solid var(--warning)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Nợ dịch vụ còn lại</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', marginTop: '0.25rem' }}>{Math.round(stats.totalUnrealizedValue).toLocaleString()}đ</div>
+                  <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px dashed var(--border)', fontSize: '0.75rem', color: 'var(--warning)', fontWeight: '600' }}>
+                    Khách còn {stats.totalUnrealizedSessions} buổi chưa dùng
+                  </div>
                 </div>
               </div>
 
