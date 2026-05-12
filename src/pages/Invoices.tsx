@@ -341,7 +341,8 @@ const Invoices = () => {
         // Try fetching from package_sales first
         const { data: ps } = await supabase.from('package_sales').select('invoice_id, invoices(invoice_code)').eq('customer_package_id', sess.customer_package_id).single();
         if (ps && ps.invoice_id) {
-          invoiceCode = ps.invoices?.invoice_code || ps.invoice_id.slice(0, 8);
+          const invObj: any = ps.invoices;
+          invoiceCode = (Array.isArray(invObj) ? invObj[0]?.invoice_code : invObj?.invoice_code) || ps.invoice_id.slice(0, 8);
         } else if (sess.customer_packages?.customer_phone && sess.customer_packages?.created_at) {
           // Ultimate fallback for corrupted invoices
           const createdTime = new Date(sess.customer_packages.created_at).getTime();
