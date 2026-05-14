@@ -5,15 +5,56 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 const AVAILABLE_PERMISSIONS = [
+  // Nhóm Bán hàng
   { id: 'sale.create', label: 'Tạo hoá đơn', group: 'Bán hàng' },
+  { id: 'sale.checkout', label: 'Thanh toán', group: 'Bán hàng' },
   { id: 'sale.discount', label: 'Giảm giá', group: 'Bán hàng' },
-  { id: 'sale.edit', label: 'Sửa hoá đơn', group: 'Bán hàng' },
-  { id: 'sale.delete', label: 'Xoá hoá đơn', group: 'Bán hàng' },
-  { id: 'report.revenue.view', label: 'Xem doanh thu', group: 'Báo cáo' },
-  { id: 'report.invoice.view', label: 'Xem danh sách hoá đơn', group: 'Báo cáo' },
-  { id: 'report.commission.view', label: 'Xem hoa hồng', group: 'Báo cáo' },
-  { id: 'invoice.print', label: 'In hoá đơn', group: 'Vận hành' },
+  { id: 'invoice.print', label: 'In hoá đơn', group: 'Bán hàng' },
+  { id: 'invoice.edit', label: 'Sửa hoá đơn', group: 'Bán hàng' },
+  { id: 'invoice.cancel', label: 'Huỷ hoá đơn', group: 'Bán hàng' },
+  
+  // Nhóm Khách hàng
+  { id: 'customer.view', label: 'Xem danh sách', group: 'Khách hàng' },
+  { id: 'customer.create', label: 'Thêm khách hàng', group: 'Khách hàng' },
+  { id: 'customer.edit', label: 'Sửa khách hàng', group: 'Khách hàng' },
+  { id: 'package.manage', label: 'Quản lý Liệu trình', group: 'Khách hàng' },
+
+  // Nhóm Giường & Điều phối
+  { id: 'beds.view', label: 'Xem sơ đồ giường', group: 'Giường & Điều phối' },
+  { id: 'beds.assign', label: 'Xếp giường/KTV', group: 'Giường & Điều phối' },
+  { id: 'beds.manage', label: 'Quản lý giường', group: 'Giường & Điều phối' },
+
+  // Nhóm Báo cáo
+  { id: 'report.daily.view', label: 'Xem BC ngày', group: 'Báo cáo' },
+  { id: 'report.revenue.view', label: 'Xem BC doanh thu', group: 'Báo cáo' },
+  { id: 'report.profit.view', label: 'Xem BC lợi nhuận', group: 'Báo cáo' },
+  { id: 'report.staff.view', label: 'Xem BC nhân viên', group: 'Báo cáo' },
+  { id: 'commission.view', label: 'Xem hoa hồng', group: 'Báo cáo' },
+
+  // Nhóm Nhân sự
+  { id: 'staff.manage', label: 'Quản lý Hồ sơ', group: 'Nhân sự' },
+  { id: 'account.manage', label: 'Quản lý Tài khoản', group: 'Nhân sự' },
+
+  // Nhóm Cài đặt
+  { id: 'settings.edit', label: 'Cài đặt hệ thống', group: 'Cài đặt' },
+  { id: 'shop.edit', label: 'Cài đặt cửa hàng', group: 'Cài đặt' },
+  { id: 'service.manage', label: 'Quản lý Dịch vụ', group: 'Cài đặt' },
 ];
+
+const PRESETS: Record<string, string[]> = {
+  staff: [
+    'sale.create', 'sale.checkout', 'invoice.print', 
+    'customer.view', 'customer.create', 
+    'beds.view', 'beds.assign'
+  ],
+  manager: [
+    'sale.create', 'sale.checkout', 'sale.discount', 'invoice.print', 'invoice.edit',
+    'customer.view', 'customer.create', 'customer.edit', 'package.manage',
+    'beds.view', 'beds.assign', 'beds.manage',
+    'report.daily.view', 'report.revenue.view', 'report.staff.view', 'commission.view',
+    'staff.manage'
+  ]
+};
 
 const Staff = () => {
   const { profile: currentUser, isRestricted } = useAuth();
@@ -156,6 +197,16 @@ const Staff = () => {
     });
   };
 
+  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRole = e.target.value;
+    // Tự động nạp Permission Preset khi đổi vai trò
+    setAccountFormData((prev: any) => ({
+      ...prev,
+      role: newRole,
+      permissions: PRESETS[newRole] || []
+    }));
+  };
+
   const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopId) return;
@@ -232,7 +283,7 @@ const Staff = () => {
       });
     } else {
       setEditingAccountId(null);
-      setAccountFormData({ username: '', password: '', role: 'staff', permissions: [], staff_id: '' });
+      setAccountFormData({ username: '', password: '', role: 'staff', permissions: PRESETS['staff'], staff_id: '' });
     }
     setIsAccountModalOpen(true);
   };
@@ -490,8 +541,8 @@ const Staff = () => {
 
                 <div style={{ gridColumn: 'span 2' }}>
                   <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Vai trò mặc định</label>
-                  <select className="form-select" value={accountFormData.role} onChange={(e) => setAccountFormData({...accountFormData, role: e.target.value as any})}>
-                    <option value="staff">Nhân viên thông thường</option>
+                  <select className="form-select" value={accountFormData.role} onChange={handleRoleChange}>
+                    <option value="staff">Nhân viên thông thường (Lễ tân)</option>
                     <option value="manager">Quản lý cấp trung</option>
                   </select>
                 </div>
@@ -503,8 +554,8 @@ const Staff = () => {
                     <ShieldCheck size={18} color="var(--primary)" /> Cấp quyền chi tiết
                   </h4>
                   <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
-                    {['Bán hàng', 'Báo cáo', 'Vận hành'].map(group => (
-                      <div key={group} style={{ gridColumn: group === 'Báo cáo' ? '1 / 3' : 'auto' }}>
+                    {['Bán hàng', 'Khách hàng', 'Giường & Điều phối', 'Báo cáo', 'Nhân sự', 'Cài đặt'].map(group => (
+                      <div key={group} style={{ gridColumn: (group === 'Báo cáo' || group === 'Bán hàng') ? '1 / 3' : 'auto' }}>
                         <div style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>{group}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                           {AVAILABLE_PERMISSIONS.filter(p => p.group === group).map(p => (
