@@ -173,8 +173,13 @@ const Staff = () => {
     
     setLoading(true);
     const { error } = await supabase.from('staffs').update({ status: isInactive ? 'active' : 'inactive' }).eq('id', s.id);
-    if (!error) fetchData();
-    else alert(`Lỗi: ` + error.message);
+    if (!error) {
+      // Tự động khóa/mở khóa tài khoản liên kết nếu có
+      await supabase.from('profiles').update({ status: isInactive ? 'active' : 'inactive' }).eq('staff_id', s.id);
+      fetchData();
+    } else {
+      alert(`Lỗi: ` + error.message);
+    }
     setLoading(false);
   };
 
