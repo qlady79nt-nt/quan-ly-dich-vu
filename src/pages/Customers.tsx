@@ -43,7 +43,7 @@ const Customers = () => {
     if (type === 'active') {
       query = query.neq('status', 'archived').neq('status', 'cancelled');
     } else {
-      query = query.eq('status', 'archived');
+      query = query.in('status', ['archived', 'cancelled']);
     }
 
     const { data: cpData, error } = await query;
@@ -295,7 +295,7 @@ const Customers = () => {
                       {cp.used_sessions > 0 && cp.status !== 'archived' && (
                         <button onClick={() => handleUpdatePackageStatus(cp.id, 'archived')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'var(--bg-main)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>Lưu trữ</button>
                       )}
-                      {cp.status === 'archived' && (
+                      {(cp.status === 'archived' || cp.status === 'cancelled') && (
                         <button onClick={() => handleUpdatePackageStatus(cp.id, 'active')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid var(--success)' }}>Khôi phục</button>
                       )}
                       {profile?.role === 'super_admin' && (
