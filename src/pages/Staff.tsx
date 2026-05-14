@@ -425,7 +425,7 @@ const Staff = () => {
                   </td>
                   <td>
                     {a.staffs ? (
-                      <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal', fontSize: '0.75rem' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : 'Quản lý'})</span></span>
+                      <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal', fontSize: '0.75rem' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
                     ) : (
                       <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
                     )}
