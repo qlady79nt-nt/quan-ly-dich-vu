@@ -322,7 +322,7 @@ const Staff = () => {
                   <td>
                     <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
                       <Briefcase size={12} style={{ display: 'inline', marginRight: '4px' }}/>
-                      {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : 'Cộng tác viên'}
+                      {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'Cộng tác viên' : (s.position || 'KTV')}
                     </span>
                   </td>
                   <td>
@@ -479,7 +479,7 @@ const Staff = () => {
                   <select className="form-select" required value={accountFormData.staff_id} onChange={(e) => setAccountFormData({...accountFormData, staff_id: e.target.value})}>
                     <option value="">-- Bắt buộc chọn nhân sự --</option>
                     {availableStaffsForAccount.map(s => (
-                      <option key={s.id} value={s.id}>{s.full_name} ({s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : 'CTV'})</option>
+                      <option key={s.id} value={s.id}>{s.full_name} ({s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'CTV' : (s.position || 'KTV')})</option>
                     ))}
                     {editingAccountId && accountFormData.staff_id && !availableStaffsForAccount.some(s => s.id === accountFormData.staff_id) && (
                        // Hiển thị lại staff hiện tại đang được gán nếu có
