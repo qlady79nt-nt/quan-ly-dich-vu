@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, UserPlus, Trash2, Loader2, ShieldCheck, X, Briefcase, KeyRound } from 'lucide-react';
+import { Search, UserPlus, Trash2, Loader2, ShieldCheck, X, Briefcase, KeyRound, Lock, Unlock, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
@@ -19,7 +19,10 @@ const Staff = () => {
   const { profile: currentUser, isRestricted } = useAuth();
   const shopId = currentUser?.shop_id;
 
+  const [activeTab, setActiveTab] = useState<'staffs' | 'accounts'>('staffs');
+  
   const [staff, setStaff] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -27,7 +30,9 @@ const Staff = () => {
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
 
   const [staffFormData, setStaffFormData] = useState<any>({
     full_name: '',
@@ -41,67 +46,59 @@ const Staff = () => {
     password: '',
     role: 'staff',
     permissions: [],
-    profile_id: null // Biến lưu id của bảng profile nếu đã có tài khoản
+    staff_id: ''
   });
 
   useEffect(() => {
-    if (currentUser) fetchStaff();
+    if (currentUser) fetchData();
   }, [currentUser]);
 
-  const fetchStaff = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    // Fetch staffs và các tài khoản (profiles) liên kết với nó
-    let query = supabase.from('staffs').select('*, profiles(id, username, role, status)').order('created_at', { ascending: false });
-
+    
+    let staffsQuery = supabase.from('staffs').select('*').order('created_at', { ascending: false });
+    let profilesQuery = supabase.from('profiles').select('*, staffs(full_name, position)').order('created_at', { ascending: false });
+    
     if (currentUser?.role !== 'super_admin') {
       if (!shopId) { setLoading(false); return; }
-      query = query.eq('shop_id', shopId);
+      staffsQuery = staffsQuery.eq('shop_id', shopId);
+      profilesQuery = profilesQuery.eq('shop_id', shopId);
     }
 
-    const { data: staffsData, error } = await query;
+    const [staffsRes, profilesRes] = await Promise.all([staffsQuery, profilesQuery]);
     
-    if (!error && staffsData) {
-      // Vì bảng profiles có thể có nhiều, nhưng chuẩn 1-1 thì lấy phần tử đầu tiên
-      const profileIds = staffsData.flatMap(s => s.profiles?.map((p: any) => p.id)).filter(Boolean);
-      
-      let permissionsMap: any = {};
+    if (staffsRes.data) {
+      setStaff(staffsRes.data);
+    } else {
+      setStaff([]);
+    }
+    
+    if (profilesRes.data) {
+      const profileIds = profilesRes.data.map(p => p.id);
+      let permsMap: any = {};
       if (profileIds.length > 0) {
         const { data: perms } = await supabase.from('user_permissions').select('*').in('user_id', profileIds);
         if (perms) {
           perms.forEach(p => {
-            if (!permissionsMap[p.user_id]) permissionsMap[p.user_id] = [];
-            permissionsMap[p.user_id].push(p.permission);
+            if (!permsMap[p.user_id]) permsMap[p.user_id] = [];
+            permsMap[p.user_id].push(p.permission);
           });
         }
       }
-
-      const mappedStaff = staffsData.map(s => {
-        const linkedProfile = s.profiles && s.profiles.length > 0 ? s.profiles[0] : null;
-        if (linkedProfile) {
-           linkedProfile.user_permissions = permissionsMap[linkedProfile.id] || [];
-        }
-        return {
-          ...s,
-          profile: linkedProfile
-        };
-      });
-      setStaff(mappedStaff);
+      
+      const mappedProfiles = profilesRes.data.map(p => ({
+        ...p,
+        user_permissions: permsMap[p.id] || []
+      }));
+      setAccounts(mappedProfiles);
     } else {
-      setStaff([]);
+      setAccounts([]);
     }
+    
     setLoading(false);
   };
 
-  const handleTogglePermission = (permId: string) => {
-    setAccountFormData((prev: any) => {
-      const current = prev.permissions || [];
-      const next = current.includes(permId)
-        ? current.filter((p: string) => p !== permId)
-        : [...current, permId];
-      return { ...prev, permissions: next };
-    });
-  };
-
+  // --- STAFF ACTIONS ---
   const handleSaveStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopId) return alert('Lỗi: Không tìm thấy ID cửa hàng.');
@@ -119,7 +116,7 @@ const Staff = () => {
     }
 
     if (!error) {
-      fetchStaff();
+      fetchData();
       closeStaffModal();
     } else {
       alert('Lỗi khi lưu nhân viên: ' + error.message);
@@ -127,146 +124,165 @@ const Staff = () => {
     setSaving(false);
   };
 
+  const handleToggleStaffStatus = async (s: any) => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
+    const isInactive = s.status === 'inactive';
+    const action = isInactive ? 'Khôi phục' : 'Cho nghỉ';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} nhân sự này?`)) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from('staffs').update({ status: isInactive ? 'active' : 'inactive' }).eq('id', s.id);
+    if (!error) fetchData();
+    else alert(`Lỗi: ` + error.message);
+    setLoading(false);
+  };
+
+  const handleHardDeleteStaff = async (id: string) => {
+    if (currentUser?.role !== 'super_admin') return;
+    if (!window.confirm('XÓA VĨNH VIỄN nhân sự này? (SUPER ADMIN)')) return;
+    setLoading(true);
+    const { error } = await supabase.from('staffs').delete().eq('id', id);
+    if (!error) fetchData();
+    else alert('Lỗi: ' + error.message);
+    setLoading(false);
+  };
+
+  // --- ACCOUNT ACTIONS ---
+  const handleTogglePermission = (permId: string) => {
+    setAccountFormData((prev: any) => {
+      const current = prev.permissions || [];
+      const next = current.includes(permId) ? current.filter((p: string) => p !== permId) : [...current, permId];
+      return { ...prev, permissions: next };
+    });
+  };
+
   const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shopId || !editingStaffId) return;
+    if (!shopId) return;
     setSaving(true);
 
-    const { username, password, role, permissions, profile_id } = accountFormData;
-    
-    let targetProfileId = profile_id;
+    const { username, password, role, permissions, staff_id } = accountFormData;
+    let targetProfileId = editingAccountId;
 
-    // 1. Tạo/Cập nhật profile
+    const staffName = staff.find(s => s.id === staff_id)?.full_name || username;
+    const payload: any = { 
+       username, 
+       role,
+       staff_id: staff_id || null,
+       full_name: staffName
+    };
+    if (password) payload.password_hash = password;
+
     if (targetProfileId) {
-       // Đã có account, chỉ update
-       const payload: any = { username, role };
-       if (password) payload.password_hash = password; // Tùy logic auth của bạn
-       
        const { error } = await supabase.from('profiles').update(payload).eq('id', targetProfileId);
        if (error) { alert('Lỗi sửa tài khoản: ' + error.message); setSaving(false); return; }
     } else {
-       // Chưa có account, tạo mới
-       // Lưu ý: Nếu hệ thống thật thì phải gọi Supabase Auth signUp, ở đây ta insert profile mô phỏng
-       const { data, error } = await supabase.from('profiles').insert([{
-          shop_id: shopId,
-          staff_id: editingStaffId,
-          username: username,
-          role: role,
-          status: 'active',
-          full_name: staff.find(s => s.id === editingStaffId)?.full_name || 'User'
-       }]).select().single();
+       payload.shop_id = shopId;
+       payload.status = 'active';
+       const { data, error } = await supabase.from('profiles').insert([payload]).select().single();
        if (error) { alert('Lỗi tạo tài khoản: ' + error.message); setSaving(false); return; }
        targetProfileId = data.id;
     }
 
-    // 2. Cập nhật phân quyền
     await supabase.from('user_permissions').delete().eq('user_id', targetProfileId);
     if (permissions && permissions.length > 0) {
       const permInserts = permissions.map((p: string) => ({ user_id: targetProfileId, permission: p }));
       await supabase.from('user_permissions').insert(permInserts);
     }
 
-    fetchStaff();
+    fetchData();
     closeAccountModal();
     setSaving(false);
   };
 
-  const openStaffEdit = (s: any) => {
-    setEditingStaffId(s.id);
-    setStaffFormData({
-      full_name: s.full_name,
-      phone: s.phone || '',
-      position: s.position || 'technician',
-      status: s.status
-    });
+  const handleToggleAccountStatus = async (a: any) => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
+    const isInactive = a.status === 'inactive';
+    const action = isInactive ? 'Mở khóa' : 'Khóa';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} tài khoản này?`)) return;
+    
+    setLoading(true);
+    const { error } = await supabase.from('profiles').update({ status: isInactive ? 'active' : 'inactive' }).eq('id', a.id);
+    if (!error) fetchData();
+    else alert(`Lỗi: ` + error.message);
+    setLoading(false);
+  };
+
+  // --- MODAL CONTROLS ---
+  const openStaffEdit = (s?: any) => {
+    if (s) {
+      setEditingStaffId(s.id);
+      setStaffFormData({ full_name: s.full_name, phone: s.phone || '', position: s.position || 'technician', status: s.status });
+    } else {
+      setEditingStaffId(null);
+      setStaffFormData({ full_name: '', phone: '', position: 'technician', status: 'active' });
+    }
     setIsStaffModalOpen(true);
   };
 
-  const openAccountEdit = (s: any) => {
-    setEditingStaffId(s.id);
-    if (s.profile) {
+  const openAccountEdit = (a?: any) => {
+    if (a) {
+      setEditingAccountId(a.id);
       setAccountFormData({
-        username: s.profile.username || '',
+        username: a.username || '',
         password: '',
-        role: s.profile.role || 'staff',
-        permissions: s.profile.user_permissions || [],
-        profile_id: s.profile.id
+        role: a.role || 'staff',
+        permissions: a.user_permissions || [],
+        staff_id: a.staff_id || ''
       });
     } else {
-      setAccountFormData({
-        username: '',
-        password: '',
-        role: 'staff',
-        permissions: [],
-        profile_id: null
-      });
+      setEditingAccountId(null);
+      setAccountFormData({ username: '', password: '', role: 'staff', permissions: [], staff_id: '' });
     }
     setIsAccountModalOpen(true);
   };
 
-  const closeStaffModal = () => {
-    setIsStaffModalOpen(false);
-    setEditingStaffId(null);
-    setStaffFormData({ full_name: '', phone: '', position: 'technician', status: 'active' });
-  };
+  const closeStaffModal = () => { setIsStaffModalOpen(false); setEditingStaffId(null); };
+  const closeAccountModal = () => { setIsAccountModalOpen(false); setEditingAccountId(null); };
 
-  const closeAccountModal = () => {
-    setIsAccountModalOpen(false);
-    setEditingStaffId(null);
-    setAccountFormData({ username: '', password: '', role: 'staff', permissions: [], profile_id: null });
-  };
-
-  const handleToggleStatus = async (s: any) => {
-    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
-    const isInactive = s.status === 'inactive';
-    const action = isInactive ? 'Kích hoạt lại' : 'Ngưng hoạt động';
-    if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} nhân sự này?`)) return;
-    
-    setLoading(true);
-    const { error } = await supabase.from('staffs').update({ 
-      status: isInactive ? 'active' : 'inactive'
-    }).eq('id', s.id);
-    if (!error) {
-      fetchStaff();
-    } else {
-      alert(`Lỗi khi ${action}: ` + error.message);
-      setLoading(false);
-    }
-  };
-
-  const handleHardDelete = async (id: string) => {
-    if (currentUser?.role !== 'super_admin') return;
-    if (!window.confirm('XÓA VĨNH VIỄN nhân sự này khỏi database? Hành động này DÀNH CHO SUPER ADMIN để xóa data test/bug và KHÔNG THỂ HOÀN TÁC.')) return;
-    setLoading(true);
-    const { error } = await supabase.from('staffs').delete().eq('id', id);
-    if (!error) {
-      fetchStaff();
-    } else {
-      alert('Lỗi khi xóa cứng: ' + error.message);
-      setLoading(false);
-    }
-  };
-
-  const filteredStaff = staff.filter(s => 
-    (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.profile?.username || '').toLowerCase().includes(searchTerm.toLowerCase())
+  // --- FILTERING ---
+  const filteredStaff = staff.filter(s => (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
+  
+  // Tab account: Chỉ hiện profile.status != inactive (tránh rác)
+  const filteredAccounts = accounts.filter(a => 
+    a.status !== 'inactive' &&
+    ((a.username || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+     (a.staffs?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Lọc staff chưa có account (cho dropdown)
+  const availableStaffsForAccount = staff.filter(s => {
+    if (s.status === 'inactive') return false;
+    const isAssigned = accounts.some(a => a.staff_id === s.id && a.id !== editingAccountId);
+    return !isAssigned;
+  });
 
   return (
     <div className="animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Nhân sự & Tài khoản</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Quản lý hồ sơ vận hành và cấp quyền hệ thống</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Quản lý nhân viên (hoa hồng) và tài khoản (đăng nhập)</p>
         </div>
-        <button 
-          onClick={() => setIsStaffModalOpen(true)} 
-          className="btn btn-primary"
-          disabled={isRestricted()}
-          title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ' : ''}
-        >
-          <UserPlus size={18} />
-          Thêm nhân sự mới
+        
+        {activeTab === 'staffs' && (
+          <button onClick={() => openStaffEdit()} className="btn btn-primary" disabled={isRestricted()}>
+            <UserPlus size={18} /> Thêm nhân sự Spa
+          </button>
+        )}
+        {activeTab === 'accounts' && (
+          <button onClick={() => openAccountEdit()} className="btn btn-primary" disabled={isRestricted()}>
+            <ShieldCheck size={18} /> Tạo tài khoản mới
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+        <button onClick={() => setActiveTab('staffs')} className="btn" style={{ background: activeTab === 'staffs' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'staffs' ? 'white' : 'inherit' }}>
+          <Users size={18} /> Nhân sự Spa (KTV, Lễ tân)
+        </button>
+        <button onClick={() => setActiveTab('accounts')} className="btn" style={{ background: activeTab === 'accounts' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'accounts' ? 'white' : 'inherit' }}>
+          <KeyRound size={18} /> Tài khoản Đăng nhập
         </button>
       </div>
 
@@ -276,7 +292,7 @@ const Staff = () => {
           <input 
             type="text" 
             className="form-input" 
-            placeholder="Tìm theo tên nhân viên..." 
+            placeholder="Tìm kiếm..." 
             style={{ paddingLeft: '2.75rem' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -285,54 +301,117 @@ const Staff = () => {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
+        <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" size={32} /></div>
+      ) : activeTab === 'staffs' ? (
+        <div className="premium-card">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                <th style={{ padding: '1rem' }}>Họ và tên</th>
+                <th>SĐT</th>
+                <th>Vị trí</th>
+                <th>Trạng thái</th>
+                <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStaff.map((s) => (
+                <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', opacity: s.status === 'inactive' ? 0.6 : 1 }}>
+                  <td style={{ padding: '1rem', fontWeight: '600' }}>{s.full_name}</td>
+                  <td>{s.phone || '---'}</td>
+                  <td>
+                    <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
+                      <Briefcase size={12} style={{ display: 'inline', marginRight: '4px' }}/>
+                      {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : 'Cộng tác viên'}
+                    </span>
+                  </td>
+                  <td>
+                    {s.status === 'inactive' ? (
+                      <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Nghỉ làm</span>
+                    ) : (
+                      <span className="badge badge-success">Đang làm</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'right', paddingRight: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button onClick={() => openStaffEdit(s)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                      <button onClick={() => handleToggleStaffStatus(s)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                        {s.status === 'inactive' ? 'Khôi phục' : 'Cho nghỉ'}
+                      </button>
+                      {currentUser?.role === 'super_admin' && (
+                        <button onClick={() => handleHardDeleteStaff(s.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredStaff.length === 0 && (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có nhân sự nào</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       ) : (
-        <div className="grid grid-cols-3">
-          {filteredStaff.map((s) => (
-            <div key={s.id} className="premium-card" style={{ borderTop: s.profile?.role === 'shop_admin' ? '4px solid var(--secondary)' : '1px solid var(--border)', opacity: s.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: s.status === 'inactive' ? 'var(--text-light)' : 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
-                  {(s.full_name || '?').charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ marginBottom: '0.25rem', textDecoration: s.status === 'inactive' ? 'line-through' : 'none' }}>{s.full_name}</h4>
-                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', flexWrap: 'wrap' }}>
-                    <span className="badge badge-success" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}><Briefcase size={12} style={{ display: 'inline', marginRight: '4px' }}/>{s.position}</span>
-                    {s.status === 'inactive' && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>NGƯNG HOẠT ĐỘNG</span>}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                   <KeyRound size={14} color={s.profile ? 'var(--success)' : 'var(--text-light)'} /> 
-                   <strong style={{ color: s.profile ? 'var(--text-main)' : 'inherit' }}>Tài khoản:</strong> 
-                   {s.profile ? s.profile.username || 'Đã cấp' : 'Chưa có tài khoản'}
-                </div>
-                {s.profile && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ShieldCheck size={14} color="var(--primary)" />
-                    <strong>Quyền hạn:</strong> {s.profile.role === 'shop_admin' ? 'Toàn quyền (Admin)' : `${s.profile.user_permissions?.length || 0} quyền`}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                <button onClick={() => openStaffEdit(s)} className="btn btn-secondary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem', background: 'transparent' }}>
-                  Sửa Hồ sơ
-                </button>
-                <button onClick={() => openAccountEdit(s)} className="btn btn-primary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem' }}>
-                  {s.profile ? 'Sửa Quyền' : 'Cấp Account'}
-                </button>
-                <button onClick={() => handleToggleStatus(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
-                  {s.status === 'inactive' ? 'Mở lại' : 'Ngưng HĐ'}
-                </button>
-                {currentUser?.role === 'super_admin' && (
-                  <button onClick={() => handleHardDelete(s.id)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={16} /></button>
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="premium-card">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                <th style={{ padding: '1rem' }}>Tên đăng nhập (Username)</th>
+                <th>Nhân sự liên kết</th>
+                <th>Vai trò</th>
+                <th>Phân quyền</th>
+                <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAccounts.map((a) => (
+                <tr key={a.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : '3px solid transparent' }}>
+                  <td style={{ padding: '1rem', fontWeight: '700', color: 'var(--primary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <KeyRound size={16} />
+                      {a.username}
+                    </div>
+                  </td>
+                  <td>
+                    {a.staffs ? (
+                      <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal', fontSize: '0.75rem' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : 'Quản lý'})</span></span>
+                    ) : (
+                      <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
+                    )}
+                  </td>
+                  <td>
+                    {a.role === 'shop_admin' ? (
+                      <span className="badge" style={{ background: 'var(--secondary)', color: 'white' }}>Chủ cửa hàng</span>
+                    ) : a.role === 'manager' ? (
+                      <span className="badge" style={{ background: 'var(--primary-light)', color: 'white' }}>Quản lý</span>
+                    ) : (
+                      <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>Nhân viên</span>
+                    )}
+                  </td>
+                  <td>
+                    {a.role === 'shop_admin' ? (
+                      <span style={{ color: 'var(--success)' }}>Toàn quyền</span>
+                    ) : (
+                      <span>{a.user_permissions?.length || 0} quyền chi tiết</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'right', paddingRight: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button onClick={() => openAccountEdit(a)} className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}>Sửa Quyền</button>
+                      {a.role !== 'shop_admin' && (
+                        <button onClick={() => handleToggleAccountStatus(a)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
+                          <Lock size={14} style={{ marginRight: '4px' }} /> Khóa
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredAccounts.length === 0 && (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có tài khoản nào</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -380,7 +459,7 @@ const Staff = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0 }}>Cấp tài khoản hệ thống</h3>
+              <h3 style={{ margin: 0 }}>Cấu hình Tài khoản Đăng nhập</h3>
               <button type="button" onClick={closeAccountModal} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
             </div>
             
@@ -388,18 +467,32 @@ const Staff = () => {
               <div className="grid grid-cols-2" style={{ gap: '1rem', marginBottom: '2rem' }}>
                 <div>
                   <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Tên đăng nhập (Username)</label>
-                  <input type="text" className="form-input" required value={accountFormData.username} onChange={(e) => setAccountFormData({...accountFormData, username: e.target.value})} placeholder="VD: ngoc.letan" />
+                  <input type="text" className="form-input" required value={accountFormData.username} onChange={(e) => setAccountFormData({...accountFormData, username: e.target.value})} placeholder="VD: ngoc.letan" disabled={!!editingAccountId} style={{ background: editingAccountId ? 'var(--bg-main)' : 'white' }} />
                 </div>
                 <div>
                   <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Mật khẩu (Để trống nếu giữ nguyên)</label>
                   <input type="password" className="form-input" value={accountFormData.password} onChange={(e) => setAccountFormData({...accountFormData, password: e.target.value})} placeholder="******" />
                 </div>
+                
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem', color: 'var(--primary)' }}>Liên kết với Nhân sự Spa (1 staff ↔ 1 account)</label>
+                  <select className="form-select" required value={accountFormData.staff_id} onChange={(e) => setAccountFormData({...accountFormData, staff_id: e.target.value})}>
+                    <option value="">-- Bắt buộc chọn nhân sự --</option>
+                    {availableStaffsForAccount.map(s => (
+                      <option key={s.id} value={s.id}>{s.full_name} ({s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : 'CTV'})</option>
+                    ))}
+                    {editingAccountId && accountFormData.staff_id && !availableStaffsForAccount.some(s => s.id === accountFormData.staff_id) && (
+                       // Hiển thị lại staff hiện tại đang được gán nếu có
+                       <option value={accountFormData.staff_id}>{staff.find(s => s.id === accountFormData.staff_id)?.full_name} (Đang liên kết)</option>
+                    )}
+                  </select>
+                </div>
+
                 <div style={{ gridColumn: 'span 2' }}>
                   <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Vai trò mặc định</label>
                   <select className="form-select" value={accountFormData.role} onChange={(e) => setAccountFormData({...accountFormData, role: e.target.value as any})}>
                     <option value="staff">Nhân viên thông thường</option>
                     <option value="manager">Quản lý cấp trung</option>
-                    <option value="shop_admin">Admin Cửa hàng (Toàn quyền)</option>
                   </select>
                 </div>
               </div>
@@ -434,7 +527,7 @@ const Staff = () => {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2.5rem' }}>
                 <button type="button" onClick={closeAccountModal} className="btn" style={{ background: 'var(--border)' }}>Hủy</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
+                <button type="submit" className="btn btn-primary" disabled={saving || !accountFormData.staff_id}>
                   {saving ? <Loader2 className="animate-spin" /> : 'Lưu Tài Khoản'}
                 </button>
               </div>
