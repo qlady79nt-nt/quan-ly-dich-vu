@@ -13,6 +13,7 @@ const Services = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -45,7 +46,7 @@ const Services = () => {
     setLoading(false);
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!shopId) {
@@ -55,17 +56,34 @@ const Services = () => {
 
     setSaving(true);
     
-    const { error } = await supabase
-      .from('services')
-      .insert([{ ...formData, shop_id: shopId }]);
+    if (editingId) {
+      const { error } = await supabase
+        .from('services')
+        .update(formData)
+        .eq('id', editingId);
 
-    if (!error) {
-      fetchServices();
-      setIsModalOpen(false);
-      setFormData({ name: '', price: 0, duration_minutes: 60, commission_type: 'percent', commission_value: 0, status: 'active' });
+      if (!error) {
+        fetchServices();
+        setIsModalOpen(false);
+        setEditingId(null);
+        setFormData({ name: '', price: 0, duration_minutes: 60, commission_type: 'percent', commission_value: 0, status: 'active' });
+      } else {
+        console.error('Service update error:', error);
+        alert('Lỗi khi cập nhật dịch vụ: ' + error.message);
+      }
     } else {
-      console.error('Service creation error:', error);
-      alert('Lỗi khi tạo dịch vụ: ' + error.message);
+      const { error } = await supabase
+        .from('services')
+        .insert([{ ...formData, shop_id: shopId }]);
+
+      if (!error) {
+        fetchServices();
+        setIsModalOpen(false);
+        setFormData({ name: '', price: 0, duration_minutes: 60, commission_type: 'percent', commission_value: 0, status: 'active' });
+      } else {
+        console.error('Service creation error:', error);
+        alert('Lỗi khi tạo dịch vụ: ' + error.message);
+      }
     }
     setSaving(false);
   };
@@ -99,8 +117,17 @@ const Services = () => {
     }
   };
 
-  const handleEdit = () => {
-    alert('Tính năng chỉnh sửa đang được phát triển. Vui lòng xoá và tạo lại nếu cần thiết lập sai.');
+  const handleEdit = (s: any) => {
+    setEditingId(s.id);
+    setFormData({
+      name: s.name,
+      price: s.price,
+      duration_minutes: s.duration_minutes,
+      commission_type: s.commission_type || 'percent',
+      commission_value: s.commission_value || 0,
+      status: s.status
+    });
+    setIsModalOpen(true);
   };
 
   const filteredServices = services.filter(s => 
@@ -115,7 +142,11 @@ const Services = () => {
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Thiết lập bảng giá và hoa hồng cho kỹ thuật viên</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)} 
+          onClick={() => {
+            setEditingId(null);
+            setFormData({ name: '', price: 0, duration_minutes: 60, commission_type: 'percent', commission_value: 0, status: 'active' });
+            setIsModalOpen(true);
+          }} 
           className="btn btn-primary"
           disabled={isRestricted()}
           title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
@@ -166,7 +197,7 @@ const Services = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={handleEdit} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={16} /></button>
+                <button onClick={() => handleEdit(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={16} /></button>
                 <button onClick={() => handleToggleStatus(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
                   {s.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
                 </button>
@@ -183,8 +214,8 @@ const Services = () => {
       {isModalOpen && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '600px' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>Thiết lập dịch vụ mới</h3>
-            <form onSubmit={handleCreate}>
+            <h3 style={{ marginBottom: '1.5rem' }}>{editingId ? 'Cập nhật dịch vụ' : 'Thiết lập dịch vụ mới'}</h3>
+            <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-2" style={{ gap: '1.25rem' }}>
                 <div style={{ gridColumn: 'span 2' }}>
                   <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Tên dịch vụ</label>
@@ -219,9 +250,9 @@ const Services = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ background: 'var(--border)' }}>Hủy</button>
+                <button type="button" onClick={() => { setIsModalOpen(false); setEditingId(null); }} className="btn" style={{ background: 'var(--border)' }}>Hủy</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? <Loader2 className="animate-spin" /> : 'Lưu dịch vụ'}
+                  {saving ? <Loader2 className="animate-spin" /> : (editingId ? 'Cập nhật' : 'Lưu dịch vụ')}
                 </button>
               </div>
             </form>
