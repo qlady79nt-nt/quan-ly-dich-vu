@@ -28,15 +28,29 @@ const Login = () => {
         email = username;
       }
 
-      const { error: loginErr } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: loginErr } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (loginErr) throw loginErr;
+
+      if (authData.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profile?.status === 'inactive') {
+          await supabase.auth.signOut();
+          throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản lý.');
+        }
+      }
+
       navigate('/app/dashboard');
     } catch (err: any) {
-      setError('Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại Shop Code hoặc Username.');
+      setError(err.message || 'Thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại Shop Code hoặc Username.');
       console.error(err);
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, UserPlus, Trash2, Loader2, ShieldCheck, X, Briefcase, KeyRound, Lock, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '../lib/auth';
 
 const AVAILABLE_PERMISSIONS = [
@@ -222,22 +223,60 @@ const Staff = () => {
 
     const staffName = staff.find(s => s.id === staff_id)?.full_name || username;
     const payload: any = { 
-       username, 
        role,
        staff_id: staff_id || null,
        full_name: staffName
     };
-    if (password) payload.password_hash = password;
 
     if (targetProfileId) {
+       if (password) {
+           alert('Tính năng đổi mật khẩu cho tài khoản đã tồn tại chưa được hỗ trợ từ giao diện này. Hãy liên hệ Super Admin.');
+       }
        const { error } = await supabase.from('profiles').update(payload).eq('id', targetProfileId);
        if (error) { alert('Lỗi sửa tài khoản: ' + error.message); setSaving(false); return; }
     } else {
+       const shopCode = currentUser?.shop?.shop_code;
+       if (!shopCode) {
+           alert('Không tìm thấy mã cửa hàng, không thể tạo email cho hệ thống.');
+           setSaving(false); return;
+       }
+
+       if (!password) {
+           alert('Vui lòng nhập mật khẩu cho tài khoản mới.');
+           setSaving(false); return;
+       }
+
+       const fakeEmail = `${username.toLowerCase()}@${shopCode.toLowerCase()}.spa.local`;
+
+       const secondaryClient = createClient(
+           import.meta.env.VITE_SUPABASE_URL,
+           import.meta.env.VITE_SUPABASE_ANON_KEY,
+           { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+       );
+
+       const { data: authData, error: authErr } = await secondaryClient.auth.signUp({
+           email: fakeEmail,
+           password: password
+       });
+
+       if (authErr) {
+           alert('Lỗi tạo tài khoản hệ thống (Auth): ' + authErr.message);
+           setSaving(false); return;
+       }
+       
+       if (!authData.user) {
+           alert('Không thể tạo tài khoản xác thực.');
+           setSaving(false); return;
+       }
+
+       payload.username = username;
+       payload.id = authData.user.id;
        payload.shop_id = shopId;
        payload.status = 'active';
-       const { data, error } = await supabase.from('profiles').insert([payload]).select().single();
-       if (error) { alert('Lỗi tạo tài khoản: ' + error.message); setSaving(false); return; }
-       targetProfileId = data.id;
+       
+       const { error } = await supabase.from('profiles').insert([payload]);
+       if (error) { alert('Lỗi tạo profile: ' + error.message); setSaving(false); return; }
+       targetProfileId = payload.id;
     }
 
     await supabase.from('user_permissions').delete().eq('user_id', targetProfileId);
