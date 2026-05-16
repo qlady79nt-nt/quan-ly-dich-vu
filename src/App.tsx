@@ -48,7 +48,7 @@ const MainLayout = () => {
     ];
   } else {
     menuItems = [
-      { path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+      ...(profile?.role === 'shop_admin' ? [{ path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard }] : []),
       { path: '/app/pos', label: 'Bán hàng (POS)', icon: ShoppingCart },
       { path: '/app/beds', label: 'Quản lý Chỗ', icon: LayoutGrid },
       ...(profile?.role === 'shop_admin' ? [{ path: '/app/staff', label: 'Nhân viên', icon: Users }] : []),
@@ -162,6 +162,14 @@ const MainLayout = () => {
   );
 };
 
+const IndexRedirect = () => {
+  const { profile } = useAuth();
+  if (profile?.role === 'shop_admin' || profile?.role === 'super_admin') {
+    return <Navigate to="/app/dashboard" replace />;
+  }
+  return <Navigate to="/app/pos" replace />;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -171,8 +179,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/app" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/app/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route index element={<IndexRedirect />} />
+            <Route path="dashboard" element={<ProtectedRoute allowedRoles={['super_admin', 'shop_admin']}><Dashboard /></ProtectedRoute>} />
             <Route path="staff" element={<Staff />} />
             <Route path="services" element={<Services />} />
             <Route path="beds" element={<Beds />} />
