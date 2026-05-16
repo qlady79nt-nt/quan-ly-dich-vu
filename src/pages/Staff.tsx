@@ -299,10 +299,13 @@ const Staff = () => {
        targetProfileId = payload.id;
     }
 
-    await supabase.from('user_permissions').delete().eq('user_id', targetProfileId);
-    if (permissions && permissions.length > 0) {
+    const { error: delErr } = await supabase.from('user_permissions').delete().eq('user_id', targetProfileId);
+    if (delErr) {
+      alert('Lỗi xóa quyền cũ (Có thể do lỗi phân quyền RLS Database): ' + delErr.message);
+    } else if (permissions && permissions.length > 0) {
       const permInserts = permissions.map((p: string) => ({ user_id: targetProfileId, permission: p }));
-      await supabase.from('user_permissions').insert(permInserts);
+      const { error: insErr } = await supabase.from('user_permissions').insert(permInserts);
+      if (insErr) alert('Lỗi lưu quyền mới: ' + insErr.message);
     }
 
     fetchData();

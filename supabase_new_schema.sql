@@ -211,7 +211,18 @@ CREATE POLICY data_isolation_invoices ON invoices FOR ALL USING (shop_id = auth_
 CREATE POLICY data_isolation_commissions ON commissions FOR ALL USING (shop_id = auth_user_shop_id() OR is_super_admin());
 CREATE POLICY data_isolation_materials ON materials FOR ALL USING (shop_id = auth_user_shop_id() OR is_super_admin());
 CREATE POLICY data_isolation_notifications ON notifications FOR ALL USING (shop_id = auth_user_shop_id() OR is_super_admin());
-CREATE POLICY user_permissions_isolation ON user_permissions FOR ALL USING (user_id = auth.uid() OR is_super_admin());
+CREATE POLICY user_permissions_isolation ON user_permissions FOR ALL USING (
+  user_id = auth.uid() OR 
+  is_super_admin() OR 
+  (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'shop_admin' 
+    AND EXISTS (
+      SELECT 1 FROM profiles p 
+      WHERE p.id = user_permissions.user_id 
+      AND p.shop_id = auth_user_shop_id()
+    )
+  )
+);
 
 -- 5. DỮ LIỆU MẪU (PLANS)
 INSERT INTO plans (name, price, max_users) VALUES 
