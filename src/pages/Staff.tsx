@@ -152,6 +152,11 @@ const Staff = () => {
     if (editingStaffId) {
       const { error: err } = await supabase.from('staffs').update(payload).eq('id', editingStaffId);
       error = err;
+      
+      // Đồng bộ tên sang bảng profiles nếu có account liên kết
+      if (!error && payload.full_name) {
+         await supabase.from('profiles').update({ full_name: payload.full_name }).eq('staff_id', editingStaffId);
+      }
     } else {
       const { error: err } = await supabase.from('staffs').insert([payload]);
       error = err;
