@@ -27,7 +27,13 @@ const Invoices = () => {
     setLoading(true);
     try {
       // 1. Fetch Invoices (Bán hàng) - Manual Join
-      const { data: invData, error: invErr } = await supabase.from('invoices').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
+      let invQuery = supabase.from('invoices').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
+      if (profile?.role !== 'shop_admin' && profile?.role !== 'super_admin') {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        invQuery = invQuery.gte('created_at', todayStart.toISOString());
+      }
+      const { data: invData, error: invErr } = await invQuery;
       if (invErr) console.error(invErr);
 
       let finalInvoices = invData || [];
@@ -44,7 +50,13 @@ const Invoices = () => {
       setInvoices(finalInvoices);
 
       // 2. Fetch Sessions (Trừ buổi) - Manual Join
-      const { data: sessData, error: sessErr } = await supabase.from('service_sessions').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
+      let sessQuery = supabase.from('service_sessions').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
+      if (profile?.role !== 'shop_admin' && profile?.role !== 'super_admin') {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        sessQuery = sessQuery.gte('created_at', todayStart.toISOString());
+      }
+      const { data: sessData, error: sessErr } = await sessQuery;
       if (sessErr) console.error(sessErr);
 
       let finalSessions = sessData || [];
@@ -440,9 +452,7 @@ const Invoices = () => {
     setIsDeleting(false);
   };
 
-  if (!hasPermission('report.invoice.view')) {
-    return <div style={{ textAlign: 'center', padding: '5rem' }}>Bạn không có quyền xem danh sách hoá đơn</div>;
-  }
+  // Removed permission check to allow non-admins to see today's invoices
 
   return (
     <div className="animate-fade">

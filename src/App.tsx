@@ -51,12 +51,12 @@ const MainLayout = () => {
       { path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
       { path: '/app/pos', label: 'Bán hàng (POS)', icon: ShoppingCart },
       { path: '/app/beds', label: 'Quản lý Chỗ', icon: LayoutGrid },
-      { path: '/app/staff', label: 'Nhân viên', icon: Users },
+      ...(profile?.role === 'shop_admin' ? [{ path: '/app/staff', label: 'Nhân viên', icon: Users }] : []),
       { path: '/app/services', label: 'Dịch vụ', icon: Scissors },
-      { path: '/app/customers', label: 'Khách hàng', icon: UserCircle },
-      { path: '/app/packages', label: 'Liệu trình', icon: Package },
+      ...(profile?.role === 'shop_admin' ? [{ path: '/app/customers', label: 'Khách hàng', icon: UserCircle }] : []),
+      ...(profile?.role === 'shop_admin' ? [{ path: '/app/packages', label: 'Liệu trình', icon: Package }] : []),
       { path: '/app/invoices', label: 'Hoá đơn', icon: FileText },
-      { path: '/app/reports', label: 'Báo cáo', icon: BarChart3 },
+      ...(profile?.role === 'shop_admin' ? [{ path: '/app/reports', label: 'Báo cáo', icon: BarChart3 }] : []),
     ];
   }
 

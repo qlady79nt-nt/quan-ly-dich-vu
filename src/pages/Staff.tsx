@@ -246,6 +246,22 @@ const Staff = () => {
            setSaving(false); return;
        }
 
+       // Kiểm tra xem username đã tồn tại trong bảng profiles chưa
+       const { data: existingProfile } = await supabase
+         .from('profiles')
+         .select('id, status')
+         .eq('shop_id', shopId)
+         .eq('username', username)
+         .maybeSingle();
+
+       if (existingProfile) {
+           const msg = existingProfile.status === 'inactive' 
+             ? 'Tên đăng nhập này đã tồn tại (tài khoản đang bị khóa). Vui lòng chọn tên khác hoặc mở khóa tài khoản cũ.'
+             : 'Tên đăng nhập này đã tồn tại. Vui lòng chọn tên khác.';
+           alert(msg);
+           setSaving(false); return;
+       }
+
        const fakeEmail = `${username.toLowerCase()}@${shopCode.toLowerCase()}.spa.local`;
 
        const secondaryClient = createClient(
@@ -260,7 +276,11 @@ const Staff = () => {
        });
 
        if (authErr) {
-           alert('Lỗi tạo tài khoản hệ thống (Auth): ' + authErr.message);
+           if (authErr.message.toLowerCase().includes('already registered')) {
+               alert('Tên đăng nhập này đã từng được sử dụng (có thể đã xóa hồ sơ nhưng vẫn kẹt trong hệ thống). Vui lòng chọn tên đăng nhập khác!');
+           } else {
+               alert('Lỗi tạo tài khoản hệ thống (Auth): ' + authErr.message);
+           }
            setSaving(false); return;
        }
        

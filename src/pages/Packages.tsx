@@ -214,7 +214,7 @@ const Packages = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Liệu trình (Gói)</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Quản lý cấu hình gói và danh sách khách hàng đã mua</p>
         </div>
-        {activeTab === 'config' && (
+        {activeTab === 'config' && profile?.role === 'shop_admin' && (
           <button 
             onClick={() => {
               setEditingId(null);
@@ -275,10 +275,14 @@ const Packages = () => {
                   <div>HH Bán: <strong>{p.commission_sale_type === 'percent' ? `${p.commission_sale_value}%` : `${p.commission_sale_value}đ`}</strong></div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => handleEdit(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
-                  <button onClick={() => handleToggleStatus(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: p.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
-                    {p.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
-                  </button>
+                  {profile?.role === 'shop_admin' && (
+                    <button onClick={() => handleEdit(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
+                  )}
+                  {profile?.role === 'shop_admin' && (
+                    <button onClick={() => handleToggleStatus(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: p.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                      {p.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
+                    </button>
+                  )}
                   {profile?.role === 'super_admin' && (
                     <button onClick={() => handleHardDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={14} /></button>
                   )}

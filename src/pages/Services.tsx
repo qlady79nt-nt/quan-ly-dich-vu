@@ -141,19 +141,21 @@ const Services = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Dịch vụ</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Thiết lập bảng giá và hoa hồng cho kỹ thuật viên</p>
         </div>
-        <button 
-          onClick={() => {
-            setEditingId(null);
-            setFormData({ name: '', price: 0, duration_minutes: 60, commission_type: 'percent', commission_value: 0, status: 'active' });
-            setIsModalOpen(true);
-          }} 
-          className="btn btn-primary"
-          disabled={isRestricted()}
-          title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
-        >
-          <Plus size={18} />
-          Tạo dịch vụ
-        </button>
+        {profile?.role === 'shop_admin' && (
+          <button 
+            onClick={() => {
+              setEditingId(null);
+              setFormData({ name: '', price: 0, duration_minutes: 60, commission_type: 'percent', commission_value: 0, status: 'active' });
+              setIsModalOpen(true);
+            }} 
+            className="btn btn-primary"
+            disabled={isRestricted()}
+            title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để sử dụng tính năng này' : ''}
+          >
+            <Plus size={18} />
+            Tạo dịch vụ
+          </button>
+        )}
       </div>
 
       <div className="premium-card" style={{ marginBottom: '2rem' }}>
@@ -197,10 +199,14 @@ const Services = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={() => handleEdit(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={16} /></button>
-                <button onClick={() => handleToggleStatus(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
-                  {s.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
-                </button>
+                {profile?.role === 'shop_admin' && (
+                  <button onClick={() => handleEdit(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={16} /></button>
+                )}
+                {profile?.role === 'shop_admin' && (
+                  <button onClick={() => handleToggleStatus(s)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                    {s.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
+                  </button>
+                )}
                 {profile?.role === 'super_admin' && (
                   <button onClick={() => handleHardDelete(s.id)} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={16} /></button>
                 )}
