@@ -80,7 +80,7 @@ const Invoices = () => {
         }
 
         if (staffIds.length > 0) {
-          const { data: staffs } = await supabase.from('profiles').select('id, full_name').in('id', staffIds);
+          const { data: staffs } = await supabase.from('staffs').select('id, full_name').in('id', staffIds);
           staffMap = staffs || [];
         }
 
@@ -129,7 +129,7 @@ const Invoices = () => {
       // Hook directly from invoice_items first
       const firstItemWithStaff = items.find(i => i.staff_id);
       if (firstItemWithStaff && firstItemWithStaff.staff_id) {
-        const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', firstItemWithStaff.staff_id).single();
+        const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', firstItemWithStaff.staff_id).single();
         if (stf) realStaffName = stf.full_name;
       }
 
@@ -142,7 +142,7 @@ const Invoices = () => {
           isPackageSale = true;
 
           if (ps.seller_id) {
-            const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
+            const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', ps.seller_id).single();
             if (stf) realStaffName = stf.full_name;
           }
 
@@ -191,7 +191,7 @@ const Invoices = () => {
           const ps = psArray[0];
           // Nếu invoice_items không có staff_id, lấy bù từ package_sales
           if (!firstItemWithStaff && ps.seller_id) {
-            const { data: stf } = await supabase.from('profiles').select('full_name').eq('id', ps.seller_id).single();
+            const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', ps.seller_id).single();
             if (stf) realStaffName = stf.full_name;
           }
           if (ps.customer_package_id) {
