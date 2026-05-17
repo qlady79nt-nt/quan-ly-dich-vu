@@ -380,9 +380,8 @@ const Staff = () => {
   // --- FILTERING ---
   const filteredStaff = staff.filter(s => (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
   
-  // Tab account: Chỉ hiện profile.status != inactive (tránh rác)
+  // Tab account: Lọc theo từ khóa (hiển thị cả tài khoản đang bị khóa)
   const filteredAccounts = accounts.filter(a => 
-    a.status !== 'inactive' &&
     ((a.username || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
      (a.staffs?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -502,11 +501,12 @@ const Staff = () => {
             </thead>
             <tbody>
               {filteredAccounts.map((a) => (
-                <tr key={a.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : '3px solid transparent' }}>
+                <tr key={a.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : '3px solid transparent', opacity: a.status === 'inactive' ? 0.6 : 1 }}>
                   <td style={{ padding: '1rem', fontWeight: '700', color: 'var(--primary)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <KeyRound size={16} />
-                      {a.username}
+                      <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
+                      {a.status === 'inactive' && <span className="badge" style={{ background: 'var(--danger)', color: 'white', fontSize: '0.65rem', padding: '0.2rem 0.4rem' }}>Đã khóa</span>}
                     </div>
                   </td>
                   <td>
@@ -537,8 +537,8 @@ const Staff = () => {
                       <button onClick={() => openAccountEdit(a)} className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}>Sửa Quyền</button>
                       {a.role !== 'shop_admin' && (
                         <>
-                          <button onClick={() => handleToggleAccountStatus(a)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
-                            <Lock size={14} style={{ marginRight: '4px' }} /> Khóa
+                          <button onClick={() => handleToggleAccountStatus(a)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: a.status === 'inactive' ? 'var(--success)' : 'var(--danger)', border: `1px solid ${a.status === 'inactive' ? 'var(--success)' : 'var(--danger)'}` }}>
+                            <Lock size={14} style={{ marginRight: '4px' }} /> {a.status === 'inactive' ? 'Mở khóa' : 'Khóa'}
                           </button>
                           <button onClick={() => handleHardDeleteAccount(a)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa vĩnh viễn">
                             <Trash2 size={16} />
