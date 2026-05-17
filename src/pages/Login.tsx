@@ -103,6 +103,7 @@ const Login = () => {
                 style={{ paddingLeft: '2.75rem' }}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                autoComplete="off"
               />
             </div>
           </div>
@@ -119,6 +120,7 @@ const Login = () => {
                 style={{ paddingLeft: '2.75rem' }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
               />
             </div>
           </div>

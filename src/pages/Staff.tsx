@@ -590,11 +590,11 @@ const Staff = () => {
               <div className="grid grid-cols-2" style={{ gap: '1rem', marginBottom: '2rem' }}>
                 <div>
                   <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Tên đăng nhập (Username)</label>
-                  <input type="text" className="form-input" required value={accountFormData.username} onChange={(e) => setAccountFormData({...accountFormData, username: e.target.value})} placeholder="VD: ngoc.letan" disabled={!!editingAccountId} style={{ background: editingAccountId ? 'var(--bg-main)' : 'white' }} />
+                  <input type="text" className="form-input" required value={accountFormData.username} onChange={(e) => setAccountFormData({...accountFormData, username: e.target.value})} placeholder="VD: ngoc.letan" disabled={!!editingAccountId} style={{ background: editingAccountId ? 'var(--bg-main)' : 'white' }} autoComplete="off" />
                 </div>
                 <div>
                   <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Mật khẩu (Để trống nếu giữ nguyên)</label>
-                  <input type="password" className="form-input" value={accountFormData.password} onChange={(e) => setAccountFormData({...accountFormData, password: e.target.value})} placeholder="******" />
+                  <input type="password" className="form-input" value={accountFormData.password} onChange={(e) => setAccountFormData({...accountFormData, password: e.target.value})} placeholder="******" autoComplete="new-password" />
                 </div>
                 
                 <div style={{ gridColumn: 'span 2' }}>
