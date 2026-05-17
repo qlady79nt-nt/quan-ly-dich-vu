@@ -146,7 +146,7 @@ export const ProtectedRoute = ({ children, allowedRoles }: { children: ReactNode
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Đang tải...</div>;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) return <Navigate to="/" replace />;
+  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) return <Navigate to="/app/pos" replace />;
 
   return <>{children}</>;
 };
