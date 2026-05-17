@@ -331,6 +331,20 @@ const Staff = () => {
     setLoading(false);
   };
 
+  const handleHardDeleteAccount = async (a: any) => {
+    if (currentUser?.role !== 'super_admin' && currentUser?.role !== 'shop_admin') return alert('Chỉ chủ cửa hàng mới có quyền xóa tài khoản.');
+    if (!window.confirm(`XÓA VĨNH VIỄN tài khoản đăng nhập "${a.username}"?\n\nHành động này sẽ giải phóng tên đăng nhập để bạn có thể tạo lại. Không thể hoàn tác!`)) return;
+    
+    setLoading(true);
+    const { error } = await supabase.rpc('delete_auth_user', { target_user_id: a.id });
+    if (!error) {
+       fetchData();
+    } else {
+       alert('Lỗi xóa tài khoản (hãy chắc chắn bạn đã chạy SQL add_delete_auth_user.sql): ' + error.message);
+    }
+    setLoading(false);
+  };
+
   // --- MODAL CONTROLS ---
   const openStaffEdit = (s?: any) => {
     if (s) {
@@ -522,9 +536,14 @@ const Staff = () => {
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                       <button onClick={() => openAccountEdit(a)} className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}>Sửa Quyền</button>
                       {a.role !== 'shop_admin' && (
-                        <button onClick={() => handleToggleAccountStatus(a)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
-                          <Lock size={14} style={{ marginRight: '4px' }} /> Khóa
-                        </button>
+                        <>
+                          <button onClick={() => handleToggleAccountStatus(a)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
+                            <Lock size={14} style={{ marginRight: '4px' }} /> Khóa
+                          </button>
+                          <button onClick={() => handleHardDeleteAccount(a)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa vĩnh viễn">
+                            <Trash2 size={16} />
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
