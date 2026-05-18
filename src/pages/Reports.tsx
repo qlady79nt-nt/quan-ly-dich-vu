@@ -6,11 +6,13 @@ import {
   FileText,
   Lock,
   Search,
-  Info
+  Info,
+  Briefcase
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { createPortal } from 'react-dom';
+import ReportsStaff from '../components/ReportsStaff';
 
 const Reports = () => {
   const { hasPermission, profile } = useAuth();
@@ -24,8 +26,9 @@ const Reports = () => {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
   const [missingStaffData, setMissingStaffData] = useState<any[]>([]);
-  const [view, setView] = useState<'revenue' | 'commission'>('revenue');
+  const [view, setView] = useState<'revenue' | 'commission' | 'staff'>('revenue');
   const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'package_sale' | 'package_session'>('all');
+  const [revenueDisplayCount, setRevenueDisplayCount] = useState(10);
   const [detailModal, setDetailModal] = useState<any>(null);
   
   const [stats, setStats] = useState({
@@ -59,7 +62,7 @@ const Reports = () => {
       const end = endObj.toISOString();
 
       if (canViewRevenue) {
-        const { data, error } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('recorded_at', start).lte('recorded_at', end).neq('status', 'cancelled');
+        const { data, error } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('recorded_at', start).lte('recorded_at', end).neq('status', 'cancelled').order('recorded_at', { ascending: false });
         if (error) console.error('Lỗi tải revenue_logs:', error);
         revLog = data || [];
       }
@@ -497,7 +500,10 @@ const Reports = () => {
           <TrendingUp size={18} /> Doanh thu
         </button>
         <button onClick={() => setView('commission')} className="btn" style={{ background: view === 'commission' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'commission' ? 'white' : 'inherit' }}>
-          <Users size={18} /> Hoa hồng nhân viên
+          <Users size={18} /> Hoa hồng (Chi tiết)
+        </button>
+        <button onClick={() => setView('staff')} className="btn" style={{ background: view === 'staff' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'staff' ? 'white' : 'inherit' }}>
+          <Briefcase size={18} /> Báo cáo nhân viên
         </button>
       </div>
       
@@ -552,10 +558,10 @@ const Reports = () => {
 
                 {/* Sub-tabs cho Doanh thu */}
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-                  <button onClick={() => setRevenueTab('all')} className="btn" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Tất cả</button>
-                  <button onClick={() => setRevenueTab('retail')} className="btn" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Dịch vụ lẻ</button>
-                  <button onClick={() => setRevenueTab('package_sale')} className="btn" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Bán liệu trình</button>
-                  <button onClick={() => setRevenueTab('package_session')} className="btn" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Sử dụng liệu trình (Trừ buổi)</button>
+                  <button onClick={() => { setRevenueTab('all'); setRevenueDisplayCount(10); }} className="btn" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Tất cả</button>
+                  <button onClick={() => { setRevenueTab('retail'); setRevenueDisplayCount(10); }} className="btn" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Dịch vụ lẻ</button>
+                  <button onClick={() => { setRevenueTab('package_sale'); setRevenueDisplayCount(10); }} className="btn" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Bán liệu trình</button>
+                  <button onClick={() => { setRevenueTab('package_session'); setRevenueDisplayCount(10); }} className="btn" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Sử dụng liệu trình (Trừ buổi)</button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -564,48 +570,62 @@ const Reports = () => {
                       Không có phát sinh doanh thu loại này.
                     </div>
                   ) : (
-                    revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).slice(0, 50).map((r, idx) => (
-                      <div 
-                        key={idx} 
-                        onClick={() => openRevenueDetail(r)}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '0.75rem', background: 'var(--bg-main)' }}
-                        onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                        onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: r.type === 'retail' ? 'rgba(59, 130, 246, 0.1)' : r.type === 'package_sale' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'retail' ? '#3b82f6' : r.type === 'package_sale' ? 'var(--secondary)' : '#10b981' }}>
-                            <FileText size={20} />
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-                              {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
-                              
-                              {/* Mã hóa đơn cho cả 3 loại */}
-                              {r.mapped_invoice_code ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_code}</span> : ''}
-                              
-                              {/* Mã thẻ liệu trình cho Bán liệu trình và Trừ buổi */}
-                              {r.card_code && (r.type === 'package_sale' || r.type === 'package_session') ? <span style={{ color: 'var(--warning)', marginLeft: '0.25rem' }}>Thẻ: {r.card_code}</span> : ''}
-                              
-                              {/* Mã phiếu trừ buổi riêng cho Sử dụng liệu trình */}
-                              {r.type === 'package_session' && r.mapped_session_code ? <span style={{ color: 'var(--success)', marginLeft: '0.25rem' }}>Phiếu: #{r.mapped_session_code}</span> : ''}
+                    <>
+                      {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).slice(0, revenueDisplayCount).map((r, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={() => openRevenueDetail(r)}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '0.75rem', background: 'var(--bg-main)' }}
+                          onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: r.type === 'retail' ? 'rgba(59, 130, 246, 0.1)' : r.type === 'package_sale' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'retail' ? '#3b82f6' : r.type === 'package_sale' ? 'var(--secondary)' : '#10b981' }}>
+                              <FileText size={20} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
+                                {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
+                                
+                                {/* Mã hóa đơn cho cả 3 loại */}
+                                {r.mapped_invoice_code ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_code}</span> : ''}
+                                
+                                {/* Mã thẻ liệu trình cho Bán liệu trình và Trừ buổi */}
+                                {r.card_code && (r.type === 'package_sale' || r.type === 'package_session') ? <span style={{ color: 'var(--warning)', marginLeft: '0.25rem' }}>Thẻ: {r.card_code}</span> : ''}
+                                
+                                {/* Mã phiếu trừ buổi riêng cho Sử dụng liệu trình */}
+                                {r.type === 'package_session' && r.mapped_session_code ? <span style={{ color: 'var(--success)', marginLeft: '0.25rem' }}>Phiếu: #{r.mapped_session_code}</span> : ''}
 
-                              {/* Hiển thị chỗ/giường */}
-                              {r.bed_name ? <span style={{ color: 'var(--secondary)', marginLeft: '0.5rem', background: 'rgba(109, 40, 217, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>{r.bed_name}</span> : ''}
-                            </span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{r.customer_name}</span>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--border)' }}>•</span>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(r.recorded_at).toLocaleString('vi-VN')}</span>
+                                {/* Hiển thị chỗ/giường */}
+                                {r.bed_name ? <span style={{ color: 'var(--secondary)', marginLeft: '0.5rem', background: 'rgba(109, 40, 217, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>{r.bed_name}</span> : ''}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{r.customer_name}</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--border)' }}>•</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(r.recorded_at).toLocaleString('vi-VN')}</span>
+                              </div>
                             </div>
                           </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <strong style={{ fontSize: '1.1rem', color: r.type === 'package_session' ? 'var(--primary)' : 'var(--success)' }}>
+                              +{Number(r.amount).toLocaleString()}đ
+                            </strong>
+                          </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <strong style={{ fontSize: '1.1rem', color: r.type === 'package_session' ? 'var(--primary)' : 'var(--success)' }}>
-                            +{Number(r.amount).toLocaleString()}đ
-                          </strong>
+                      ))}
+                      
+                      {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length > revenueDisplayCount && (
+                        <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                          <button 
+                            onClick={() => setRevenueDisplayCount(prev => prev + 10)}
+                            className="btn" 
+                            style={{ background: 'var(--bg-main)', color: 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '2rem', padding: '0.5rem 2rem', fontWeight: '600', fontSize: '0.875rem' }}
+                          >
+                            Xem thêm
+                          </button>
                         </div>
-                      </div>
-                    ))
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -750,6 +770,10 @@ const Reports = () => {
             </div>
           )}
         </>
+      )}
+
+      {view === 'staff' && (
+        <ReportsStaff shopId={shopId || ''} />
       )}
 
       {/* DETAIL MODAL */}
