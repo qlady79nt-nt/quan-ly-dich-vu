@@ -202,6 +202,16 @@ const Invoices = () => {
             }
           }
         }
+      } else {
+        // Hóa đơn dịch vụ lẻ (Retail)
+        const { data: revLog } = await supabase.from('revenue_logs').select('service_session_id').eq('invoice_id', inv.id).eq('type', 'retail').single();
+        if (revLog && revLog.service_session_id) {
+          const { data: sess } = await supabase.from('service_sessions').select('staff_id').eq('id', revLog.service_session_id).single();
+          if (sess && sess.staff_id) {
+            const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', sess.staff_id).single();
+            if (stf) realStaffName = stf.full_name;
+          }
+        }
       }
 
       // 1.5. Ultimate Fallback Recovery: Nếu items VẪN rỗng (lỗi cả invoice_items và package_sales)
