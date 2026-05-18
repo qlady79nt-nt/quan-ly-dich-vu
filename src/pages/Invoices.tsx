@@ -50,7 +50,11 @@ const Invoices = () => {
       setInvoices(finalInvoices);
 
       // 2. Fetch Sessions (Trừ buổi) - Manual Join
-      let sessQuery = supabase.from('service_sessions').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
+      let sessQuery = supabase.from('service_sessions')
+        .select('*')
+        .eq('shop_id', shopId)
+        .not('customer_package_id', 'is', null)
+        .order('created_at', { ascending: false });
       if (profile?.role !== 'shop_admin' && profile?.role !== 'super_admin') {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
@@ -126,13 +130,7 @@ const Invoices = () => {
       let customerPackageId = null;
       let isPackageSale = items.some(i => i.type === 'package_sale');
 
-      // Hook directly from invoice_items first
-      const firstItemWithStaff = items.find(i => i.staff_id);
-      if (firstItemWithStaff && firstItemWithStaff.staff_id) {
-        const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', firstItemWithStaff.staff_id).single();
-        if (stf) realStaffName = stf.full_name;
-      }
-
+      // No longer check invoice_items for staff_id since it is a pure financial line
       if (items.length === 0) {
         const { data: psArray, error: psErr } = await supabase.from('package_sales').select('*').eq('invoice_id', inv.id);
         if (psErr) console.error('Error fetching package_sales:', psErr);
@@ -189,8 +187,8 @@ const Invoices = () => {
 
         if (psArray && psArray.length > 0) {
           const ps = psArray[0];
-          // Nếu invoice_items không có staff_id, lấy bù từ package_sales
-          if (!firstItemWithStaff && ps.seller_id) {
+          // Lấy bù từ package_sales
+          if (ps.seller_id) {
             const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', ps.seller_id).single();
             if (stf) realStaffName = stf.full_name;
           }

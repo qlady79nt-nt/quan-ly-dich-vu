@@ -235,7 +235,6 @@ const POS = () => {
           invoice_id: inv.id,
           type: 'package_sale',
           package_id: selectedPkgId,
-          staff_id: sellerId || null,
           unit_price: original_price,
           final_price: finalTotal,
           price: finalTotal

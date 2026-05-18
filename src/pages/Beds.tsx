@@ -203,7 +203,6 @@ const Beds = () => {
           invoice_id: inv.id,
           type: 'service',
           service_id: svc.id,
-          staff_id: sess.staff_id,
           unit_price: price,
           final_price: price,
           price: price
