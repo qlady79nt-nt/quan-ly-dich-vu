@@ -128,13 +128,11 @@ CREATE TABLE invoices (
 CREATE TABLE invoice_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
-    type TEXT NOT NULL, -- service, package
-    ref_id UUID NOT NULL, -- service_id hoặc package_id
-    staff_id UUID REFERENCES profiles(id),
-    bed_id UUID REFERENCES beds(id),
-    start_time TIMESTAMPTZ,
-    end_time TIMESTAMPTZ,
-    status TEXT DEFAULT 'running', -- running, completed
+    type TEXT NOT NULL, -- service, package_sale
+    service_id UUID REFERENCES services(id) ON DELETE CASCADE,
+    package_id UUID REFERENCES packages(id) ON DELETE CASCADE,
+    unit_price DECIMAL(12,2) DEFAULT 0,
+    final_price DECIMAL(12,2) DEFAULT 0,
     price DECIMAL(12,2) NOT NULL
 );
 
