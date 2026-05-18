@@ -357,10 +357,22 @@ const Reports = () => {
         const idToLook = log.invoice_id || log.reference_id;
         const { data: inv } = await supabase.from('invoices').select('*').eq('id', idToLook).single();
         const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', idToLook);
-        const { data: staff } = inv?.created_by ? await supabase.from('profiles').select('full_name').eq('id', inv.created_by).single() : { data: null };
+        
+        let staffName = 'Thu ngân';
+        if (log.service_session_id) {
+          const { data: sess } = await supabase.from('service_sessions').select('staff_id').eq('id', log.service_session_id).single();
+          if (sess && sess.staff_id) {
+            const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', sess.staff_id).single();
+            if (stf) staffName = stf.full_name;
+          }
+        } else if (inv?.created_by) {
+          const { data: staff } = await supabase.from('profiles').select('full_name').eq('id', inv.created_by).single();
+          if (staff) staffName = staff.full_name;
+        }
+
         setDetailModal({ 
           type: 'invoice', 
-          data: { ...inv, staff_name: staff?.full_name || 'Thu ngân', items: items || [] }, 
+          data: { ...inv, staff_name: staffName, items: items || [] }, 
           title: `Hoá đơn #${inv?.invoice_code || '---'}` 
         });
       } else if (log.type === 'package_sale') {
