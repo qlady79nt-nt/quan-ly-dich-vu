@@ -54,6 +54,10 @@ const Shops = () => {
       expired_at: formData.expired_at || null
     };
 
+    if (!payload.shop_code && !editingId) {
+      payload.shop_code = 'SPA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
     let error;
     if (editingId) {
       const { error: err } = await supabase.from('shops').update(payload).eq('id', editingId);
@@ -88,6 +92,19 @@ const Shops = () => {
     setIsModalOpen(false);
     setEditingId(null);
     setFormData({ name: '', shop_code: '', plan_id: plans[0]?.id || '', status: 'active', expired_at: '' });
+  };
+
+  const toggleShopStatus = async (shop: any) => {
+    const newStatus = shop.status === 'locked' ? 'active' : 'locked';
+    const confirmMsg = newStatus === 'locked' ? `Bạn có chắc muốn KHÓA shop ${shop.name}?` : `Bạn muốn mở khóa shop ${shop.name}?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    const { error } = await supabase.from('shops').update({ status: newStatus }).eq('id', shop.id);
+    if (!error) {
+      fetchShops();
+    } else {
+      alert('Lỗi: ' + error.message);
+    }
   };
 
   const filteredShops = shops.filter(s => 
@@ -161,9 +178,9 @@ const Shops = () => {
                   <Edit2 size={14} /> Chỉnh sửa & Gia hạn
                 </button>
                 {shop.status === 'locked' ? (
-                  <button className="btn" style={{ padding: '0.5rem', color: 'var(--success)', background: 'rgba(16, 185, 129, 0.1)' }} title="Mở khóa"><ShieldCheck size={18} /></button>
+                  <button onClick={() => toggleShopStatus(shop)} className="btn" style={{ padding: '0.5rem', color: 'var(--success)', background: 'rgba(16, 185, 129, 0.1)' }} title="Mở khóa"><ShieldCheck size={18} /></button>
                 ) : (
-                  <button className="btn" style={{ padding: '0.5rem', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)' }} title="Khóa Shop"><ShieldAlert size={18} /></button>
+                  <button onClick={() => toggleShopStatus(shop)} className="btn" style={{ padding: '0.5rem', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)' }} title="Khóa Shop"><ShieldAlert size={18} /></button>
                 )}
               </div>
             </div>
