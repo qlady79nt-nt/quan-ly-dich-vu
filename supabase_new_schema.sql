@@ -32,7 +32,7 @@ CREATE TABLE shops (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     shop_code TEXT UNIQUE NOT NULL, -- ABC123
-    plan_id UUID REFERENCES plans(id),
+    plan_id UUID REFERENCES plans(id) ON DELETE SET NULL,
     expired_at TIMESTAMPTZ NOT NULL,
     status TEXT DEFAULT 'active', -- active, expired, locked
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -41,7 +41,7 @@ CREATE TABLE shops (
 CREATE TABLE subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     shop_id UUID REFERENCES shops(id),
-    plan_id UUID REFERENCES plans(id),
+    plan_id UUID REFERENCES plans(id) ON DELETE SET NULL,
     start_date TIMESTAMPTZ DEFAULT NOW(),
     end_date TIMESTAMPTZ,
     status TEXT DEFAULT 'active'

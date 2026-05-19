@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth';
 const Shops = () => {
   useAuth();
   const [shops, setShops] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,20 +17,26 @@ const Shops = () => {
   const [formData, setFormData] = useState({
     name: '',
     shop_code: '',
-    plan: 'FREE',
+    plan_id: '',
     status: 'active',
     expired_at: ''
   });
 
   useEffect(() => {
     fetchShops();
+    fetchPlans();
   }, []);
+
+  const fetchPlans = async () => {
+    const { data } = await supabase.from('plans').select('*');
+    if (data) setPlans(data);
+  };
 
   const fetchShops = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('shops')
-      .select('*')
+      .select('*, plans(id, name, price, max_users)')
       .order('created_at', { ascending: false });
 
     if (!error) setShops(data || []);
@@ -40,8 +47,10 @@ const Shops = () => {
     e.preventDefault();
     setSaving(true);
 
+    const defaultPlanId = plans.find(p => p.name === 'FREE')?.id || plans[0]?.id;
     const payload = {
       ...formData,
+      plan_id: formData.plan_id || defaultPlanId,
       expired_at: formData.expired_at || null
     };
 
@@ -68,7 +77,7 @@ const Shops = () => {
     setFormData({
       name: shop.name,
       shop_code: shop.shop_code || '',
-      plan: shop.plan,
+      plan_id: shop.plan_id || '',
       status: shop.status,
       expired_at: shop.expired_at ? new Date(shop.expired_at).toISOString().split('T')[0] : ''
     });
@@ -78,7 +87,7 @@ const Shops = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ name: '', shop_code: '', plan: 'FREE', status: 'active', expired_at: '' });
+    setFormData({ name: '', shop_code: '', plan_id: plans[0]?.id || '', status: 'active', expired_at: '' });
   };
 
   const filteredShops = shops.filter(s => 
@@ -139,7 +148,7 @@ const Shops = () => {
               <div className="grid grid-cols-2" style={{ gap: '1rem', background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
                   <LayoutGrid size={16} color="var(--text-light)" />
-                  <span>Gói: <strong>{shop.plan}</strong></span>
+                  <span>Gói: <strong>{shop.plans?.name || 'Chưa có gói'}</strong></span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
                   <Calendar size={16} color="var(--text-light)" />
@@ -179,17 +188,18 @@ const Shops = () => {
                 </div>
                 
                 <div>
-                  <label className="form-label">Mã Shop (Để trống để tự sinh)</label>
-                  <input type="text" className="form-input" placeholder="SPA-XXXXXX" value={formData.shop_code} onChange={(e) => setFormData({...formData, shop_code: e.target.value.toUpperCase()})} />
+                  <label className="form-label">Mã Shop {editingId ? '(Không thể thay đổi)' : '(Để trống để tự sinh)'}</label>
+                  <input type="text" className="form-input" placeholder="SPA-XXXXXX" value={formData.shop_code} disabled={!!editingId} onChange={(e) => setFormData({...formData, shop_code: e.target.value.toUpperCase()})} />
                 </div>
 
                 <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
                   <div>
                     <label className="form-label">Gói dịch vụ</label>
-                    <select className="form-select" value={formData.plan} onChange={(e) => setFormData({...formData, plan: e.target.value})}>
-                      <option value="FREE">FREE (Dùng thử)</option>
-                      <option value="PRO">PRO (Chuyên nghiệp)</option>
-                      <option value="PREMIUM">PREMIUM (Nâng cao)</option>
+                    <select className="form-select" value={formData.plan_id} onChange={(e) => setFormData({...formData, plan_id: e.target.value})}>
+                      <option value="">-- Chọn gói --</option>
+                      {plans.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
