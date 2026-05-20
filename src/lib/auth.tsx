@@ -16,6 +16,12 @@ interface Profile {
     status: string;
     expired_at: string;
     shop_code: string;
+    plans?: {
+      id: string;
+      name: string;
+      max_users: number;
+      max_staffs: number;
+    };
   };
 }
 
@@ -48,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data: prof, error: profErr } = await supabase
         .from('profiles')
-        .select('*, shops(status, expired_at, shop_code)')
+        .select('*, shops(status, expired_at, shop_code, plans(id, name, max_users, max_staffs))')
         .eq('id', userId)
         .single();
 
@@ -60,10 +66,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', userId);
 
       const shopData = Array.isArray(prof.shops) ? prof.shops[0] : prof.shops;
+      const planData = shopData?.plans ? (Array.isArray(shopData.plans) ? shopData.plans[0] : shopData.plans) : null;
       
       setProfile({
         ...prof,
-        shop: shopData,
+        shop: shopData ? {
+          ...shopData,
+          plans: planData
+        } : undefined,
         permissions: perms?.map(p => p.permission) || []
       });
     } catch (error) {

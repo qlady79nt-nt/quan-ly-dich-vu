@@ -144,6 +144,16 @@ const Staff = () => {
   const handleSaveStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopId) return alert('Lỗi: Không tìm thấy ID cửa hàng.');
+    
+    // Kiểm tra giới hạn số lượng nhân sự của gói
+    if (!editingStaffId && currentUser?.role !== 'super_admin') {
+      const maxStaffs = currentUser?.shop?.plans?.max_staffs || 3;
+      const activeStaffsCount = staff.filter(s => s.status !== 'inactive').length;
+      if (activeStaffsCount >= maxStaffs) {
+        return alert(`Gói hiện tại của bạn chỉ cho phép tối đa ${maxStaffs} nhân sự hoạt động. Vui lòng nâng cấp gói hoặc chuyển bớt nhân sự cũ sang trạng thái nghỉ làm.`);
+      }
+    }
+    
     setSaving(true);
     
     const payload = { ...staffFormData, shop_id: shopId };
@@ -174,6 +184,16 @@ const Staff = () => {
   const handleToggleStaffStatus = async (s: any) => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
     const isInactive = s.status === 'inactive';
+    
+    // Nếu khôi phục nhân sự từ nghỉ làm sang đang làm, cần kiểm tra giới hạn gói
+    if (isInactive && currentUser?.role !== 'super_admin') {
+      const maxStaffs = currentUser?.shop?.plans?.max_staffs || 3;
+      const activeStaffsCount = staff.filter(st => st.status !== 'inactive').length;
+      if (activeStaffsCount >= maxStaffs) {
+        return alert(`Gói hiện tại của bạn chỉ cho phép tối đa ${maxStaffs} nhân sự hoạt động. Vui lòng nâng cấp gói để khôi phục hoạt động cho nhân sự này.`);
+      }
+    }
+
     const action = isInactive ? 'Khôi phục' : 'Cho nghỉ';
     if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} nhân sự này?`)) return;
     
@@ -221,6 +241,16 @@ const Staff = () => {
   const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopId) return;
+
+    // Kiểm tra giới hạn số lượng tài khoản đăng nhập của gói
+    if (!editingAccountId && currentUser?.role !== 'super_admin') {
+      const maxUsers = currentUser?.shop?.plans?.max_users || 1;
+      const activeAccountsCount = accounts.filter(a => a.status !== 'inactive').length;
+      if (activeAccountsCount >= maxUsers) {
+        return alert(`Gói hiện tại của bạn chỉ cho phép tối đa ${maxUsers} tài khoản đăng nhập hoạt động. Vui lòng nâng cấp gói hoặc khóa bớt tài khoản khác.`);
+      }
+    }
+
     setSaving(true);
 
     const { username, password, role, permissions, staff_id } = accountFormData;
@@ -321,6 +351,16 @@ const Staff = () => {
   const handleToggleAccountStatus = async (a: any) => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
     const isInactive = a.status === 'inactive';
+    
+    // Nếu mở khóa tài khoản, cần kiểm tra giới hạn gói
+    if (isInactive && currentUser?.role !== 'super_admin') {
+      const maxUsers = currentUser?.shop?.plans?.max_users || 1;
+      const activeAccountsCount = accounts.filter(ac => ac.status !== 'inactive').length;
+      if (activeAccountsCount >= maxUsers) {
+        return alert(`Gói hiện tại của bạn chỉ cho phép tối đa ${maxUsers} tài khoản đăng nhập hoạt động. Vui lòng nâng cấp gói để mở khóa tài khoản này.`);
+      }
+    }
+
     const action = isInactive ? 'Mở khóa' : 'Khóa';
     if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} tài khoản này?`)) return;
     

@@ -49,9 +49,10 @@ async function fixPlans() {
 
   console.log("Inserting new plans...");
   const newPlans = [
-    { name: 'Gói Dùng Thử (Free)', price: 0, max_users: 1, max_branches: 1 },
-    { name: 'Gói Chuyên Nghiệp (Pro)', price: 999000, max_users: 10, max_branches: 2 },
-    { name: 'Gói Nâng Cao (Premium)', price: 2500000, max_users: 999, max_branches: 10 }
+    { name: 'FREE', price: 0, max_users: 1, max_staffs: 3 },
+    { name: 'PRO_1', price: 999000, max_users: 3, max_staffs: 6 },
+    { name: 'PRO_2', price: 1999000, max_users: 5, max_staffs: 13 },
+    { name: 'PRO_3', price: 3999000, max_users: 7, max_staffs: 25 }
   ];
 
   const { data, error: insertError } = await supabase.from('plans').insert(newPlans).select();

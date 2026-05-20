@@ -25,6 +25,7 @@ CREATE TABLE plans (
     name TEXT NOT NULL, -- FREE, PRO_1, PRO_2, PRO_3
     price DECIMAL(12,2) DEFAULT 0,
     max_users INTEGER DEFAULT 1,
+    max_staffs INTEGER DEFAULT 3,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -230,8 +231,8 @@ CREATE POLICY plans_update_policy ON plans FOR UPDATE USING (is_super_admin()) W
 CREATE POLICY plans_delete_policy ON plans FOR DELETE USING (is_super_admin());
 
 -- 5. DỮ LIỆU MẪU (PLANS)
-INSERT INTO plans (name, price, max_users) VALUES 
-('FREE', 0, 1),
-('PRO_1', 999000, 6),
-('PRO_2', 1999000, 10),
-('PRO_3', 3999000, 20);
+INSERT INTO plans (name, price, max_users, max_staffs) VALUES 
+('FREE', 0, 1, 3),
+('PRO_1', 999000, 3, 6),
+('PRO_2', 1999000, 5, 13),
+('PRO_3', 3999000, 7, 25);
