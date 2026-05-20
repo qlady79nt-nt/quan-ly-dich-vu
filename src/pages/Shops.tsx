@@ -36,7 +36,7 @@ const Shops = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('shops')
-      .select('*, plans(id, name, price, max_users)')
+      .select('*, plans(id, name, price, max_users, max_staffs)')
       .order('created_at', { ascending: false });
 
     if (!error) setShops(data || []);
@@ -151,40 +151,71 @@ const Shops = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
       ) : (
-        <div className="grid grid-cols-2">
-          {filteredShops.map((shop) => (
-            <div key={shop.id} className="premium-card" style={{ borderLeft: shop.status === 'locked' ? '4px solid var(--danger)' : (shop.status === 'expired' ? '4px solid #f59e0b' : '4px solid var(--success)') }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
-                <div>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{shop.name}</h4>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--primary)', fontWeight: '700' }}>{shop.shop_code}</div>
-                </div>
-                {getStatusBadge(shop.status)}
-              </div>
-
-              <div className="grid grid-cols-2" style={{ gap: '1rem', background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-                  <LayoutGrid size={16} color="var(--text-light)" />
-                  <span>Gói: <strong>{shop.plans?.name || 'Chưa có gói'}</strong></span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-                  <Calendar size={16} color="var(--text-light)" />
-                  <span>Hết hạn: <strong>{shop.expired_at ? new Date(shop.expired_at).toLocaleDateString('vi-VN') : 'Không giới hạn'}</strong></span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={() => openEdit(shop)} className="btn btn-secondary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}>
-                  <Edit2 size={14} /> Chỉnh sửa & Gia hạn
-                </button>
-                {shop.status === 'locked' ? (
-                  <button onClick={() => toggleShopStatus(shop)} className="btn" style={{ padding: '0.5rem', color: 'var(--success)', background: 'rgba(16, 185, 129, 0.1)' }} title="Mở khóa"><ShieldCheck size={18} /></button>
-                ) : (
-                  <button onClick={() => toggleShopStatus(shop)} className="btn" style={{ padding: '0.5rem', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)' }} title="Khóa Shop"><ShieldAlert size={18} /></button>
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="premium-card" style={{ padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                <th style={{ padding: '1rem' }}>Tên & Mã Shop</th>
+                <th>Gói dịch vụ</th>
+                <th>Thời hạn hoạt động</th>
+                <th>Giới hạn gói</th>
+                <th>Trạng thái</th>
+                <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredShops.map((shop) => (
+                <tr key={shop.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
+                  <td style={{ padding: '1rem' }}>
+                    <div style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{shop.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '700', marginTop: '0.25rem' }}>{shop.shop_code}</div>
+                  </td>
+                  <td>
+                    <span className="badge" style={{ background: 'rgba(109, 40, 217, 0.1)', color: 'var(--primary)', fontWeight: '600' }}>
+                      {shop.plans?.name || 'Chưa có gói'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: '500' }}>
+                      {shop.expired_at ? new Date(shop.expired_at).toLocaleDateString('vi-VN') : 'Không giới hạn'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      <div>Nhân sự Spa: <strong>{shop.plans?.max_staffs ?? '---'}</strong></div>
+                      <div>Tài khoản: <strong>{shop.plans?.max_users ?? '---'}</strong></div>
+                    </div>
+                  </td>
+                  <td>
+                    {getStatusBadge(shop.status)}
+                  </td>
+                  <td style={{ textAlign: 'right', paddingRight: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button onClick={() => openEdit(shop)} className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}>
+                        Chỉnh sửa & Gia hạn
+                      </button>
+                      {shop.status === 'locked' ? (
+                        <button onClick={() => toggleShopStatus(shop)} className="btn" style={{ padding: '0.4rem', color: 'var(--success)', background: 'rgba(16, 185, 129, 0.1)' }} title="Mở khóa">
+                          <ShieldCheck size={16} />
+                        </button>
+                      ) : (
+                        <button onClick={() => toggleShopStatus(shop)} className="btn" style={{ padding: '0.4rem', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)' }} title="Khóa Shop">
+                          <ShieldAlert size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredShops.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
+                    Không tìm thấy cửa hàng nào
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -218,6 +249,11 @@ const Shops = () => {
                         <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
                     </select>
+                    {plans.find(p => p.id === formData.plan_id) && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '0.5rem', fontWeight: '600' }}>
+                        Giới hạn: {plans.find(p => p.id === formData.plan_id).max_staffs} nhân sự, {plans.find(p => p.id === formData.plan_id).max_users} tài khoản
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="form-label">Trạng thái</label>
