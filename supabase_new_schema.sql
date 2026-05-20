@@ -174,6 +174,7 @@ ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE commissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
 
 -- Hàm lấy shop_id của user hiện tại
 CREATE OR REPLACE FUNCTION auth_user_shop_id() 
@@ -221,6 +222,12 @@ CREATE POLICY user_permissions_isolation ON user_permissions FOR ALL USING (
     )
   )
 );
+
+-- Chính sách RLS cho bảng plans (Các gói dịch vụ)
+CREATE POLICY plans_select_policy ON plans FOR SELECT USING (true);
+CREATE POLICY plans_insert_policy ON plans FOR INSERT WITH CHECK (is_super_admin());
+CREATE POLICY plans_update_policy ON plans FOR UPDATE USING (is_super_admin()) WITH CHECK (is_super_admin());
+CREATE POLICY plans_delete_policy ON plans FOR DELETE USING (is_super_admin());
 
 -- 5. DỮ LIỆU MẪU (PLANS)
 INSERT INTO plans (name, price, max_users) VALUES 
