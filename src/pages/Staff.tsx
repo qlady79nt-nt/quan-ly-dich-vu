@@ -264,10 +264,17 @@ const Staff = () => {
     };
 
     if (targetProfileId) {
-       if (password) {
-           alert('Tính năng đổi mật khẩu cho tài khoản đã tồn tại chưa được hỗ trợ từ giao diện này. Hãy liên hệ Super Admin.');
-       }
-       const { error } = await supabase.from('profiles').update(payload).eq('id', targetProfileId);
+        if (password) {
+            const { error: pwdErr } = await supabase.rpc('update_auth_user_password', {
+                target_user_id: targetProfileId,
+                new_password: password
+            });
+            if (pwdErr) {
+                alert('Không thể cập nhật mật khẩu mới: ' + pwdErr.message);
+                setSaving(false); return;
+            }
+        }
+        const { error } = await supabase.from('profiles').update(payload).eq('id', targetProfileId);
        if (error) { alert('Lỗi sửa tài khoản: ' + error.message); setSaving(false); return; }
     } else {
        const shopCode = currentUser?.shop?.shop_code;

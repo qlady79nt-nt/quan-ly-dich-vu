@@ -26,6 +26,7 @@ import POS from './pages/POS';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
 import Shops from './pages/Shops';
+import ShopAdmins from './pages/ShopAdmins';
 import Beds from './pages/Beds';
 import Customers from './pages/Customers';
 import Register from './pages/Register';
@@ -44,6 +45,7 @@ const MainLayout = () => {
     menuItems = [
       { path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
       { path: '/app/shops', label: 'Quản lý Cửa hàng', icon: LayoutGrid },
+      { path: '/app/shop-admins', label: 'Quản lý Shop Admin', icon: Users },
       { path: '/app/audit-logs', label: 'Nhật ký Hệ thống', icon: ShieldAlert }
     ];
   } else {
@@ -190,6 +192,7 @@ function App() {
             <Route path="pos" element={<POS />} />
             <Route path="reports" element={<Reports />} />
             <Route path="shops" element={<ProtectedRoute allowedRoles={['super_admin']}><Shops /></ProtectedRoute>} />
+            <Route path="shop-admins" element={<ProtectedRoute allowedRoles={['super_admin']}><ShopAdmins /></ProtectedRoute>} />
             <Route path="audit-logs" element={<ProtectedRoute allowedRoles={['super_admin']}><AuditLogs /></ProtectedRoute>} />
           </Route>
           {/* Redirect old dashboard path if needed */}
