@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, Edit2, ShieldAlert, ShieldCheck, Loader2, Calendar, LayoutGrid, X } from 'lucide-react';
+import { Search, Plus, ShieldAlert, ShieldCheck, Loader2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
