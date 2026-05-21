@@ -135,16 +135,30 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
       // BƯỚC 1: Fetch staffs
       const { data: staffs } = await supabase
         .from('staffs')
-        .select('id, full_name')
+        .select('id, full_name, user_id')
         .eq('shop_id', shopId);
         
       const staffList = staffs || [];
       const staffMap: Record<string, any> = {};
       
+      // Fetch roles for staff members from profiles using user_id
+      const userIds = staffList.map(s => s.user_id).filter(Boolean);
+      const { data: profileRoles } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .in('id', userIds);
+      const roleMap: Record<string, string> = {};
+      if (profileRoles) {
+        profileRoles.forEach(p => {
+          roleMap[p.id] = p.role as string;
+        });
+      }
+      
       staffList.forEach(s => {
         staffMap[s.id] = {
           id: s.id,
           name: s.full_name,
+          role: roleMap[s.user_id] || 'staff', // default role if not found
           total_sessions: 0,
           total_revenue: 0,
           total_commission: 0
@@ -333,7 +347,7 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Chi tiết hiệu suất nhân sự</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0.25rem 0 0 0' }}>
-                  Nhân viên: <strong style={{ color: 'var(--primary)' }}>{selectedStaff.name}</strong> • Từ {new Date(startDate).toLocaleDateString('vi-VN')} đến {new Date(endDate).toLocaleDateString('vi-VN')}
+                  Nhân viên: <strong style={{ color: 'var(--primary)' }}>{selectedStaff.name}</strong> <em style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>({selectedStaff.role})</em> • Từ {new Date(startDate).toLocaleDateString('vi-VN')} đến {new Date(endDate).toLocaleDateString('vi-VN')}
                 </p>
               </div>
               <button type="button" onClick={handleCloseModal} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}><X size={24} /></button>
