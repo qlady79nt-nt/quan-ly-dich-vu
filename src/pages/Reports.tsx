@@ -18,7 +18,14 @@ const Reports = () => {
   const { hasPermission, profile } = useAuth();
   const shopId = profile?.shop_id;
 
-  const today = new Date().toISOString().split('T')[0];
+  const getLocalDateString = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const today = getLocalDateString(new Date());
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
 

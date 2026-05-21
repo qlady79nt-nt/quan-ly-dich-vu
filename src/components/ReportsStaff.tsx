@@ -11,10 +11,17 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
   const [loading, setLoading] = useState(true);
   const [staffStats, setStaffStats] = useState<any[]>([]);
   
+  const getLocalDateString = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const today = new Date();
   const [filterType, setFilterType] = useState<'today' | 'week' | 'month' | 'custom'>('today');
-  const [startDate, setStartDate] = useState(today.toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(getLocalDateString(today));
+  const [endDate, setEndDate] = useState(getLocalDateString(today));
 
   // States cho chi tiết KTV
   const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
@@ -107,20 +114,20 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
     const now = new Date();
     
     if (type === 'today') {
-      const formatted = now.toISOString().split('T')[0];
+      const formatted = getLocalDateString(now);
       setStartDate(formatted);
       setEndDate(formatted);
     } else if (type === 'week') {
       const first = now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1);
       const firstDay = new Date(now.setDate(first));
       const lastDay = new Date(now.setDate(first + 6));
-      setStartDate(firstDay.toISOString().split('T')[0]);
-      setEndDate(lastDay.toISOString().split('T')[0]);
+      setStartDate(getLocalDateString(firstDay));
+      setEndDate(getLocalDateString(lastDay));
     } else if (type === 'month') {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setStartDate(firstDay.toISOString().split('T')[0]);
-      setEndDate(lastDay.toISOString().split('T')[0]);
+      setStartDate(getLocalDateString(firstDay));
+      setEndDate(getLocalDateString(lastDay));
     }
   };
 
@@ -143,15 +150,18 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
       
       // Fetch roles for staff members from profiles using user_id
       const userIds = staffList.map(s => s.user_id).filter(Boolean);
-      const { data: profileRoles } = await supabase
-        .from('profiles')
-        .select('id, role')
-        .in('id', userIds);
       const roleMap: Record<string, string> = {};
-      if (profileRoles) {
-        profileRoles.forEach(p => {
-          roleMap[p.id] = p.role as string;
-        });
+      if (userIds.length > 0) {
+        const { data: profileRoles, error: rolesErr } = await supabase
+          .from('profiles')
+          .select('id, role')
+          .in('id', userIds);
+        if (rolesErr) console.error('Lỗi lấy role nhân viên:', rolesErr);
+        if (profileRoles) {
+          profileRoles.forEach(p => {
+            roleMap[p.id] = p.role as string;
+          });
+        }
       }
       
       staffList.forEach(s => {
