@@ -45,51 +45,59 @@ BEGIN
     FROM services s
     WHERE s.id = (p_invoice_data->>'service_id')::uuid;
 
-    INSERT INTO invoice_items (
-        invoice_id,
-        type,
-        service_id,
-        unit_price,
-        final_price,
-        price
-    ) VALUES (
-        v_invoice_id,
-        'service',
-        v_service_id,
-        v_price,
-        v_price,
-        v_price
-    );
+    DECLARE
+        v_invoice_item_id uuid;
+    BEGIN
+        INSERT INTO invoice_items (
+            invoice_id,
+            type,
+            service_id,
+            unit_price,
+            final_price,
+            price
+        ) VALUES (
+            v_invoice_id,
+            'service',
+            v_service_id,
+            v_price,
+            v_price,
+            v_price
+        ) RETURNING id INTO v_invoice_item_id;
 
-    -- Insert revenue log (ledger)
-    INSERT INTO revenue_logs (
-        shop_id,
-        amount,
-        type,
-        service_session_id
-    ) VALUES (
-        (p_invoice_data->>'shop_id')::uuid,
-        p_revenue_amount,
-        'retail_service',
-        p_session_id
-    );
+        -- Insert revenue log (ledger)
+        INSERT INTO revenue_logs (
+            shop_id,
+            amount,
+            type,
+            service_session_id,
+            invoice_id
+        ) VALUES (
+            (p_invoice_data->>'shop_id')::uuid,
+            p_revenue_amount,
+            'retail',
+            p_session_id,
+            v_invoice_id
+        );
 
-    -- Insert commission log
-    INSERT INTO commission_logs (
-        shop_id,
-        staff_id,
-        amount,
-        type,
-        service_session_id,
-        note
-    ) VALUES (
-        (p_invoice_data->>'shop_id')::uuid,
-        (p_invoice_data->>'staff_id')::uuid,
-        p_commission_amount,
-        'service_execution',
-        p_session_id,
-        p_invoice_data->>'note'
-    );
+        -- Insert commission log
+        INSERT INTO commission_logs (
+            shop_id,
+            staff_id,
+            amount,
+            type,
+            service_session_id,
+            note,
+            invoice_item_id
+        ) VALUES (
+            (p_invoice_data->>'shop_id')::uuid,
+            (p_invoice_data->>'staff_id')::uuid,
+            p_commission_amount,
+            'service_execution',
+            p_session_id,
+            p_invoice_data->>'note',
+            v_invoice_item_id
+        );
+    END;
 
     -- Update service session status
     UPDATE service_sessions

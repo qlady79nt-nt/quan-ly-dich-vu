@@ -51,8 +51,6 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         .select(`
           id,
           created_at,
-          revenue_amount,
-          commission_amount,
           status,
           services (name, price),
           customer_packages (customer_name)
@@ -65,8 +63,42 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
 
       if (sessErr) console.error('Lỗi lấy service_sessions chi tiết:', sessErr);
 
-      // Phục hồi dữ liệu cũ (Legacy) không có service_session_id hoặc id rác
       const validSessIds = new Set(sessions?.map(s => s.id) || []);
+
+      // ĐỌC revenue_logs (Thay vì đọc cột từ service_sessions)
+      const { data: sessRevenues } = await supabase
+        .from('revenue_logs')
+        .select('service_session_id, amount')
+        .in('service_session_id', Array.from(validSessIds));
+      
+      const revenueMap = new Map();
+      sessRevenues?.forEach(r => {
+         const current = revenueMap.get(r.service_session_id) || 0;
+         revenueMap.set(r.service_session_id, current + Number(r.amount));
+      });
+
+      // ĐỌC commission_logs cho session (Thay vì đọc cột từ service_sessions)
+      const { data: sessComms } = await supabase
+        .from('commission_logs')
+        .select('service_session_id, amount')
+        .eq('staff_id', staff.id)
+        .in('type', ['service_execution', 'execution'])
+        .neq('status', 'cancelled')
+        .in('service_session_id', Array.from(validSessIds));
+        
+      const commMap = new Map();
+      sessComms?.forEach(c => {
+         const current = commMap.get(c.service_session_id) || 0;
+         commMap.set(c.service_session_id, current + Number(c.amount));
+      });
+
+      const enrichedSessions = (sessions || []).map(s => ({
+         ...s,
+         revenue_amount: revenueMap.get(s.id) || 0,
+         commission_amount: commMap.get(s.id) || 0
+      }));
+
+      // Phục hồi dữ liệu cũ (Legacy) không có service_session_id hoặc id rác
       const { data: legacyComms } = await supabase
         .from('commission_logs')
         .select('id, created_at, amount, note, service_session_id')
@@ -88,7 +120,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           customer_packages: null
       }));
 
-      const allSessions = [...(sessions || []), ...legacySessions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const allSessions = [...enrichedSessions, ...legacySessions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setSessionsDetail(allSessions);
 
       // Fetch other commission logs (Bán liệu trình hoặc hoa hồng khác)
@@ -186,11 +218,16 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         .lte('created_at', endStr);
 
       const validSessionIds = new Set<string>();
+      const sessionStaffMap = new Map<string, string>();
+      
       if (sessions) {
         sessions.forEach(sess => {
           validSessionIds.add(sess.id);
-          if (sess.staff_id && staffMap[sess.staff_id]) {
-            staffMap[sess.staff_id].total_sessions += 1;
+          if (sess.staff_id) {
+            sessionStaffMap.set(sess.id, sess.staff_id);
+            if (staffMap[sess.staff_id]) {
+              staffMap[sess.staff_id].total_sessions += 1;
+            }
           }
         });
       }
@@ -203,9 +240,9 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
 
       if (revLogs) {
         revLogs.forEach(r => {
-          const sess = sessions?.find(s => s.id === r.service_session_id);
-          if (sess?.staff_id && staffMap[sess.staff_id]) {
-            staffMap[sess.staff_id].total_revenue += Number(r.amount);
+          const sId = sessionStaffMap.get(r.service_session_id);
+          if (sId && staffMap[sId]) {
+            staffMap[sId].total_revenue += Number(r.amount);
           }
         });
       }
