@@ -68,13 +68,17 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       // ĐỌC revenue_logs (Thay vì đọc cột từ service_sessions)
       const { data: sessRevenues } = await supabase
         .from('revenue_logs')
-        .select('service_session_id, amount')
+        .select('service_session_id, amount, invoices(invoice_code)')
         .in('service_session_id', Array.from(validSessIds));
       
       const revenueMap = new Map();
+      const invoiceCodeMap = new Map();
       sessRevenues?.forEach(r => {
          const current = revenueMap.get(r.service_session_id) || 0;
          revenueMap.set(r.service_session_id, current + Number(r.amount));
+         if (r.invoices && (r.invoices as any).invoice_code) {
+           invoiceCodeMap.set(r.service_session_id, (r.invoices as any).invoice_code);
+         }
       });
 
       // ĐỌC commission_logs cho session (Thay vì đọc cột từ service_sessions)
@@ -95,7 +99,8 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       const enrichedSessions = (sessions || []).map(s => ({
          ...s,
          revenue_amount: revenueMap.get(s.id) || 0,
-         commission_amount: commMap.get(s.id) || 0
+         commission_amount: commMap.get(s.id) || 0,
+         invoice_code: invoiceCodeMap.get(s.id) || null
       }));
 
       // Phục hồi dữ liệu cũ (Legacy) không có service_session_id hoặc id rác
@@ -545,16 +550,26 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
                           <th style={{ padding: '0.75rem 1rem', width: '20%' }}>Thời gian</th>
-                          <th style={{ padding: '0.75rem 1rem', width: '25%' }}>Khách hàng</th>
-                          <th style={{ padding: '0.75rem 1rem', width: '25%' }}>Dịch vụ thực hiện</th>
-                          <th style={{ padding: '0.75rem 1rem', width: '15%', textAlign: 'right' }}>Doanh thu</th>
-                          <th style={{ padding: '0.75rem 1rem', width: '15%', textAlign: 'right' }}>Hoa hồng KTV</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '15%' }}>Hóa đơn</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '20%' }}>Khách hàng</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '20%' }}>Dịch vụ thực hiện</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '12.5%', textAlign: 'right' }}>Doanh thu</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '12.5%', textAlign: 'right' }}>Hoa hồng KTV</th>
                         </tr>
                       </thead>
                       <tbody>
                         {sessionsDetail.map((sess, idx) => (
                           <tr key={sess.id || idx} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '0.75rem 1rem' }}>{formatDateTime(sess.created_at)}</td>
+                            <td style={{ padding: '0.75rem 1rem' }}>
+                              {sess.invoice_code ? (
+                                <a href={`/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
+                                  #{sess.invoice_code}
+                                </a>
+                              ) : (
+                                <span style={{ color: 'var(--text-light)' }}>---</span>
+                              )}
+                            </td>
                             <td style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>
                               {sess.customer_packages?.customer_name || 'Khách vãng lai'}
                             </td>
@@ -600,6 +615,16 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                         </div>
                         <div style={{ fontWeight: '600', marginBottom: '1rem', fontSize: '1rem' }}>
                           {sess.customer_packages?.customer_name || 'Khách vãng lai'}
+                        </div>
+                        <div className="report-card-row">
+                          <span style={{ color: 'var(--text-secondary)' }}>Hóa đơn</span>
+                          <span>
+                            {sess.invoice_code ? (
+                              <a href={`/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
+                                #{sess.invoice_code}
+                              </a>
+                            ) : '---'}
+                          </span>
                         </div>
                         <div className="report-card-row">
                           <span style={{ color: 'var(--text-secondary)' }}>Doanh thu</span>

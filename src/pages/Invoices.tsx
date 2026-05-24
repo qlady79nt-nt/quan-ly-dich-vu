@@ -12,7 +12,9 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [view, setView] = useState<'retail' | 'session'>('retail');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return new URLSearchParams(window.location.search).get('search') || '';
+  });
   const [detailModal, setDetailModal] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
