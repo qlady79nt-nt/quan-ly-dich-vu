@@ -142,12 +142,16 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           name: s.full_name,
           role: roleMap[s.id] || 'staff', // default role if not found
           total_sessions: 0,
-          total_revenue: 0,
+          total_revenue: 0, // DT Làm dịch vụ
+          total_sales_revenue: 0, // DT Bán hàng
+          sales_commission: 0,
+          execution_commission: 0,
+          other_commission: 0,
           total_commission: 0
         };
       });
 
-      // BƯỚC 2: Fetch service_sessions (Tính cuốc & doanh thu)
+      // BƯỚC 2: Fetch service_sessions (Tính cuốc & doanh thu dịch vụ)
       const { data: sessions } = await supabase
         .from('service_sessions')
         .select('staff_id, revenue_amount')
@@ -165,10 +169,26 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         });
       }
 
-      // BƯỚC 3: Fetch commission_logs (Tính hoa hồng)
+      // BƯỚC 2.5: Fetch package_sales (Tính doanh thu bán hàng)
+      const { data: pkgSales } = await supabase
+        .from('package_sales')
+        .select('seller_id, amount_paid')
+        .eq('shop_id', shopId)
+        .gte('created_at', startStr)
+        .lte('created_at', endStr);
+
+      if (pkgSales) {
+        pkgSales.forEach(sale => {
+          if (sale.seller_id && staffMap[sale.seller_id]) {
+            staffMap[sale.seller_id].total_sales_revenue += Number(sale.amount_paid || 0);
+          }
+        });
+      }
+
+      // BƯỚC 3: Fetch commission_logs (Tính hoa hồng chi tiết)
       const { data: commissions } = await supabase
         .from('commission_logs')
-        .select('staff_id, amount')
+        .select('staff_id, amount, type')
         .eq('shop_id', shopId)
         .neq('status', 'cancelled')
         .gte('created_at', startStr)
@@ -177,15 +197,24 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       if (commissions) {
         commissions.forEach(comm => {
           if (comm.staff_id && staffMap[comm.staff_id]) {
-            staffMap[comm.staff_id].total_commission += Number(comm.amount || 0);
+            const amt = Number(comm.amount || 0);
+            staffMap[comm.staff_id].total_commission += amt;
+            
+            if (comm.type === 'package_sale' || comm.type === 'sale') {
+              staffMap[comm.staff_id].sales_commission += amt;
+            } else if (comm.type === 'service_execution' || comm.type === 'execution') {
+              staffMap[comm.staff_id].execution_commission += amt;
+            } else {
+              staffMap[comm.staff_id].other_commission += amt;
+            }
           }
         });
       }
 
-      // BƯỚC 4: Lọc và sắp xếp những người có làm việc
+      // BƯỚC 4: Lọc và sắp xếp
       const activeStaff = Object.values(staffMap)
-        .filter(s => s.total_sessions > 0 || s.total_revenue > 0 || s.total_commission > 0)
-        .sort((a, b) => b.total_revenue - a.total_revenue);
+        .filter(s => s.total_sessions > 0 || s.total_revenue > 0 || s.total_sales_revenue > 0 || s.total_commission > 0)
+        .sort((a, b) => b.total_commission - a.total_commission);
 
       setStaffStats(activeStaff);
       
@@ -227,10 +256,13 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '1rem', width: '40%' }}>Nhân viên</th>
-                <th style={{ padding: '1rem', width: '20%', textAlign: 'center' }}>Số cuốc</th>
-                <th style={{ padding: '1rem', width: '20%', textAlign: 'right' }}>Doanh thu</th>
-                <th style={{ padding: '1rem', width: '20%', textAlign: 'right' }}>Hoa hồng</th>
+                <th style={{ padding: '1rem' }}>Nhân viên</th>
+                <th style={{ padding: '1rem', textAlign: 'right' }}>DT Bán gói</th>
+                <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>HH Bán hàng</th>
+                <th style={{ padding: '1rem', textAlign: 'center' }}>Số cuốc</th>
+                <th style={{ padding: '1rem', textAlign: 'right' }}>DT Dịch vụ</th>
+                <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--primary)' }}>HH Dịch vụ</th>
+                <th style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>Tổng HH</th>
               </tr>
             </thead>
             <tbody>
@@ -251,16 +283,25 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                       {staff.name}
                     </div>
                   </td>
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>
+                    {staff.total_sales_revenue.toLocaleString('vi-VN')}
+                  </td>
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
+                    {staff.sales_commission.toLocaleString('vi-VN')}
+                  </td>
                   <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '700' }}>
                     <span style={{ background: 'rgba(109, 40, 217, 0.1)', color: 'var(--primary)', padding: '0.25rem 0.75rem', borderRadius: '1rem' }}>
                       {staff.total_sessions}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                    {staff.total_revenue > 0 ? `+${staff.total_revenue.toLocaleString()}đ` : '0đ'}
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '500', color: 'var(--text-main)' }}>
+                    {staff.total_revenue.toLocaleString('vi-VN')}
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>
-                    {staff.total_commission > 0 ? `+${staff.total_commission.toLocaleString()}đ` : '0đ'}
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--primary)' }}>
+                    {staff.execution_commission.toLocaleString('vi-VN')}
+                  </td>
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '800', color: 'var(--danger)' }}>
+                    {staff.total_commission.toLocaleString('vi-VN')}
                   </td>
                 </tr>
               ))}
