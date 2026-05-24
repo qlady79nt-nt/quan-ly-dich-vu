@@ -51,18 +51,14 @@ BEGIN
         service_id,
         unit_price,
         final_price,
-        price,
-        quantity,
-        name
+        price
     ) VALUES (
         v_invoice_id,
         'service',
         v_service_id,
         v_price,
         v_price,
-        v_price,
-        v_quantity,
-        v_service_name
+        v_price
     );
 
     -- Insert revenue log (ledger)
