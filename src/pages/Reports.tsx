@@ -320,19 +320,20 @@ const Reports = () => {
           staffMap[id].logs.push(c);
         }
       });
-      
-      // Tính doanh số thực thu từ package_sales
-      relatedPkgSales.forEach((ps: any) => {
-        if (ps.seller_id) {
-          ensureStaff(ps.seller_id);
-          staffMap[ps.seller_id].revenueGenerated += Number(ps.amount_paid);
-        }
-      });
-      // Tính doanh số thực thu từ retail items
-      retailItems.forEach((ri: any) => {
-        if (ri.staff_id) {
-          ensureStaff(ri.staff_id);
-          staffMap[ri.staff_id].revenueGenerated += Number(ri.final_price || ri.price);
+      // Tính doanh số thực thu từ package_sales và retail dựa trên revenue_logs
+      revLog.forEach((r: any) => {
+        if (r.type === 'package_sale') {
+           const ps = relatedPkgSales.find((p: any) => p.id === r.package_sale_id);
+           if (ps && ps.seller_id) {
+               ensureStaff(ps.seller_id);
+               staffMap[ps.seller_id].revenueGenerated += Number(r.amount);
+           }
+        } else if (r.type === 'retail') {
+           const ss = relatedSessions.find((s: any) => s.id === r.service_session_id);
+           if (ss && ss.staff_id) {
+               ensureStaff(ss.staff_id);
+               staffMap[ss.staff_id].revenueGenerated += Number(r.amount);
+           }
         }
       });
 
