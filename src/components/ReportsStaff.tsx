@@ -52,6 +52,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           id,
           created_at,
           status,
+          customer_package_id,
           services (name, price),
           customer_packages (customer_name)
         `)
@@ -96,11 +97,25 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
          commMap.set(c.service_session_id, current + Number(c.amount));
       });
 
+      // TÌM INVOICE CODE CHO PACKAGE SESSIONS (Liệu trình)
+      const cpIds = (sessions || []).map(s => s.customer_package_id).filter(Boolean);
+      const pkgInvoiceCodeMap = new Map();
+      if (cpIds.length > 0) {
+        const { data: psData } = await supabase.from('package_sales').select('customer_package_id, invoices(invoice_code)').in('customer_package_id', Array.from(new Set(cpIds)));
+        if (psData) {
+          psData.forEach(ps => {
+            if (ps.invoices && (ps.invoices as any).invoice_code) {
+              pkgInvoiceCodeMap.set(ps.customer_package_id, (ps.invoices as any).invoice_code);
+            }
+          });
+        }
+      }
+
       const enrichedSessions = (sessions || []).map(s => ({
          ...s,
          revenue_amount: revenueMap.get(s.id) || 0,
          commission_amount: commMap.get(s.id) || 0,
-         invoice_code: invoiceCodeMap.get(s.id) || null
+         invoice_code: s.customer_package_id ? (pkgInvoiceCodeMap.get(s.customer_package_id) || null) : (invoiceCodeMap.get(s.id) || null)
       }));
 
       // Phục hồi dữ liệu cũ (Legacy) không có service_session_id hoặc id rác
