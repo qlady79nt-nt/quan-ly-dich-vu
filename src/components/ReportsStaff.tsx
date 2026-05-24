@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, Briefcase, Calendar, X, Scissors, ShoppingBag } from 'lucide-react';
+import { Loader2, Briefcase, X, Scissors, ShoppingBag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ReportsStaffProps {
