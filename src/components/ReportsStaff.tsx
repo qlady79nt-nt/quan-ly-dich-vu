@@ -376,12 +376,22 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                   <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--primary)' }}>{selectedStaff.total_sessions}</div>
                 </div>
                 <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Doanh thu mang lại</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--success)' }}>{selectedStaff.total_revenue.toLocaleString()}đ</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng Doanh Thu (Dịch vụ + Bán hàng)</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--success)' }}>
+                    {(selectedStaff.total_revenue + (selectedStaff.total_sales_revenue || 0)).toLocaleString('vi-VN')}đ
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+                    DV: {selectedStaff.total_revenue.toLocaleString('vi-VN')}đ | Bán: {(selectedStaff.total_sales_revenue || 0).toLocaleString('vi-VN')}đ
+                  </div>
                 </div>
                 <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng hoa hồng nhận</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--warning)' }}>{selectedStaff.total_commission.toLocaleString()}đ</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng Hoa Hồng Nhận</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--warning)' }}>
+                    {selectedStaff.total_commission.toLocaleString('vi-VN')}đ
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+                    DV: {selectedStaff.execution_commission.toLocaleString('vi-VN')}đ | Khác: {(selectedStaff.total_commission - selectedStaff.execution_commission).toLocaleString('vi-VN')}đ
+                  </div>
                 </div>
               </div>
 
