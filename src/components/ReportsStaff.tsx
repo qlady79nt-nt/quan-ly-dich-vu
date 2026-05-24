@@ -65,25 +65,27 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
 
       if (sessErr) console.error('Lỗi lấy service_sessions chi tiết:', sessErr);
 
-      // Phục hồi dữ liệu cũ (Legacy) không có service_session_id
+      // Phục hồi dữ liệu cũ (Legacy) không có service_session_id hoặc id rác
+      const validSessIds = new Set(sessions?.map(s => s.id) || []);
       const { data: legacyComms } = await supabase
         .from('commission_logs')
-        .select('id, created_at, amount, note')
+        .select('id, created_at, amount, note, service_session_id')
         .eq('staff_id', staff.id)
-        .eq('type', 'service_execution')
-        .is('service_session_id', null)
+        .in('type', ['service_execution', 'execution'])
         .neq('status', 'cancelled')
         .gte('created_at', startStr)
         .lte('created_at', endStr);
 
-      const legacySessions = (legacyComms || []).map(lc => ({
-        id: lc.id,
-        created_at: lc.created_at,
-        revenue_amount: 0, // Dữ liệu cũ ko xác định được doanh thu trực tiếp ở đây
-        commission_amount: lc.amount,
-        status: 'completed',
-        services: { name: lc.note || 'Dịch vụ cũ (Đã thực hiện)' },
-        customer_packages: null
+      const legacySessions = (legacyComms || [])
+        .filter(lc => !lc.service_session_id || !validSessIds.has(lc.service_session_id))
+        .map(lc => ({
+          id: lc.id,
+          created_at: lc.created_at,
+          revenue_amount: 0, // Dữ liệu cũ ko xác định được doanh thu trực tiếp ở đây
+          commission_amount: lc.amount,
+          status: 'completed',
+          services: { name: lc.note || 'Dịch vụ cũ (Đã thực hiện)' },
+          customer_packages: null
       }));
 
       const allSessions = [...(sessions || []), ...legacySessions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -177,14 +179,16 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       // BƯỚC 2: Fetch service_sessions (Tính cuốc & doanh thu dịch vụ)
       const { data: sessions } = await supabase
         .from('service_sessions')
-        .select('staff_id, revenue_amount')
+        .select('id, staff_id, revenue_amount')
         .eq('shop_id', shopId)
         .eq('status', 'completed')
         .gte('created_at', startStr)
         .lte('created_at', endStr);
 
+      const validSessionIds = new Set();
       if (sessions) {
         sessions.forEach(sess => {
+          validSessionIds.add(sess.id);
           if (sess.staff_id && staffMap[sess.staff_id]) {
             staffMap[sess.staff_id].total_sessions += 1;
             staffMap[sess.staff_id].total_revenue += Number(sess.revenue_amount || 0);
@@ -221,12 +225,12 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         commissions.forEach(c => {
           if (c.staff_id && staffMap[c.staff_id]) {
             staffMap[c.staff_id].total_commission += Number(c.amount || 0);
-            if (c.type === 'package_sale' || c.type === 'retail') {
+            if (c.type === 'package_sale' || c.type === 'retail' || c.type === 'sale') {
               staffMap[c.staff_id].sales_commission += Number(c.amount || 0);
-            } else if (c.type === 'service_execution') {
+            } else if (c.type === 'service_execution' || c.type === 'execution') {
               staffMap[c.staff_id].execution_commission += Number(c.amount || 0);
-              // Phục hồi dữ liệu cũ: Nếu là hoa hồng thực hiện nhưng ko có session id (trước bản vá) -> tính 1 cuốc
-              if (!c.service_session_id) {
+              // Phục hồi dữ liệu cũ: Nếu là hoa hồng thực hiện nhưng ko map được với session thực tế
+              if (!c.service_session_id || !validSessionIds.has(c.service_session_id)) {
                 staffMap[c.staff_id].total_sessions += 1;
               }
             } else {
@@ -408,7 +412,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                     border: 'none'
                   }}
                 >
-                  Hoa hồng & Nghiệp vụ khác ({commissionsDetail.filter(c => c.type !== 'service_execution').length})
+                  Hoa hồng & Nghiệp vụ khác ({commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').length})
                 </button>
               </div>
             </div>
@@ -476,7 +480,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {commissionsDetail.filter(c => c.type !== 'service_execution').map((comm, idx) => (
+                        {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').map((comm, idx) => (
                           <tr key={comm.id || idx} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '0.75rem 1rem' }}>{formatDateTime(comm.created_at)}</td>
                             <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>{comm.note || 'Thưởng doanh số'}</td>
