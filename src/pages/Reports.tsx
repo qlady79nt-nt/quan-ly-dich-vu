@@ -780,7 +780,7 @@ const Reports = () => {
       )}
 
       {view === 'staff' && (
-        <ReportsStaff shopId={shopId || ''} />
+        <ReportsStaff shopId={shopId || ''} startDate={startDate} endDate={endDate} />
       )}
 
       {/* DETAIL MODAL */}

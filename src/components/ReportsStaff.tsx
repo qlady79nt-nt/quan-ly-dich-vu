@@ -5,23 +5,14 @@ import { supabase } from '../lib/supabase';
 
 interface ReportsStaffProps {
   shopId: string;
+  startDate: string;
+  endDate: string;
 }
 
-const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
+const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
   const [loading, setLoading] = useState(true);
   const [staffStats, setStaffStats] = useState<any[]>([]);
-  
-  const getLocalDateString = (d: Date) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const today = new Date();
-  const [filterType, setFilterType] = useState<'today' | 'week' | 'month' | 'custom'>('today');
-  const [startDate, setStartDate] = useState(getLocalDateString(today));
-  const [endDate, setEndDate] = useState(getLocalDateString(today));
+  const [debugCounts, setDebugCounts] = useState({ staffs: 0, sessions: 0, commissions: 0 });
 
   // States cho chi tiết KTV
   const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
@@ -101,35 +92,10 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
   };
 
   useEffect(() => {
-    handleFilterChange(filterType);
-  }, [filterType]);
-
-  useEffect(() => {
-    if (shopId) {
+    if (shopId && startDate && endDate) {
       fetchStaffStats();
     }
   }, [shopId, startDate, endDate]);
-
-  const handleFilterChange = (type: 'today' | 'week' | 'month' | 'custom') => {
-    const now = new Date();
-    
-    if (type === 'today') {
-      const formatted = getLocalDateString(now);
-      setStartDate(formatted);
-      setEndDate(formatted);
-    } else if (type === 'week') {
-      const first = now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1);
-      const firstDay = new Date(now.setDate(first));
-      const lastDay = new Date(now.setDate(first + 6));
-      setStartDate(getLocalDateString(firstDay));
-      setEndDate(getLocalDateString(lastDay));
-    } else if (type === 'month') {
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setStartDate(getLocalDateString(firstDay));
-      setEndDate(getLocalDateString(lastDay));
-    }
-  };
 
   const fetchStaffStats = async () => {
     setLoading(true);
@@ -216,6 +182,12 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
         .sort((a, b) => b.total_revenue - a.total_revenue);
 
       setStaffStats(activeStaff);
+      
+      setDebugCounts({
+        staffs: staffList.length,
+        sessions: sessions?.length || 0,
+        commissions: commissions?.length || 0
+      });
 
     } catch (e) {
       console.error(e);
@@ -230,54 +202,8 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
         <h3 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Briefcase size={20} className="text-primary" /> Báo cáo Nhân viên
         </h3>
-        
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-main)', padding: '0.25rem', borderRadius: '0.75rem' }}>
-          <button 
-            onClick={() => setFilterType('today')}
-            className="btn" 
-            style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: filterType === 'today' ? 'white' : 'transparent', color: filterType === 'today' ? 'var(--primary)' : 'var(--text-secondary)', boxShadow: filterType === 'today' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
-          >
-            Hôm nay
-          </button>
-          <button 
-            onClick={() => setFilterType('week')}
-            className="btn" 
-            style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: filterType === 'week' ? 'white' : 'transparent', color: filterType === 'week' ? 'var(--primary)' : 'var(--text-secondary)', boxShadow: filterType === 'week' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
-          >
-            Tuần này
-          </button>
-          <button 
-            onClick={() => setFilterType('month')}
-            className="btn" 
-            style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: filterType === 'month' ? 'white' : 'transparent', color: filterType === 'month' ? 'var(--primary)' : 'var(--text-secondary)', boxShadow: filterType === 'month' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
-          >
-            Tháng này
-          </button>
-          <button 
-            onClick={() => setFilterType('custom')}
-            className="btn" 
-            style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: filterType === 'custom' ? 'white' : 'transparent', color: filterType === 'custom' ? 'var(--primary)' : 'var(--text-secondary)', boxShadow: filterType === 'custom' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
-          >
-            Tùy chọn
-          </button>
-        </div>
       </div>
 
-      {filterType === 'custom' && (
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center', background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Từ ngày:</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="form-input" style={{ width: '150px' }} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Đến ngày:</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="form-input" style={{ width: '150px' }} />
-          </div>
-          <button onClick={fetchStaffStats} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Calendar size={16} /> Lọc
-          </button>
-        </div>
-      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}>
@@ -286,6 +212,9 @@ const ReportsStaff = ({ shopId }: ReportsStaffProps) => {
       ) : staffStats.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'var(--bg-main)', borderRadius: '1rem', color: 'var(--text-light)' }}>
           Không có dữ liệu nhân viên trong khoảng thời gian này
+          <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            (Debug: Start: {startDate}, End: {endDate}, Staffs: {debugCounts.staffs}, Sessions: {debugCounts.sessions}, Commissions: {debugCounts.commissions})
+          </div>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
