@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Loader2, UserCircle, Phone, CreditCard, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { ActionMenu } from '../components/ActionMenu';
 
 const Customers = () => {
   const { profile, isRestricted } = useAuth();
@@ -288,7 +289,7 @@ const Customers = () => {
                     </div>
                   </td>
                   <td style={{ paddingRight: '1rem', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <ActionMenu>
                       {cp.used_sessions === 0 && cp.status !== 'cancelled' && (
                         <button onClick={() => handleUpdatePackageStatus(cp.id, 'cancelled')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Hủy thẻ</button>
                       )}
@@ -301,7 +302,7 @@ const Customers = () => {
                       {profile?.role === 'super_admin' && (
                         <button onClick={() => handleHardDeletePackage(cp.id)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)' }}>Xóa vĩnh viễn</button>
                       )}
-                    </div>
+                    </ActionMenu>
                   </td>
                 </tr>
               ))}

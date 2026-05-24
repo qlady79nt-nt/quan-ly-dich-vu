@@ -223,6 +223,31 @@ h1, h2, h3, h4 {
   gap: 1.5rem;
 }
 
+/* Action Menu */
+.action-menu-container {
+  position: relative;
+  display: inline-block;
+}
+.action-menu-trigger {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+.action-menu-trigger:hover {
+  background: var(--bg-main);
+  color: var(--text-primary);
+}
+.action-menu-dropdown {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 @media (max-width: 1024px) {
   /* Tablet adjustments */
   .app-sidebar {
@@ -266,5 +291,32 @@ h1, h2, h3, h4 {
   
   .app-main > div {
     padding: 1rem !important;
+  }
+  
+  /* Mobile Action Menu */
+  .action-menu-trigger {
+    display: inline-flex;
+  }
+  .action-menu-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 0.25rem;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    flex-direction: column;
+    min-width: 140px;
+  }
+  .action-menu-dropdown.open {
+    display: flex;
+  }
+  .action-menu-dropdown .btn {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
