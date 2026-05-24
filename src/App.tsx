@@ -71,11 +71,22 @@ const MainLayout = () => {
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
       {/* Sidebar */}
       <aside style={{ width: '260px', background: 'white', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', height: '100vh' }}>
-        <div style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-            <Scissors size={24} />
+        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '1.25rem' }}>
+              {profile?.role === 'super_admin' ? 'SA' : (profile?.shop?.name?.charAt(0)?.toUpperCase() || 'S')}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.5px', lineHeight: '1.2' }}>
+                {profile?.role === 'super_admin' ? 'Super Admin' : (profile?.shop?.name || 'SPA Manager')}
+              </span>
+              {profile?.role !== 'super_admin' && profile?.shop?.shop_code && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '600' }}>
+                  ID: {profile?.shop?.shop_code}
+                </span>
+              )}
+            </div>
           </div>
-          <h1 className="text-gradient" style={{ fontSize: '1.25rem' }}>Spa & POS</h1>
         </div>
 
         <nav style={{ flex: 1, padding: '0 1rem' }}>

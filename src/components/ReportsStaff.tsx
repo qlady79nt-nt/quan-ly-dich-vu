@@ -64,7 +64,30 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         .order('created_at', { ascending: false });
 
       if (sessErr) console.error('Lỗi lấy service_sessions chi tiết:', sessErr);
-      setSessionsDetail(sessions || []);
+
+      // Phục hồi dữ liệu cũ (Legacy) không có service_session_id
+      const { data: legacyComms } = await supabase
+        .from('commission_logs')
+        .select('id, created_at, amount, note')
+        .eq('staff_id', staff.id)
+        .eq('type', 'service_execution')
+        .is('service_session_id', null)
+        .neq('status', 'cancelled')
+        .gte('created_at', startStr)
+        .lte('created_at', endStr);
+
+      const legacySessions = (legacyComms || []).map(lc => ({
+        id: lc.id,
+        created_at: lc.created_at,
+        revenue_amount: 0, // Dữ liệu cũ ko xác định được doanh thu trực tiếp ở đây
+        commission_amount: lc.amount,
+        status: 'completed',
+        services: { name: lc.note || 'Dịch vụ cũ (Đã thực hiện)' },
+        customer_packages: null
+      }));
+
+      const allSessions = [...(sessions || []), ...legacySessions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setSessionsDetail(allSessions);
 
       // Fetch other commission logs (Bán liệu trình hoặc hoa hồng khác)
       const { data: comms, error: commErr } = await supabase
@@ -185,27 +208,29 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         });
       }
 
-      // BƯỚC 3: Fetch commission_logs (Tính hoa hồng chi tiết)
+      // BƯỚC 3: Fetch commission_logs (Tính hoa hồng)
       const { data: commissions } = await supabase
         .from('commission_logs')
-        .select('staff_id, amount, type')
+        .select('staff_id, amount, type, service_session_id')
         .eq('shop_id', shopId)
         .neq('status', 'cancelled')
         .gte('created_at', startStr)
         .lte('created_at', endStr);
 
       if (commissions) {
-        commissions.forEach(comm => {
-          if (comm.staff_id && staffMap[comm.staff_id]) {
-            const amt = Number(comm.amount || 0);
-            staffMap[comm.staff_id].total_commission += amt;
-            
-            if (comm.type === 'package_sale' || comm.type === 'sale') {
-              staffMap[comm.staff_id].sales_commission += amt;
-            } else if (comm.type === 'service_execution' || comm.type === 'execution') {
-              staffMap[comm.staff_id].execution_commission += amt;
+        commissions.forEach(c => {
+          if (c.staff_id && staffMap[c.staff_id]) {
+            staffMap[c.staff_id].total_commission += Number(c.amount || 0);
+            if (c.type === 'package_sale' || c.type === 'retail') {
+              staffMap[c.staff_id].sales_commission += Number(c.amount || 0);
+            } else if (c.type === 'service_execution') {
+              staffMap[c.staff_id].execution_commission += Number(c.amount || 0);
+              // Phục hồi dữ liệu cũ: Nếu là hoa hồng thực hiện nhưng ko có session id (trước bản vá) -> tính 1 cuốc
+              if (!c.service_session_id) {
+                staffMap[c.staff_id].total_sessions += 1;
+              }
             } else {
-              staffMap[comm.staff_id].other_commission += amt;
+              staffMap[c.staff_id].other_commission += Number(c.amount || 0);
             }
           }
         });
