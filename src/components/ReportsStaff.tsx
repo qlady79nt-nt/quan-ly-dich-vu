@@ -179,24 +179,38 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       // BƯỚC 2: Fetch service_sessions (Tính cuốc & doanh thu dịch vụ)
       const { data: sessions } = await supabase
         .from('service_sessions')
-        .select('id, staff_id, revenue_amount')
+        .select('id, staff_id')
         .eq('shop_id', shopId)
         .eq('status', 'completed')
         .gte('created_at', startStr)
         .lte('created_at', endStr);
 
-      const validSessionIds = new Set();
+      const validSessionIds = new Set<string>();
       if (sessions) {
         sessions.forEach(sess => {
           validSessionIds.add(sess.id);
           if (sess.staff_id && staffMap[sess.staff_id]) {
             staffMap[sess.staff_id].total_sessions += 1;
-            staffMap[sess.staff_id].total_revenue += Number(sess.revenue_amount || 0);
           }
         });
       }
 
-      // BƯỚC 2.5: Fetch package_sales (Tính doanh thu bán hàng)
+      // BƯỚC 2.5: Fetch revenue_logs linked to these sessions
+      const { data: revLogs } = await supabase
+        .from('revenue_logs')
+        .select('service_session_id, amount')
+        .in('service_session_id', Array.from(validSessionIds));
+
+      if (revLogs) {
+        revLogs.forEach(r => {
+          const sess = sessions?.find(s => s.id === r.service_session_id);
+          if (sess?.staff_id && staffMap[sess.staff_id]) {
+            staffMap[sess.staff_id].total_revenue += Number(r.amount);
+          }
+        });
+      }
+
+      // BƯỚC 2.6: Fetch package_sales (Tính doanh thu bán hàng)
       const { data: pkgSales } = await supabase
         .from('package_sales')
         .select('seller_id, amount_paid')

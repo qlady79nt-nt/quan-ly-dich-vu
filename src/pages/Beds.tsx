@@ -179,13 +179,14 @@ const Beds = () => {
           total_sessions: cp.total_sessions
         });
       } else {
-        // --- XỬ LÝ THANH TOÁN BÁN LẺ (GIỮ NGUYÊN) ---
+        // --- XỬ LÝ THANH TOÁN BÁN LẺ (RPC) ---
         const discount = discountType === 'percent' ? (price * discountValue) / 100 : discountValue;
         const finalTotal = price - discount;
+        const comm = svc.commission_type === 'percent' ? (price * svc.commission_value) / 100 : svc.commission_value;
 
         const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
 
-        const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
+        const invoiceData = {
           shop_id: shopId,
           invoice_code: invCode,
           customer_name: sess.retail_customer_name,
@@ -194,40 +195,35 @@ const Beds = () => {
           total_amount: price,
           discount_amount: discount,
           final_amount: finalTotal,
-          payment_method: 'cash',
-          status: 'paid'
-        }]).select().single();
-        if (invErr) throw invErr;
+          status: 'paid',
+          staff_id: sess.staff_id,
+          note: `Dịch vụ: ${svc.name}`
+        };
 
-        const { error: itemErr } = await supabase.from('invoice_items').insert([{
-          invoice_id: inv.id,
-          type: 'service',
-          service_id: svc.id,
-          unit_price: price,
-          final_price: price,
-          price: price
-        }]);
+        const { data: rpcResult, error: rpcErr } = await supabase.rpc('sp_checkout', {
+          p_session_id: sess.id,
+          p_invoice_data: invoiceData,
+          p_revenue_amount: finalTotal,
+          p_commission_amount: comm
+        });
+        if (rpcErr) throw rpcErr;
+
+        // Fetch created invoice for display
+        const { data: inv, error: invFetchErr } = await supabase.from('invoices').select('*').eq('id', rpcResult).single();
+        if (invFetchErr) throw invFetchErr;
+
+        // Insert invoice items (retail service)
+        const { error: itemErr } = await supabase.from('invoice_items').insert([
+          {
+            invoice_id: inv.id,
+            type: 'service',
+            service_id: svc.id,
+            unit_price: price,
+            final_price: price,
+            price: price
+          }
+        ]);
         if (itemErr) throw itemErr;
-
-        const comm = svc.commission_type === 'percent' ? (price * svc.commission_value) / 100 : svc.commission_value;
-        
-        const { error: updErr } = await supabase.from('service_sessions').update({
-          status: 'completed',
-          end_time: new Date().toISOString(),
-          revenue_amount: finalTotal,
-          commission_amount: comm
-        }).eq('id', sess.id);
-        if (updErr) throw updErr;
-
-        const { error: commErr } = await supabase.from('commission_logs').insert([{ 
-          shop_id: shopId, staff_id: sess.staff_id, amount: comm, type: 'service_execution', service_session_id: sess.id, note: `Dịch vụ: ${svc.name}` 
-        }]);
-        if (commErr) throw commErr;
-
-        const { error: revErr } = await supabase.from('revenue_logs').insert([{ 
-          shop_id: shopId, amount: finalTotal, type: 'retail', invoice_id: inv.id, service_session_id: sess.id 
-        }]);
-        if (revErr) throw revErr;
 
         setCompletedInvoice({
           id: inv.id,
