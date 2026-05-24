@@ -16,6 +16,14 @@
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --radius: 0.75rem;
+  
+  /* Spacing Scale */
+  --space-micro: 0.25rem; /* 4px */
+  --space-tight: 0.5rem;  /* 8px */
+  --space-compact: 0.75rem; /* 12px */
+  --space-normal: 1rem;   /* 16px */
+  --space-section: 1.5rem; /* 24px */
+  --space-page: 2rem;     /* 32px */
 }
 
 * {
@@ -63,6 +71,7 @@ h1, h2, h3, h4 {
   border: none;
   gap: 0.5rem;
   font-size: 0.875rem;
+  min-height: 44px; /* Touch target rule */
 }
 
 .btn-primary {
@@ -114,6 +123,7 @@ h1, h2, h3, h4 {
 .badge-danger { background: rgba(244, 63, 94, 0.1); color: var(--danger); }
 .badge-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
 .badge-primary { background: rgba(109, 40, 217, 0.1); color: var(--primary); }
+.badge-neutral { background: var(--bg-main); color: var(--text-secondary); border: 1px solid var(--border); }
 
 .grid {
   display: grid;
@@ -151,6 +161,10 @@ h1, h2, h3, h4 {
   -webkit-overflow-scrolling: touch;
 }
 
+.table-responsive table {
+  font-variant-numeric: tabular-nums; /* Financial Number Style */
+}
+
 .table-responsive::-webkit-scrollbar {
   height: 6px;
 }
@@ -165,6 +179,7 @@ h1, h2, h3, h4 {
   min-height: 100vh;
   background-color: var(--bg-main);
   position: relative;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .app-sidebar {
