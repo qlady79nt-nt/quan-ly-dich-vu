@@ -139,3 +139,132 @@ h1, h2, h3, h4 {
 .animate-fade {
   animation: fadeIn 0.3s ease forwards;
 }
+
+/* =========================================
+   RESPONSIVE LAYOUT (Mobile & Tablet)
+   ========================================= */
+
+/* Hide scrollbar for clean horizontal scroll */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* Sidebar Layout */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  position: relative;
+}
+
+.app-sidebar {
+  width: 260px;
+  background: white;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  z-index: 50;
+  transition: transform 0.3s ease-in-out;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  min-height: 100vh;
+  transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
+}
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* Header Hamburger */
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  padding: 0.5rem;
+  margin-right: 1rem;
+}
+
+/* POS Grid */
+.pos-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  /* Tablet adjustments */
+  .app-sidebar {
+    transform: translateX(-100%);
+  }
+  .app-sidebar.open {
+    transform: translateX(0);
+  }
+  .app-main {
+    margin-left: 0;
+    width: 100%;
+  }
+  .mobile-menu-btn {
+    display: block;
+  }
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobile adjustments */
+  .grid-cols-2, .grid-cols-3, .grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Make premium cards stack */
+  .premium-card {
+    padding: 1rem;
+  }
+  
+  .app-main header {
+    padding: 0 1rem !important;
+  }
+  
+  .app-main > div {
+    padding: 1rem !important;
+  }
+}

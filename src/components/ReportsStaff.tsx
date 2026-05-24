@@ -281,7 +281,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           </div>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-responsive">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
@@ -437,7 +437,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                     Nhân viên chưa thực hiện phiên dịch vụ nào trong thời gian này.
                   </div>
                 ) : (
-                  <div style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                  <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
@@ -490,7 +490,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                     Không có hoa hồng bán hàng hoặc nghiệp vụ khác trong thời gian này.
                   </div>
                 ) : (
-                  <div style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                  <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>

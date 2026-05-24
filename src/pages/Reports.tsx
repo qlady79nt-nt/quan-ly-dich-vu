@@ -685,7 +685,8 @@ const Reports = () => {
                           </div>
                         </div>
 
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                        <div className="table-responsive">
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                           <thead>
                             <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                               <th style={{ padding: '0.75rem 0.5rem', width: '20%' }}>Ngày/Giờ</th>
@@ -720,8 +721,9 @@ const Reports = () => {
                                 </td>
                               </tr>
                             ))}
-                          </tbody>
-                        </table>
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     ))
                   )}
@@ -743,8 +745,8 @@ const Reports = () => {
                           <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--danger)' }}>{missingStaffData.length}</div>
                         </div>
                       </div>
-                      <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                      <div className="table-responsive">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                           <thead>
                             <tr style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>
                               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', borderRadius: '0.5rem 0 0 0.5rem' }}>Ngày/Giờ</th>

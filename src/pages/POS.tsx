@@ -383,7 +383,7 @@ const POS = () => {
   };
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: '1fr 380px' }}>
+    <div className="pos-grid">
       <div className="no-print">
         <div className="premium-card" style={{ marginBottom: '1.5rem', padding: '0.5rem' }}>
           <div style={{ display: 'flex' }}>

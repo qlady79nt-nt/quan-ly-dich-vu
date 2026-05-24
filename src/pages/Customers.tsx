@@ -189,8 +189,8 @@ const Customers = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
       ) : activeTab === 'general' ? (
-        <div className="premium-card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="premium-card table-responsive">
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
                 <th style={{ padding: '1rem' }}>Khách hàng</th>
@@ -231,8 +231,8 @@ const Customers = () => {
           </table>
         </div>
       ) : (
-        <div className="premium-card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="premium-card table-responsive">
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
                 <th style={{ padding: '1rem' }}>Khách hàng</th>

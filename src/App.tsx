@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Users, 
@@ -12,7 +13,9 @@ import {
   ShieldAlert,
   Calendar,
   LayoutDashboard,
-  FileText
+  FileText,
+  Menu,
+  X
 } from 'lucide-react';
 import { AuthProvider, useAuth, ProtectedRoute } from './lib/auth';
 
@@ -38,6 +41,7 @@ const MainLayout = () => {
   const { profile, signOut, shopStatus } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   let menuItems = [];
 
@@ -68,10 +72,23 @@ const MainLayout = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
+    <div className="app-layout">
+      {/* Mobile Sidebar Overlay */}
+      <div 
+        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      ></div>
+
       {/* Sidebar */}
-      <aside style={{ width: '260px', background: 'white', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', position: 'fixed', height: '100vh' }}>
-        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1rem' }}>
+      <aside className={`app-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderBottom: '1px solid var(--border)', marginBottom: '1rem', position: 'relative' }}>
+          <button 
+            className="mobile-menu-btn" 
+            style={{ position: 'absolute', top: '1rem', right: '1rem', padding: '0.25rem' }}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X size={24} />
+          </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '1.25rem' }}>
               {profile?.role === 'super_admin' ? 'SA' : (profile?.shop?.name?.charAt(0)?.toUpperCase() || 'S')}
@@ -97,6 +114,7 @@ const MainLayout = () => {
               <Link 
                 key={item.path} 
                 to={item.path} 
+                onClick={() => setIsMobileMenuOpen(false)}
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -127,10 +145,18 @@ const MainLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: '260px' }}>
-        <header style={{ height: '70px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 100 }}>
+      <main className="app-main">
+        <header style={{ height: '70px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 10 }}>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            Trang chủ <ChevronRight size={14} /> {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
+            <button 
+              className="mobile-menu-btn"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              Trang chủ <ChevronRight size={14} /> {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
+            </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
