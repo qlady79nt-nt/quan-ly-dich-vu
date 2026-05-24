@@ -366,6 +366,21 @@ const Reports = () => {
   const openRevenueDetail = async (log: any) => {
     setLoading(true);
     try {
+      const resolveItemNames = async (itemList: any[]) => {
+        for (let i = 0; i < itemList.length; i++) {
+          if (!itemList[i].name) {
+            if (itemList[i].type === 'service' && itemList[i].service_id) {
+              const { data: svc } = await supabase.from('services').select('name').eq('id', itemList[i].service_id).single();
+              if (svc) itemList[i].name = svc.name;
+            } else if ((itemList[i].type === 'package' || itemList[i].type === 'package_sale') && itemList[i].package_id) {
+              const { data: pkg } = await supabase.from('packages').select('name').eq('id', itemList[i].package_id).single();
+              if (pkg) itemList[i].name = pkg.name;
+            }
+          }
+        }
+        return itemList;
+      };
+
       if (log.type === 'retail') {
         const idToLook = log.invoice_id || log.reference_id;
         const { data: inv } = await supabase.from('invoices').select('*').eq('id', idToLook).single();
@@ -385,7 +400,7 @@ const Reports = () => {
 
         setDetailModal({ 
           type: 'invoice', 
-          data: { ...inv, staff_name: staffName, items: items || [] }, 
+          data: { ...inv, staff_name: staffName, items: await resolveItemNames(items || []) }, 
           title: `Hoá đơn #${inv?.invoice_code || '---'}` 
         });
       } else if (log.type === 'package_sale') {
@@ -418,7 +433,7 @@ const Reports = () => {
                const { data: staff } = inv?.created_by ? await supabase.from('profiles').select('full_name').eq('id', inv.created_by).single() : { data: null };
                setDetailModal({ 
                  type: 'invoice', 
-                 data: { ...inv, staff_name: staff?.full_name || 'Thu ngân', items: items || [] }, 
+                 data: { ...inv, staff_name: staff?.full_name || 'Thu ngân', items: await resolveItemNames(items || []) }, 
                  title: `Hoá đơn #${inv?.invoice_code || '---'}` 
                });
                return;
@@ -429,7 +444,7 @@ const Reports = () => {
                const { data: staff } = inv?.created_by ? await supabase.from('profiles').select('full_name').eq('id', inv.created_by).single() : { data: null };
                setDetailModal({ 
                  type: 'invoice', 
-                 data: { ...inv, staff_name: staff?.full_name || 'Thu ngân', items: items || [] }, 
+                 data: { ...inv, staff_name: staff?.full_name || 'Thu ngân', items: await resolveItemNames(items || []) }, 
                  title: `Hoá đơn #${inv?.invoice_code || '---'}` 
                });
                return;
