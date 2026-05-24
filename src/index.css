@@ -263,6 +263,39 @@ h1, h2, h3, h4 {
   justify-content: flex-end;
 }
 
+/* Visibility Helpers */
+.hidden-mobile { display: block; }
+.visible-mobile { display: none; }
+
+/* Report Card (Mobile) */
+.report-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.report-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed var(--border);
+}
+.report-card-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+.report-card-row.bold {
+  font-weight: 700;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
 @media (max-width: 1024px) {
   /* Tablet adjustments */
   .app-sidebar {
@@ -294,6 +327,9 @@ h1, h2, h3, h4 {
   .grid-cols-2, .grid-cols-3, .grid-cols-4 {
     grid-template-columns: 1fr;
   }
+  
+  .hidden-mobile { display: none !important; }
+  .visible-mobile { display: block !important; }
   
   /* Make premium cards stack */
   .premium-card {

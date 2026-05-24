@@ -281,7 +281,9 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           </div>
         </div>
       ) : (
-        <div className="table-responsive">
+        <>
+        {/* DESKTOP/TABLET VIEW (TABLE) */}
+        <div className="table-responsive hidden-mobile">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
@@ -351,6 +353,55 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
             </tfoot>
           </table>
         </div>
+
+        {/* MOBILE VIEW (CARDS) */}
+        <div className="visible-mobile">
+          {staffStats.map((staff) => (
+            <div 
+              key={`card-${staff.id}`} 
+              className="report-card"
+              onClick={() => handleOpenDetail(staff)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="report-card-header">
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.25rem' }}>
+                  {staff.name.charAt(0)}
+                </div>
+                <div>
+                  <div style={{ fontWeight: '700', color: 'var(--text-main)', fontSize: '1rem' }}>{staff.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Kỹ thuật viên / Bán hàng</div>
+                </div>
+              </div>
+              
+              <div className="report-card-row">
+                <span style={{ color: 'var(--text-secondary)' }}>DT Bán gói</span>
+                <span style={{ fontWeight: '500' }}>{staff.total_sales_revenue.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="report-card-row">
+                <span style={{ color: 'var(--text-secondary)' }}>DT Dịch vụ</span>
+                <span style={{ fontWeight: '500' }}>{staff.total_revenue.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="report-card-row">
+                <span style={{ color: 'var(--text-secondary)' }}>HH Bán hàng</span>
+                <span style={{ fontWeight: '600', color: 'var(--success)' }}>{staff.sales_commission.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="report-card-row">
+                <span style={{ color: 'var(--text-secondary)' }}>HH Dịch vụ</span>
+                <span style={{ fontWeight: '600', color: 'var(--primary)' }}>{staff.execution_commission.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="report-card-row">
+                <span style={{ color: 'var(--text-secondary)' }}>Số cuốc</span>
+                <span style={{ background: 'rgba(109, 40, 217, 0.1)', color: 'var(--primary)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontWeight: '700' }}>{staff.total_sessions}</span>
+              </div>
+              
+              <div className="report-card-row bold">
+                <span>Tổng Hoa Hồng</span>
+                <span style={{ color: 'var(--danger)', fontSize: '1.25rem' }}>{staff.total_commission.toLocaleString('vi-VN')}đ</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       )}
 
       {/* Modal chi tiết hiệu suất nhân viên */}
