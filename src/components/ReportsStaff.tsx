@@ -110,35 +110,37 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       const endStr = endObj.toISOString();
 
       // BƯỚC 1: Fetch staffs
-      const { data: staffs } = await supabase
+      const { data: staffs, error: staffsError } = await supabase
         .from('staffs')
-        .select('id, full_name, user_id')
+        .select('id, full_name')
         .eq('shop_id', shopId);
+        
+      if (staffsError) console.error('Error fetching staffs:', staffsError);
         
       const staffList = staffs || [];
       const staffMap: Record<string, any> = {};
       
-      // Fetch roles for staff members from profiles using user_id
-      const userIds = staffList.map(s => s.user_id).filter(Boolean);
+      // Fetch roles for staff members from profiles
+      const { data: profileRoles, error: rolesErr } = await supabase
+        .from('profiles')
+        .select('staff_id, role')
+        .eq('shop_id', shopId)
+        .not('staff_id', 'is', null);
+      
+      if (rolesErr) console.error('Lỗi lấy role nhân viên:', rolesErr);
+      
       const roleMap: Record<string, string> = {};
-      if (userIds.length > 0) {
-        const { data: profileRoles, error: rolesErr } = await supabase
-          .from('profiles')
-          .select('id, role')
-          .in('id', userIds);
-        if (rolesErr) console.error('Lỗi lấy role nhân viên:', rolesErr);
-        if (profileRoles) {
-          profileRoles.forEach(p => {
-            roleMap[p.id] = p.role as string;
-          });
-        }
+      if (profileRoles) {
+        profileRoles.forEach(p => {
+          if (p.staff_id) roleMap[p.staff_id] = p.role as string;
+        });
       }
       
       staffList.forEach(s => {
         staffMap[s.id] = {
           id: s.id,
           name: s.full_name,
-          role: roleMap[s.user_id] || 'staff', // default role if not found
+          role: roleMap[s.id] || 'staff', // default role if not found
           total_sessions: 0,
           total_revenue: 0,
           total_commission: 0
