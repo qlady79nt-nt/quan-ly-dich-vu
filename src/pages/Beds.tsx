@@ -123,46 +123,78 @@ const Beds = () => {
       
       if (sess.customer_package_id) {
         // --- XỬ LÝ THANH TOÁN GÓI LIỆU TRÌNH QUA RPC ---
-        const { data: cpData, error: cpErr } = await supabase.rpc('sp_checkout_package', {
+        const { data: cp, error: cpErr } = await supabase.from('customer_packages').select('*').eq('id', sess.customer_package_id).single();
+        if (cpErr || !cp) throw new Error('Không tìm thấy gói liệu trình khách hàng: ' + (cpErr?.message || ''));
+
+        // Lấy thông tin package
+        const { data: pkg } = await supabase.from('packages').select('name, service_id').eq('id', cp.package_id).single();
+        let svcDetails = svc;
+        if (pkg?.service_id) {
+           const { data: s } = await supabase.from('services').select('commission_type, commission_value').eq('id', pkg.service_id).single();
+           if (s) svcDetails = { ...svc, ...s };
+        }
+
+        const unitPrice = cp.sale_price / cp.total_sessions;
+        const comm = svcDetails.commission_type === 'percent' ? (svc.price * svcDetails.commission_value) / 100 : svcDetails.commission_value;
+
+        // Call RPC for atomic package checkout
+        const { data: cpData, error: rpcErr } = await supabase.rpc('sp_checkout_package_session', {
           p_session_id: sess.id,
-          p_customer_package_id: sess.customer_package_id
+          p_package_id: cp.package_id,
+          p_revenue_amount: unitPrice,
+          p_commission_amount: comm
         });
-        if (cpErr) throw cpErr;
+        if (rpcErr) throw rpcErr;
 
         setCompletedInvoice({
           id: sess.id,
           display_id: sess.session_code || '---',
-          customer_name: sess.customer_packages?.customer_name || 'Khách liệu trình',
-          customer_phone: sess.customer_packages?.customer_phone,
+          customer_name: cp.customer_name || sess.retail_customer_name || 'Khách liệu trình',
+          customer_phone: cp.customer_phone || sess.retail_customer_phone,
           staff_name: sess.staffs?.full_name || 'KTV',
-          items: [{ name: `Trừ 1 buổi: ${svc.name}`, price: '-' }],
+          items: [{ name: `Trừ 1 buổi: ${pkg?.name || svc.name}`, price: '-' }],
           total_amount: 0,
           discount_amount: 0,
           final_amount: 0,
           is_use_package: true,
-          used_sessions: cpData.used_sessions,
-          total_sessions: cpData.total_sessions
+          used_sessions: cpData ? cpData.used_sessions : cp.used_sessions + 1,
+          total_sessions: cpData ? cpData.total_sessions : cp.total_sessions
         });
       } else {
         // --- XỬ LÝ THANH TOÁN BÁN LẺ (RPC) ---
         const price = Number(svc.price);
         const discount = discountType === 'percent' ? (price * discountValue) / 100 : discountValue;
         const finalTotal = price - discount;
+        const comm = svc.commission_type === 'percent' ? (price * svc.commission_value) / 100 : svc.commission_value;
 
-        const { data: invId, error: rpcErr } = await supabase.rpc('sp_checkout_retail', {
+        const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+
+        const invoiceData = {
+          shop_id: shopId,
+          invoice_code: invCode,
+          customer_name: sess.retail_customer_name,
+          customer_phone: sess.retail_customer_phone,
+          created_by: profile?.id,
+          total_amount: price,
+          discount_amount: discount,
+          final_amount: finalTotal,
+          status: 'paid',
+          staff_id: sess.staff_id,
+          note: `Dịch vụ: ${svc.name}`,
+          service_id: svc.id // pass for invoice_items creation inside RPC
+        };
+
+        const { data: rpcResult, error: rpcErr } = await supabase.rpc('sp_checkout', {
           p_session_id: sess.id,
-          p_shop_id: shopId,
-          p_customer_name: sess.retail_customer_name || 'Khách lẻ',
-          p_customer_phone: sess.retail_customer_phone,
-          p_total_amount: price,
-          p_discount_amount: discount,
-          p_final_amount: finalTotal,
-          p_staff_id: sess.staff_id,
-          p_note: `Dịch vụ: ${svc.name}`
+          p_invoice_data: invoiceData,
+          p_revenue_amount: finalTotal,
+          p_commission_amount: comm
         });
         if (rpcErr) throw rpcErr;
 
-        const { data: inv } = await supabase.from('invoices').select('*').eq('id', invId).single();
+        // Fetch created invoice for display
+        const { data: inv, error: invFetchErr } = await supabase.from('invoices').select('*').eq('id', rpcResult).single();
+        if (invFetchErr) throw invFetchErr;
 
         setCompletedInvoice({
           id: inv.id,
