@@ -94,7 +94,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       // Fetch other commission logs (Bán liệu trình hoặc hoa hồng khác)
       const { data: comms, error: commErr } = await supabase
         .from('commission_logs')
-        .select('*')
+        .select('*, package_sales(amount_paid)')
         .eq('staff_id', staff.id)
         .neq('status', 'cancelled')
         .gte('created_at', startStr)
@@ -470,6 +470,17 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                           </tr>
                         ))}
                       </tbody>
+                      <tfoot>
+                        <tr style={{ background: 'rgba(109, 40, 217, 0.05)', fontWeight: '800' }}>
+                          <td colSpan={3} style={{ padding: '1rem', textAlign: 'right' }}>Tổng cộng:</td>
+                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>
+                            {sessionsDetail.reduce((sum, s) => sum + Number(s.revenue_amount || 0), 0).toLocaleString()}đ
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--warning)' }}>
+                            {sessionsDetail.reduce((sum, s) => sum + Number(s.commission_amount || 0), 0).toLocaleString()}đ
+                          </td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                 )
@@ -486,25 +497,45 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                           <th style={{ padding: '0.75rem 1rem' }}>Thời gian</th>
                           <th style={{ padding: '0.75rem 1rem' }}>Nghiệp vụ ghi nhận</th>
                           <th style={{ padding: '0.75rem 1rem' }}>Loại</th>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Doanh thu</th>
                           <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Hoa hồng nhận</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').map((comm, idx) => (
-                          <tr key={comm.id || idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td style={{ padding: '0.75rem 1rem' }}>{formatDateTime(comm.created_at)}</td>
-                            <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>{comm.note || 'Thưởng doanh số'}</td>
-                            <td style={{ padding: '0.75rem 1rem' }}>
-                              <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <ShoppingBag size={12} /> Bán hàng
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>
-                              +{Number(comm.amount || 0).toLocaleString()}đ
-                            </td>
-                          </tr>
-                        ))}
+                        {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').map((comm, idx) => {
+                          const rev = comm.package_sales?.amount_paid || 0;
+                          return (
+                            <tr key={comm.id || idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                              <td style={{ padding: '0.75rem 1rem' }}>{formatDateTime(comm.created_at)}</td>
+                              <td style={{ padding: '0.75rem 1rem', fontWeight: '600' }}>{comm.note || 'Thưởng doanh số'}</td>
+                              <td style={{ padding: '0.75rem 1rem' }}>
+                                <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <ShoppingBag size={12} /> Bán hàng
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
+                                {Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}
+                              </td>
+                              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>
+                                +{Number(comm.amount || 0).toLocaleString()}đ
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
+                      <tfoot>
+                        <tr style={{ background: 'rgba(109, 40, 217, 0.05)', fontWeight: '800' }}>
+                          <td colSpan={3} style={{ padding: '1rem', textAlign: 'right' }}>Tổng cộng:</td>
+                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>
+                            {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution')
+                              .reduce((sum, c) => sum + Number(c.package_sales?.amount_paid || 0), 0).toLocaleString()}đ
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--primary)' }}>
+                            {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution')
+                              .reduce((sum, c) => sum + Number(c.amount || 0), 0).toLocaleString()}đ
+                          </td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                 )
