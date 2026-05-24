@@ -487,120 +487,220 @@ const Staff = () => {
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" size={32} /></div>
       ) : activeTab === 'staffs' ? (
         <div className="premium-card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                <th style={{ padding: '1rem' }}>Họ và tên</th>
-                <th>SĐT</th>
-                <th>Vị trí</th>
-                <th>Trạng thái</th>
-                <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStaff.map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', opacity: s.status === 'inactive' ? 0.6 : 1 }}>
-                  <td style={{ padding: '1rem', fontWeight: '600' }}>{s.full_name}</td>
-                  <td>{s.phone || '---'}</td>
-                  <td>
-                    <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
-                      <Briefcase size={12} style={{ display: 'inline', marginRight: '4px' }}/>
-                      {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'Cộng tác viên' : s.position === 'staff' ? 'KTV' : (s.position || 'KTV')}
-                    </span>
-                  </td>
-                  <td>
-                    {s.status === 'inactive' ? (
-                      <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Nghỉ làm</span>
-                    ) : (
-                      <span className="badge badge-success">Đang làm</span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'right', paddingRight: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button onClick={() => openStaffEdit(s)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
-                      <button onClick={() => handleToggleStaffStatus(s)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
-                        {s.status === 'inactive' ? 'Khôi phục' : 'Cho nghỉ'}
-                      </button>
-                      {currentUser?.role === 'super_admin' && (
-                        <button onClick={() => handleHardDeleteStaff(s.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
-                      )}
-                    </div>
-                  </td>
+          <div className="hidden-mobile table-responsive">
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                  <th style={{ padding: '1rem' }}>Họ và tên</th>
+                  <th>SĐT</th>
+                  <th>Vị trí</th>
+                  <th>Trạng thái</th>
+                  <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Thao tác</th>
                 </tr>
-              ))}
-              {filteredStaff.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có nhân sự nào</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredStaff.map((s) => (
+                  <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', opacity: s.status === 'inactive' ? 0.6 : 1 }}>
+                    <td style={{ padding: '1rem', fontWeight: '600' }}>{s.full_name}</td>
+                    <td>{s.phone || '---'}</td>
+                    <td>
+                      <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
+                        <Briefcase size={12} style={{ display: 'inline', marginRight: '4px' }}/>
+                        {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'Cộng tác viên' : s.position === 'staff' ? 'KTV' : (s.position || 'KTV')}
+                      </span>
+                    </td>
+                    <td>
+                      {s.status === 'inactive' ? (
+                        <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Nghỉ làm</span>
+                      ) : (
+                        <span className="badge badge-success">Đang làm</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right', paddingRight: '1rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button onClick={() => openStaffEdit(s)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                        <button onClick={() => handleToggleStaffStatus(s)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                          {s.status === 'inactive' ? 'Khôi phục' : 'Cho nghỉ'}
+                        </button>
+                        {currentUser?.role === 'super_admin' && (
+                          <button onClick={() => handleHardDeleteStaff(s.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredStaff.length === 0 && (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có nhân sự nào</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
+            {filteredStaff.map((s) => (
+              <div key={s.id} className="report-card" style={{ opacity: s.status === 'inactive' ? 0.6 : 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div style={{ fontWeight: '700', fontSize: '1.1rem' }}>{s.full_name}</div>
+                  {s.status === 'inactive' ? (
+                    <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Nghỉ làm</span>
+                  ) : (
+                    <span className="badge badge-success">Đang làm</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Số điện thoại:</span>
+                  <span>{s.phone || '---'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Vị trí:</span>
+                  <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
+                    {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'CTV' : s.position === 'staff' ? 'KTV' : (s.position || 'KTV')}
+                  </span>
+                </div>
+                <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button onClick={() => openStaffEdit(s)} className="btn" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                  <button onClick={() => handleToggleStaffStatus(s)} className="btn" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                    {s.status === 'inactive' ? 'Khôi phục' : 'Cho nghỉ'}
+                  </button>
+                  {currentUser?.role === 'super_admin' && (
+                    <button onClick={() => handleHardDeleteStaff(s.id)} className="btn" style={{ padding: '0.5rem 1rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}><Trash2 size={16} /></button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {filteredStaff.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có nhân sự nào</div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="premium-card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                <th style={{ padding: '1rem' }}>Tên đăng nhập (Username)</th>
-                <th>Nhân sự liên kết</th>
-                <th>Vai trò</th>
-                <th>Phân quyền</th>
-                <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAccounts.map((a) => (
-                <tr key={a.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : '3px solid transparent', opacity: a.status === 'inactive' ? 0.6 : 1 }}>
-                  <td style={{ padding: '1rem', fontWeight: '700', color: 'var(--primary)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <KeyRound size={16} />
-                      <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
-                      {a.status === 'inactive' && <span className="badge" style={{ background: 'var(--danger)', color: 'white', fontSize: '0.65rem', padding: '0.2rem 0.4rem' }}>Đã khóa</span>}
-                    </div>
-                  </td>
-                  <td>
-                    {a.staffs ? (
-                      <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal', fontSize: '0.75rem' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
-                    ) : (
-                      <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
-                    )}
-                  </td>
-                  <td>
-                    {a.role === 'shop_admin' ? (
-                      <span className="badge" style={{ background: 'var(--secondary)', color: 'white' }}>Chủ cửa hàng</span>
-                    ) : a.role === 'manager' ? (
-                      <span className="badge" style={{ background: 'var(--primary-light)', color: 'white' }}>Quản lý</span>
-                    ) : (
-                      <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>Nhân viên</span>
-                    )}
-                  </td>
-                  <td>
-                    {a.role === 'shop_admin' ? (
-                      <span style={{ color: 'var(--success)' }}>Toàn quyền</span>
-                    ) : (
-                      <span>{a.user_permissions?.length || 0} quyền chi tiết</span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'right', paddingRight: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button onClick={() => openAccountEdit(a)} className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}>Sửa Quyền</button>
-                      {a.role !== 'shop_admin' && (
-                        <>
-                          <button onClick={() => handleToggleAccountStatus(a)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: a.status === 'inactive' ? 'var(--success)' : 'var(--danger)', border: `1px solid ${a.status === 'inactive' ? 'var(--success)' : 'var(--danger)'}` }}>
-                            <Lock size={14} style={{ marginRight: '4px' }} /> {a.status === 'inactive' ? 'Mở khóa' : 'Khóa'}
-                          </button>
-                          <button onClick={() => handleHardDeleteAccount(a)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa vĩnh viễn">
-                            <Trash2 size={16} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+          <div className="hidden-mobile table-responsive">
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                  <th style={{ padding: '1rem' }}>Tên đăng nhập (Username)</th>
+                  <th>Nhân sự liên kết</th>
+                  <th>Vai trò</th>
+                  <th>Phân quyền</th>
+                  <th style={{ textAlign: 'right', paddingRight: '1rem' }}>Thao tác</th>
                 </tr>
-              ))}
-              {filteredAccounts.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có tài khoản nào</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredAccounts.map((a) => (
+                  <tr key={a.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : '3px solid transparent', opacity: a.status === 'inactive' ? 0.6 : 1 }}>
+                    <td style={{ padding: '1rem', fontWeight: '700', color: 'var(--primary)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <KeyRound size={16} />
+                        <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
+                        {a.status === 'inactive' && <span className="badge" style={{ background: 'var(--danger)', color: 'white', fontSize: '0.65rem', padding: '0.2rem 0.4rem' }}>Đã khóa</span>}
+                      </div>
+                    </td>
+                    <td>
+                      {a.staffs ? (
+                        <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal', fontSize: '0.75rem' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
+                      ) : (
+                        <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
+                      )}
+                    </td>
+                    <td>
+                      {a.role === 'shop_admin' ? (
+                        <span className="badge" style={{ background: 'var(--secondary)', color: 'white' }}>Chủ cửa hàng</span>
+                      ) : a.role === 'manager' ? (
+                        <span className="badge" style={{ background: 'var(--primary-light)', color: 'white' }}>Quản lý</span>
+                      ) : (
+                        <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>Nhân viên</span>
+                      )}
+                    </td>
+                    <td>
+                      {a.role === 'shop_admin' ? (
+                        <span style={{ color: 'var(--success)' }}>Toàn quyền</span>
+                      ) : (
+                        <span>{a.user_permissions?.length || 0} quyền chi tiết</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right', paddingRight: '1rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button onClick={() => openAccountEdit(a)} className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}>Sửa Quyền</button>
+                        {a.role !== 'shop_admin' && (
+                          <>
+                            <button onClick={() => handleToggleAccountStatus(a)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: a.status === 'inactive' ? 'var(--success)' : 'var(--danger)', border: `1px solid ${a.status === 'inactive' ? 'var(--success)' : 'var(--danger)'}` }}>
+                              <Lock size={14} style={{ marginRight: '4px' }} /> {a.status === 'inactive' ? 'Mở khóa' : 'Khóa'}
+                            </button>
+                            <button onClick={() => handleHardDeleteAccount(a)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa vĩnh viễn">
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredAccounts.length === 0 && (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có tài khoản nào</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
+            {filteredAccounts.map((a) => (
+              <div key={a.id} className="report-card" style={{ opacity: a.status === 'inactive' ? 0.6 : 1, borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                    <KeyRound size={16} />
+                    <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
+                  </div>
+                  {a.status === 'inactive' ? (
+                    <span className="badge" style={{ background: 'var(--danger)', color: 'white' }}>Đã khóa</span>
+                  ) : a.role === 'shop_admin' ? (
+                    <span className="badge" style={{ background: 'var(--secondary)', color: 'white' }}>Chủ cửa hàng</span>
+                  ) : a.role === 'manager' ? (
+                    <span className="badge" style={{ background: 'var(--primary-light)', color: 'white' }}>Quản lý</span>
+                  ) : (
+                    <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>Nhân viên</span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Nhân sự:</span>
+                  {a.staffs ? (
+                    <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
+                  ) : (
+                    <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Phân quyền:</span>
+                  {a.role === 'shop_admin' ? (
+                    <span style={{ color: 'var(--success)' }}>Toàn quyền</span>
+                  ) : (
+                    <span>{a.user_permissions?.length || 0} quyền chi tiết</span>
+                  )}
+                </div>
+
+                <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button onClick={() => openAccountEdit(a)} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Sửa Quyền</button>
+                  {a.role !== 'shop_admin' && (
+                    <>
+                      <button onClick={() => handleToggleAccountStatus(a)} className="btn" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'transparent', color: a.status === 'inactive' ? 'var(--success)' : 'var(--danger)', border: `1px solid ${a.status === 'inactive' ? 'var(--success)' : 'var(--danger)'}` }}>
+                        <Lock size={14} style={{ marginRight: '4px' }} /> {a.status === 'inactive' ? 'Mở khóa' : 'Khóa'}
+                      </button>
+                      <button onClick={() => handleHardDeleteAccount(a)} className="btn" style={{ padding: '0.5rem 1rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }} title="Xóa vĩnh viễn">
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+            {filteredAccounts.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có tài khoản nào</div>
+            )}
+          </div>
         </div>
       )}
 

@@ -506,102 +506,205 @@ const Invoices = () => {
         <div style={{ textAlign: 'center', padding: '5rem' }}><Loader2 className="animate-spin" size={40} /></div>
       ) : view === 'retail' ? (
         <div className="premium-card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                <th style={{ width: '40px', padding: '1rem' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0}
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedInvoices(filteredInvoices.map(i => i.id));
-                      else setSelectedInvoices([]);
-                    }}
-                  />
-                </th>
-                <th style={{ padding: '1rem' }}>Mã Hoá Đơn</th>
-                <th>Khách hàng</th>
-                <th>Ngày bán</th>
-                <th>Người tạo</th>
-                <th>Tổng tiền</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInvoices.map(inv => (
-                <tr
-                  key={inv.id}
-                  onClick={() => handleViewInvoice(inv)}
-                  style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
-                  onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
-                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <td style={{ padding: '1rem' }} onClick={(e) => e.stopPropagation()}>
+          <div className="hidden-mobile table-responsive">
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                  <th style={{ width: '40px', padding: '1rem' }}>
                     <input 
                       type="checkbox" 
-                      checked={selectedInvoices.includes(inv.id)}
+                      checked={selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0}
                       onChange={(e) => {
-                        if (e.target.checked) setSelectedInvoices(prev => [...prev, inv.id]);
-                        else setSelectedInvoices(prev => prev.filter(id => id !== inv.id));
+                        if (e.target.checked) setSelectedInvoices(filteredInvoices.map(i => i.id));
+                        else setSelectedInvoices([]);
                       }}
                     />
-                  </td>
-                  <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.invoice_code || '---'}</td>
-                  <td>{inv.customer_name || 'Khách lẻ'}</td>
-                  <td>{new Date(inv.created_at).toLocaleString()}</td>
-                  <td>{inv.profiles?.full_name || 'Hệ thống'}</td>
-                  <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(inv.final_amount).toLocaleString()}đ</td>
-                  <td>
-                    <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
-                      {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ thanh toán'}
-                    </span>
-                  </td>
+                  </th>
+                  <th style={{ padding: '1rem' }}>Mã Hoá Đơn</th>
+                  <th>Khách hàng</th>
+                  <th>Ngày bán</th>
+                  <th>Người tạo</th>
+                  <th>Tổng tiền</th>
+                  <th>Trạng thái</th>
                 </tr>
-              ))}
-              {filteredInvoices.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có dữ liệu hoá đơn</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredInvoices.map(inv => (
+                  <tr
+                    key={inv.id}
+                    onClick={() => handleViewInvoice(inv)}
+                    style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
+                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '1rem' }} onClick={(e) => e.stopPropagation()}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedInvoices.includes(inv.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedInvoices(prev => [...prev, inv.id]);
+                          else setSelectedInvoices(prev => prev.filter(id => id !== inv.id));
+                        }}
+                      />
+                    </td>
+                    <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.invoice_code || '---'}</td>
+                    <td>{inv.customer_name || 'Khách lẻ'}</td>
+                    <td>{new Date(inv.created_at).toLocaleString()}</td>
+                    <td>{inv.profiles?.full_name || 'Hệ thống'}</td>
+                    <td className="financial-cell" style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(inv.final_amount).toLocaleString()}đ</td>
+                    <td>
+                      <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
+                        {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ thanh toán'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {filteredInvoices.length === 0 && (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có dữ liệu hoá đơn</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
+            {filteredInvoices.map(inv => (
+              <div 
+                key={inv.id} 
+                className="report-card" 
+                onClick={() => handleViewInvoice(inv)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div onClick={(e) => e.stopPropagation()} style={{ marginRight: '0.5rem' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedInvoices.includes(inv.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedInvoices(prev => [...prev, inv.id]);
+                          else setSelectedInvoices(prev => prev.filter(id => id !== inv.id));
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontWeight: '700', color: 'var(--secondary)' }}>#{inv.invoice_code || '---'}</div>
+                  </div>
+                  <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
+                    {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Khách:</span>
+                  <span style={{ fontWeight: '600' }}>{inv.customer_name || 'Khách lẻ'}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Người tạo:</span>
+                  <span>{inv.profiles?.full_name || 'Hệ thống'}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Thời gian:</span>
+                  <span>{new Date(inv.created_at).toLocaleString()}</span>
+                </div>
+
+                <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Tổng tiền:</span>
+                  <span className="financial-cell" style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary)' }}>
+                    {Number(inv.final_amount).toLocaleString()}đ
+                  </span>
+                </div>
+              </div>
+            ))}
+            {filteredInvoices.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có dữ liệu hoá đơn</div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="premium-card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                <th style={{ padding: '1rem' }}>Mã Phiếu</th>
-                <th>Khách hàng</th>
-                <th>Gói dịch vụ</th>
-                <th>Ngày dùng</th>
-                <th>Kỹ thuật viên</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSessions.map(sess => (
-                <tr
-                  key={sess.id}
-                  onClick={() => handleViewSession(sess)}
-                  style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
-                  onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
-                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.session_code || '---'}</td>
-                  <td>
+          <div className="hidden-mobile table-responsive">
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                  <th style={{ padding: '1rem' }}>Mã Phiếu</th>
+                  <th>Khách hàng</th>
+                  <th>Gói dịch vụ</th>
+                  <th>Ngày dùng</th>
+                  <th>Kỹ thuật viên</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSessions.map(sess => (
+                  <tr
+                    key={sess.id}
+                    onClick={() => handleViewSession(sess)}
+                    style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
+                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--secondary)' }}>#{sess.session_code || '---'}</td>
+                    <td>
+                      <div style={{ fontWeight: '600' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{sess.customer_packages?.customer_phone}</div>
+                    </td>
+                    <td>{sess.customer_packages?.packages?.name || 'N/A'}</td>
+                    <td>{new Date(sess.created_at).toLocaleString()}</td>
+                    <td>{sess.profiles?.full_name || 'N/A'}</td>
+                    <td><span className="badge badge-success">Đã hoàn thành</span></td>
+                  </tr>
+                ))}
+                {filteredSessions.length === 0 && (
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có phiếu trừ buổi nào</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
+            {filteredSessions.map(sess => (
+              <div 
+                key={sess.id} 
+                className="report-card" 
+                onClick={() => handleViewSession(sess)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <div style={{ fontWeight: '700', color: 'var(--secondary)' }}>#{sess.session_code || '---'}</div>
+                  <span className="badge badge-success">Đã hoàn thành</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Khách:</span>
+                  <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: '600' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{sess.customer_packages?.customer_phone}</div>
-                  </td>
-                  <td>{sess.customer_packages?.packages?.name || 'N/A'}</td>
-                  <td>{new Date(sess.created_at).toLocaleString()}</td>
-                  <td>{sess.profiles?.full_name || 'N/A'}</td>
-                  <td><span className="badge badge-success">Đã hoàn thành</span></td>
-                </tr>
-              ))}
-              {filteredSessions.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có phiếu trừ buổi nào</td></tr>
-              )}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Gói dịch vụ:</span>
+                  <span style={{ fontWeight: '600' }}>{sess.customer_packages?.packages?.name || 'N/A'}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Kỹ thuật viên:</span>
+                  <span>{sess.profiles?.full_name || 'N/A'}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Ngày dùng:</span>
+                  <span>{new Date(sess.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+            {filteredSessions.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có phiếu trừ buổi nào</div>
+            )}
+          </div>
         </div>
       )}
 

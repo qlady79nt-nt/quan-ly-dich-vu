@@ -214,7 +214,7 @@ const Beds = () => {
         const { error: updErr } = await supabase.from('service_sessions').update({
           status: 'completed',
           end_time: new Date().toISOString(),
-          revenue_amount: price,
+          revenue_amount: finalTotal,
           commission_amount: comm
         }).eq('id', sess.id);
         if (updErr) throw updErr;
