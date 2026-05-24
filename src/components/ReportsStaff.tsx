@@ -38,8 +38,10 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
     setActiveModalTab('sessions');
 
     try {
-      const startObj = new Date(startDate + 'T00:00:00');
-      const endObj = new Date(endDate + 'T23:59:59.999');
+      const [sy, sm, sd] = startDate.split('-').map(Number);
+      const startObj = new Date(sy, sm - 1, sd, 0, 0, 0);
+      const [ey, em, ed] = endDate.split('-').map(Number);
+      const endObj = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       const startStr = startObj.toISOString();
       const endStr = endObj.toISOString();
 
@@ -100,8 +102,10 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
   const fetchStaffStats = async () => {
     setLoading(true);
     try {
-      const startObj = new Date(startDate + 'T00:00:00');
-      const endObj = new Date(endDate + 'T23:59:59.999');
+      const [sy, sm, sd] = startDate.split('-').map(Number);
+      const startObj = new Date(sy, sm - 1, sd, 0, 0, 0);
+      const [ey, em, ed] = endDate.split('-').map(Number);
+      const endObj = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       const startStr = startObj.toISOString();
       const endStr = endObj.toISOString();
 

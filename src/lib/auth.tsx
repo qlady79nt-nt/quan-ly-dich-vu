@@ -13,6 +13,7 @@ interface Profile {
   status: string;
   permissions: string[];
   shop?: {
+    name?: string;
     status: string;
     expired_at: string;
     shop_code: string;
@@ -54,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data: prof, error: profErr } = await supabase
         .from('profiles')
-        .select('*, shops(status, expired_at, shop_code, plans(id, name, max_users, max_staffs))')
+        .select('*, shops(name, status, expired_at, shop_code, plans(id, name, max_users, max_staffs))')
         .eq('id', userId)
         .single();
 

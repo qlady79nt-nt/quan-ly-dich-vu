@@ -126,7 +126,7 @@ const MainLayout = () => {
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{profile?.full_name || 'Quản trị viên'}</div>
               <div style={{ fontSize: '0.75rem', color: profile?.role === 'super_admin' ? 'var(--secondary)' : 'var(--text-light)', fontWeight: profile?.role === 'super_admin' ? '700' : '400' }}>
-                {profile?.role === 'super_admin' ? 'Hệ thống (Super Admin)' : (profile?.role === 'shop_admin' ? 'Chủ cửa hàng' : 'Nhân viên')}
+                {profile?.role === 'super_admin' ? 'Hệ thống (Super Admin)' : (profile?.role === 'shop_admin' ? `${profile?.shop?.name || 'Cửa hàng'} (${profile?.shop?.shop_code || '---'})` : 'Nhân viên')}
               </div>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>

@@ -63,8 +63,10 @@ const Reports = () => {
       let revLog: any[] = [];
       let commLog: any[] = [];
 
-      const startObj = new Date(startDate + 'T00:00:00');
-      const endObj = new Date(endDate + 'T23:59:59.999');
+      const [sy, sm, sd] = startDate.split('-').map(Number);
+      const startObj = new Date(sy, sm - 1, sd, 0, 0, 0);
+      const [ey, em, ed] = endDate.split('-').map(Number);
+      const endObj = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       const start = startObj.toISOString();
       const end = endObj.toISOString();
 
