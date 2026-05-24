@@ -407,7 +407,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       {/* Modal chi tiết hiệu suất nhân viên */}
       {isModalOpen && selectedStaff && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
+          <div className="premium-card animate-fade modal-fullscreen-mobile" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
               <div>
@@ -488,7 +488,8 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                     Nhân viên chưa thực hiện phiên dịch vụ nào trong thời gian này.
                   </div>
                 ) : (
-                  <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                  <>
+                  <div className="table-responsive hidden-mobile" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
@@ -512,10 +513,10 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                                 <span>{sess.services?.name || 'Dịch vụ không xác định'}</span>
                               </div>
                             </td>
-                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
+                            <td className="financial-cell" style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
                               {Number(sess.revenue_amount || 0).toLocaleString()}đ
                             </td>
-                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>
+                            <td className="financial-cell" style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>
                               {Number(sess.commission_amount || 0).toLocaleString()}đ
                             </td>
                           </tr>
@@ -524,16 +525,43 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                       <tfoot>
                         <tr style={{ background: 'rgba(109, 40, 217, 0.05)', fontWeight: '800' }}>
                           <td colSpan={3} style={{ padding: '1rem', textAlign: 'right' }}>Tổng cộng:</td>
-                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>
+                          <td className="financial-cell" style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>
                             {sessionsDetail.reduce((sum, s) => sum + Number(s.revenue_amount || 0), 0).toLocaleString()}đ
                           </td>
-                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--warning)' }}>
+                          <td className="financial-cell" style={{ padding: '1rem', textAlign: 'right', color: 'var(--warning)' }}>
                             {sessionsDetail.reduce((sum, s) => sum + Number(s.commission_amount || 0), 0).toLocaleString()}đ
                           </td>
                         </tr>
                       </tfoot>
                     </table>
                   </div>
+
+                  {/* MOBILE VIEW (CARDS) */}
+                  <div className="visible-mobile">
+                    {sessionsDetail.map((sess, idx) => (
+                      <div key={sess.id || idx} className="report-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>{formatDateTime(sess.created_at)}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontWeight: '600' }}>
+                            <Scissors size={14} />
+                            <span>{sess.services?.name || 'Dịch vụ'}</span>
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: '600', marginBottom: '1rem', fontSize: '1rem' }}>
+                          {sess.customer_packages?.customer_name || 'Khách vãng lai'}
+                        </div>
+                        <div className="report-card-row">
+                          <span style={{ color: 'var(--text-secondary)' }}>Doanh thu</span>
+                          <span className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(sess.revenue_amount || 0).toLocaleString()}đ</span>
+                        </div>
+                        <div className="report-card-row">
+                          <span style={{ color: 'var(--text-secondary)' }}>Hoa hồng KTV</span>
+                          <span className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)' }}>{Number(sess.commission_amount || 0).toLocaleString()}đ</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  </>
                 )
               ) : (
                 commissionsDetail.filter(c => c.type !== 'service_execution').length === 0 ? (
@@ -541,7 +569,8 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                     Không có hoa hồng bán hàng hoặc nghiệp vụ khác trong thời gian này.
                   </div>
                 ) : (
-                  <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                  <>
+                  <div className="table-responsive hidden-mobile" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
@@ -564,30 +593,59 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                                   <ShoppingBag size={12} /> Bán hàng
                                 </span>
                               </td>
-                              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
-                                {Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}
-                              </td>
-                              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>
-                                +{Number(comm.amount || 0).toLocaleString()}đ
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{ background: 'rgba(109, 40, 217, 0.05)', fontWeight: '800' }}>
-                          <td colSpan={3} style={{ padding: '1rem', textAlign: 'right' }}>Tổng cộng:</td>
-                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>
-                            {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution')
-                              .reduce((sum, c) => sum + Number(c.package_sales?.amount_paid || 0), 0).toLocaleString()}đ
-                          </td>
-                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--warning)' }}>
-                            {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').reduce((sum, c) => sum + Number(c.amount || 0), 0).toLocaleString()}đ
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
+                               <td className="financial-cell" style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
+                                 {Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}
+                               </td>
+                               <td className="financial-cell" style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>
+                                 +{Number(comm.amount || 0).toLocaleString()}đ
+                               </td>
+                             </tr>
+                           );
+                         })}
+                       </tbody>
+                       <tfoot>
+                         <tr style={{ background: 'rgba(109, 40, 217, 0.05)', fontWeight: '800' }}>
+                           <td colSpan={3} style={{ padding: '1rem', textAlign: 'right' }}>Tổng cộng:</td>
+                           <td className="financial-cell" style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>
+                             {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution')
+                               .reduce((sum, c) => sum + Number(c.package_sales?.amount_paid || 0), 0).toLocaleString()}đ
+                           </td>
+                           <td className="financial-cell" style={{ padding: '1rem', textAlign: 'right', color: 'var(--warning)' }}>
+                             {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').reduce((sum, c) => sum + Number(c.amount || 0), 0).toLocaleString()}đ
+                           </td>
+                         </tr>
+                       </tfoot>
+                     </table>
+                   </div>
+                   
+                   {/* MOBILE VIEW (CARDS) */}
+                   <div className="visible-mobile">
+                     {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').map((comm, idx) => {
+                       const rev = comm.package_sales?.amount_paid || 0;
+                       return (
+                         <div key={comm.id || idx} className="report-card">
+                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                             <span style={{ color: 'var(--text-secondary)' }}>{formatDateTime(comm.created_at)}</span>
+                             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                               <ShoppingBag size={12} /> Bán hàng
+                             </span>
+                           </div>
+                           <div style={{ fontWeight: '600', marginBottom: '1rem', fontSize: '1rem' }}>
+                             {comm.note || 'Thưởng doanh số'}
+                           </div>
+                           <div className="report-card-row">
+                             <span style={{ color: 'var(--text-secondary)' }}>Doanh thu</span>
+                             <span className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}</span>
+                           </div>
+                           <div className="report-card-row">
+                             <span style={{ color: 'var(--text-secondary)' }}>Hoa hồng nhận</span>
+                             <span className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)' }}>+{Number(comm.amount || 0).toLocaleString()}đ</span>
+                           </div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                   </>
                 )
               )}
             </div>

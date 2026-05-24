@@ -163,6 +163,22 @@ h1, h2, h3, h4 {
 
 .table-responsive table {
   font-variant-numeric: tabular-nums; /* Financial Number Style */
+  width: 100%;
+}
+
+.financial-cell {
+  white-space: nowrap;
+}
+
+.table-responsive thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-main);
+}
+
+.table-responsive tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.015);
 }
 
 .table-responsive::-webkit-scrollbar {
@@ -330,6 +346,13 @@ h1, h2, h3, h4 {
   
   .hidden-mobile { display: none !important; }
   .visible-mobile { display: block !important; }
+  
+  .modal-fullscreen-mobile {
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+  }
   
   /* Make premium cards stack */
   .premium-card {
