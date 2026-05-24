@@ -1,3 +1,5 @@
+ALTER TABLE commission_logs ADD COLUMN IF NOT EXISTS invoice_item_id UUID REFERENCES invoice_items(id) ON DELETE CASCADE;
+
 CREATE OR REPLACE FUNCTION sp_checkout(
     p_session_id uuid,
     p_invoice_data jsonb,
