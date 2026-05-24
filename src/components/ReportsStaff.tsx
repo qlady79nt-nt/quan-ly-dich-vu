@@ -489,14 +489,14 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                   </div>
                 ) : (
                   <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
-                          <th style={{ padding: '0.75rem 1rem' }}>Thời gian</th>
-                          <th style={{ padding: '0.75rem 1rem' }}>Khách hàng</th>
-                          <th style={{ padding: '0.75rem 1rem' }}>Dịch vụ thực hiện</th>
-                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Doanh thu</th>
-                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Hoa hồng KTV</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '20%' }}>Thời gian</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '25%' }}>Khách hàng</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '25%' }}>Dịch vụ thực hiện</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '15%', textAlign: 'right' }}>Doanh thu</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '15%', textAlign: 'right' }}>Hoa hồng KTV</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -542,14 +542,14 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                   </div>
                 ) : (
                   <div className="table-responsive" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
-                          <th style={{ padding: '0.75rem 1rem' }}>Thời gian</th>
-                          <th style={{ padding: '0.75rem 1rem' }}>Nghiệp vụ ghi nhận</th>
-                          <th style={{ padding: '0.75rem 1rem' }}>Loại</th>
-                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Doanh thu</th>
-                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Hoa hồng nhận</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '20%' }}>Thời gian</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '30%' }}>Nghiệp vụ ghi nhận</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '20%' }}>Loại</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '15%', textAlign: 'right' }}>Doanh thu</th>
+                          <th style={{ padding: '0.75rem 1rem', width: '15%', textAlign: 'right' }}>Hoa hồng nhận</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -567,7 +567,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                               <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: 'var(--success)' }}>
                                 {Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}
                               </td>
-                              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>
+                              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>
                                 +{Number(comm.amount || 0).toLocaleString()}đ
                               </td>
                             </tr>
@@ -581,9 +581,8 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                             {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution')
                               .reduce((sum, c) => sum + Number(c.package_sales?.amount_paid || 0), 0).toLocaleString()}đ
                           </td>
-                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--primary)' }}>
-                            {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution')
-                              .reduce((sum, c) => sum + Number(c.amount || 0), 0).toLocaleString()}đ
+                          <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--warning)' }}>
+                            {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').reduce((sum, c) => sum + Number(c.amount || 0), 0).toLocaleString()}đ
                           </td>
                         </tr>
                       </tfoot>
