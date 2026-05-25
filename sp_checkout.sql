@@ -28,7 +28,8 @@ BEGIN
         total_amount,
         discount_amount,
         final_amount,
-        status
+        status,
+        service_session_id
     )
     SELECT
         (p_invoice_data->>'shop_id')::uuid,
@@ -39,7 +40,8 @@ BEGIN
         (p_invoice_data->>'total_amount')::numeric,
         (p_invoice_data->>'discount_amount')::numeric,
         (p_invoice_data->>'final_amount')::numeric,
-        p_invoice_data->>'status'
+        p_invoice_data->>'status',
+        p_session_id
     RETURNING id INTO v_invoice_id;
 
     -- Insert invoice_items (retail service line)
