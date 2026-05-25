@@ -516,13 +516,22 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
             <tfoot>
               <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--bg-main)' }}>
                 <td style={{ padding: '1rem', fontWeight: '800', color: 'var(--text-main)' }}>TỔNG CỘNG</td>
+                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '800', color: 'var(--text-main)' }}>
+                  {staffStats.reduce((acc, s) => acc + s.total_sales_revenue, 0).toLocaleString()}đ
+                </td>
+                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '800', color: 'var(--success)' }}>
+                  {staffStats.reduce((acc, s) => acc + s.sales_commission, 0).toLocaleString()}đ
+                </td>
                 <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '800', color: 'var(--primary)' }}>
                   {staffStats.reduce((acc, s) => acc + s.total_sessions, 0)}
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '800', color: 'var(--success)' }}>
+                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '800', color: 'var(--text-main)' }}>
                   {staffStats.reduce((acc, s) => acc + s.total_revenue, 0).toLocaleString()}đ
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '800', color: 'var(--warning)' }}>
+                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '800', color: 'var(--primary)' }}>
+                  {staffStats.reduce((acc, s) => acc + s.execution_commission, 0).toLocaleString()}đ
+                </td>
+                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '800', color: 'var(--danger)' }}>
                   {staffStats.reduce((acc, s) => acc + s.total_commission, 0).toLocaleString()}đ
                 </td>
               </tr>
@@ -603,12 +612,12 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                   <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--primary)' }}>{selectedStaff.total_sessions}</div>
                 </div>
                 <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng Doanh Thu (Dịch vụ + Bán hàng)</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng Giá trị Hiệu suất</div>
                   <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--success)' }}>
                     {(selectedStaff.total_revenue + (selectedStaff.total_sales_revenue || 0)).toLocaleString('vi-VN')}đ
                   </div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
-                    DV: {selectedStaff.total_revenue.toLocaleString('vi-VN')}đ | Bán: {(selectedStaff.total_sales_revenue || 0).toLocaleString('vi-VN')}đ
+                    Thực hiện: {selectedStaff.total_revenue.toLocaleString('vi-VN')}đ | Bán hàng: {(selectedStaff.total_sales_revenue || 0).toLocaleString('vi-VN')}đ
                   </div>
                 </div>
                 <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
@@ -617,7 +626,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                     {selectedStaff.total_commission.toLocaleString('vi-VN')}đ
                   </div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
-                    DV: {selectedStaff.execution_commission.toLocaleString('vi-VN')}đ | Khác: {(selectedStaff.total_commission - selectedStaff.execution_commission).toLocaleString('vi-VN')}đ
+                    Thực hiện: {selectedStaff.execution_commission.toLocaleString('vi-VN')}đ | Khác: {(selectedStaff.total_commission - selectedStaff.execution_commission).toLocaleString('vi-VN')}đ
                   </div>
                 </div>
               </div>
