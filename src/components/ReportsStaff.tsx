@@ -683,7 +683,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                             <td style={{ padding: '0.75rem 1rem' }}>{formatDateTime(sess.created_at)}</td>
                             <td style={{ padding: '0.75rem 1rem' }}>
                               {sess.invoice_code ? (
-                                <a href={`/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
+                                <a href={`/app/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
                                   #{sess.invoice_code}
                                 </a>
                               ) : (
@@ -710,7 +710,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                       </tbody>
                       <tfoot>
                         <tr style={{ background: 'rgba(109, 40, 217, 0.05)', fontWeight: '800' }}>
-                          <td colSpan={3} style={{ padding: '1rem', textAlign: 'right' }}>Tổng cộng:</td>
+                          <td colSpan={4} style={{ padding: '1rem', textAlign: 'right' }}>Tổng cộng:</td>
                           <td className="financial-cell" style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>
                             {sessionsDetail.reduce((sum, s) => sum + Number(s.revenue_amount || 0), 0).toLocaleString()}đ
                           </td>
@@ -740,7 +740,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                           <span style={{ color: 'var(--text-secondary)' }}>Hóa đơn</span>
                           <span>
                             {sess.invoice_code ? (
-                              <a href={`/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
+                              <a href={`/app/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
                                 #{sess.invoice_code}
                               </a>
                             ) : '---'}
