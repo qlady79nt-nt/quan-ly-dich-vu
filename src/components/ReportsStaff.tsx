@@ -97,14 +97,29 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
 
       const validSessIds = new Set(sessions?.map(s => s.id) || []);
 
+      // ĐỌC TRỰC TIẾP TẤT CẢ HÓA ĐƠN QUA SERVICE_SESSION_ID (Bao gồm cả legacy)
+      const { data: legacyCommsForIds } = await supabase
+        .from('commission_logs')
+        .select('service_session_id')
+        .eq('staff_id', staff.id)
+        .in('type', ['service_execution', 'execution'])
+        .neq('status', 'cancelled')
+        .gte('created_at', startStr)
+        .lte('created_at', endStr);
+        
+      const allSessionIds = new Set([
+        ...Array.from(validSessIds),
+        ...(legacyCommsForIds || []).map(c => c.service_session_id).filter(Boolean)
+      ]);
+
       // ĐỌC revenue_logs (Thay vì đọc cột từ service_sessions)
       const { data: sessRevenues, error: revErr } = await supabase
         .from('revenue_logs')
         .select('service_session_id, amount, invoice_id')
-        .in('service_session_id', Array.from(validSessIds));
+        .in('service_session_id', Array.from(allSessionIds));
         
       if (revErr) console.error('Lỗi lấy revenue_logs:', revErr);
-      
+
       const revenueMap = new Map();
       const invoiceIdToSessMap = new Map();
       sessRevenues?.forEach(r => {
@@ -137,7 +152,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         .eq('staff_id', staff.id)
         .in('type', ['service_execution', 'execution'])
         .neq('status', 'cancelled')
-        .in('service_session_id', Array.from(validSessIds));
+        .in('service_session_id', Array.from(allSessionIds));
         
       const commMap = new Map();
       sessComms?.forEach(c => {
@@ -158,21 +173,6 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           });
         }
       }
-
-      // ĐỌC TRỰC TIẾP TẤT CẢ HÓA ĐƠN QUA SERVICE_SESSION_ID (Bao gồm cả legacy)
-      const { data: legacyCommsForIds } = await supabase
-        .from('commission_logs')
-        .select('service_session_id')
-        .eq('staff_id', staff.id)
-        .in('type', ['service_execution', 'execution'])
-        .neq('status', 'cancelled')
-        .gte('created_at', startStr)
-        .lte('created_at', endStr);
-        
-      const allSessionIds = new Set([
-        ...Array.from(validSessIds),
-        ...(legacyCommsForIds || []).map(c => c.service_session_id).filter(Boolean)
-      ]);
 
       const invoiceBySessionId: Record<string, any> = {};
       if (allSessionIds.size > 0) {
@@ -217,12 +217,12 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           return {
             id: lc.service_session_id || lc.id,
             created_at: lc.created_at,
-            revenue_amount: inv ? inv.total_amount : 0, // Phục hồi doanh thu từ invoice map
+            revenue_amount: revenueMap.get(lc.service_session_id) || (inv ? inv.total_amount : 0), // Phục hồi doanh thu từ invoice map hoặc revenue_logs
             commission_amount: lc.amount,
             status: 'completed',
             services: { name: lc.note || 'Dịch vụ cũ (Đã thực hiện)' },
             customer_packages: inv?.customer_name ? { customer_name: inv.customer_name } : null,
-            invoice_code: inv ? inv.invoice_code : null
+            invoice_code: invoiceCodeMap.get(lc.service_session_id) || (inv ? inv.invoice_code : null)
           };
         });
 
