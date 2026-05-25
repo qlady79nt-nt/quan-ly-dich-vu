@@ -159,12 +159,46 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         }
       }
 
-      const enrichedSessions = (sessions || []).map(s => ({
-         ...s,
-         revenue_amount: revenueMap.get(s.id) || 0,
-         commission_amount: commMap.get(s.id) || 0,
-         invoice_code: s.customer_package_id ? (pkgInvoiceCodeMap.get(s.customer_package_id) || null) : (invoiceCodeMap.get(s.id) || null)
-      }));
+      // ĐỌC TRỰC TIẾP TẤT CẢ HÓA ĐƠN QUA SERVICE_SESSION_ID (Bao gồm cả legacy)
+      const { data: legacyCommsForIds } = await supabase
+        .from('commission_logs')
+        .select('service_session_id')
+        .eq('staff_id', staff.id)
+        .in('type', ['service_execution', 'execution'])
+        .neq('status', 'cancelled')
+        .gte('created_at', startStr)
+        .lte('created_at', endStr);
+        
+      const allSessionIds = new Set([
+        ...Array.from(validSessIds),
+        ...(legacyCommsForIds || []).map(c => c.service_session_id).filter(Boolean)
+      ]);
+
+      const invoiceBySessionId: Record<string, any> = {};
+      if (allSessionIds.size > 0) {
+        const { data: allInvoices } = await supabase
+          .from('invoices')
+          .select('service_session_id, invoice_code, total_amount, customer_name')
+          .in('service_session_id', Array.from(allSessionIds));
+          
+        allInvoices?.forEach(inv => {
+          if (inv.service_session_id) {
+            invoiceBySessionId[inv.service_session_id] = inv;
+          }
+        });
+      }
+
+      const enrichedSessions = (sessions || []).map(s => {
+         const inv = invoiceBySessionId[s.id];
+         return {
+           ...s,
+           revenue_amount: revenueMap.get(s.id) || (inv ? inv.total_amount : 0),
+           commission_amount: commMap.get(s.id) || 0,
+           invoice_code: s.customer_package_id ? (pkgInvoiceCodeMap.get(s.customer_package_id) || null) : (invoiceCodeMap.get(s.id) || inv?.invoice_code || null),
+           // Dự phòng tên khách nếu customer_packages ko có
+           customer_packages: s.customer_packages || (inv?.customer_name ? { customer_name: inv.customer_name } : null)
+         };
+      });
 
       // Phục hồi dữ liệu cũ (Legacy) không có service_session_id hoặc id rác
       const { data: legacyComms } = await supabase
@@ -178,15 +212,19 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
 
       const legacySessions = (legacyComms || [])
         .filter(lc => !lc.service_session_id || !validSessIds.has(lc.service_session_id))
-        .map(lc => ({
-          id: lc.id,
-          created_at: lc.created_at,
-          revenue_amount: 0, // Dữ liệu cũ ko xác định được doanh thu trực tiếp ở đây
-          commission_amount: lc.amount,
-          status: 'completed',
-          services: { name: lc.note || 'Dịch vụ cũ (Đã thực hiện)' },
-          customer_packages: null
-      }));
+        .map(lc => {
+          const inv = lc.service_session_id ? invoiceBySessionId[lc.service_session_id] : null;
+          return {
+            id: lc.service_session_id || lc.id,
+            created_at: lc.created_at,
+            revenue_amount: inv ? inv.total_amount : 0, // Phục hồi doanh thu từ invoice map
+            commission_amount: lc.amount,
+            status: 'completed',
+            services: { name: lc.note || 'Dịch vụ cũ (Đã thực hiện)' },
+            customer_packages: inv?.customer_name ? { customer_name: inv.customer_name } : null,
+            invoice_code: inv ? inv.invoice_code : null
+          };
+        });
 
       const allSessions = [...enrichedSessions, ...legacySessions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setSessionsDetail(allSessions);
