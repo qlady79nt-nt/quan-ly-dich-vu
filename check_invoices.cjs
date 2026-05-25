@@ -11,26 +11,18 @@ const envVars = envLocal.split('\n').reduce((acc, line) => {
 const supabase = createClient(envVars.VITE_SUPABASE_URL, envVars.VITE_SUPABASE_ANON_KEY);
 
 async function main() {
-    const { data: revs, error: rErr } = await supabase
-        .from('revenue_logs')
-        .select(`
-            id,
-            service_session_id,
-            invoice_id,
-            invoices(invoice_code)
-        `)
-        .limit(10);
-        
-    if (rErr) console.error('Error fetching revenue_logs:', rErr);
-    else console.log('Revenue logs:', JSON.stringify(revs, null, 2));
+    const { data: sessions, error } = await supabase
+        .from('service_sessions')
+        .select('id, created_at, status, staff_id')
+        .order('created_at', { ascending: false })
+        .limit(5);
+    console.log('Recent sessions:', sessions);
 
-    const { data: invoices, error: invErr } = await supabase
-        .from('invoices')
-        .select('id, invoice_code, service_session_id')
-        .limit(10);
-        
-    if (invErr) console.error('Error fetching invoices:', invErr);
-    else console.log('Invoices:', JSON.stringify(invoices, null, 2));
+    const { data: comms } = await supabase
+        .from('commission_logs')
+        .select('id, created_at, amount, note, service_session_id, staff_id')
+        .order('created_at', { ascending: false })
+        .limit(5);
+    console.log('Recent comms:', comms);
 }
-
 main();

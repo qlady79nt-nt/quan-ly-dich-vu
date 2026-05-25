@@ -98,32 +98,35 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       const validSessIds = new Set(sessions?.map(s => s.id) || []);
 
       // ĐỌC revenue_logs (Thay vì đọc cột từ service_sessions)
-      const { data: sessRevenues } = await supabase
+      const { data: sessRevenues, error: revErr } = await supabase
         .from('revenue_logs')
-        .select('service_session_id, amount, invoice_id, invoices(invoice_code)')
+        .select('service_session_id, amount, invoice_id')
         .in('service_session_id', Array.from(validSessIds));
+        
+      if (revErr) console.error('Lỗi lấy revenue_logs:', revErr);
       
       const revenueMap = new Map();
-      const invoiceCodeMap = new Map();
+      const invoiceIdToSessMap = new Map();
       sessRevenues?.forEach(r => {
          const current = revenueMap.get(r.service_session_id) || 0;
          revenueMap.set(r.service_session_id, current + Number(r.amount));
-         if (r.invoices && (r.invoices as any).invoice_code) {
-           invoiceCodeMap.set(r.service_session_id, (r.invoices as any).invoice_code);
+         if (r.invoice_id) {
+           invoiceIdToSessMap.set(r.invoice_id, r.service_session_id);
          }
       });
 
-      // Lấy thêm invoices trực tiếp từ bảng invoices qua service_session_id (để chắc chắn)
-      if (validSessIds.size > 0) {
-        const { data: sessInvoices } = await supabase
+      const invoiceCodeMap = new Map();
+      if (invoiceIdToSessMap.size > 0) {
+        const { data: invs, error: invErr } = await supabase
           .from('invoices')
-          .select('service_session_id, invoice_code')
-          .in('service_session_id', Array.from(validSessIds));
+          .select('id, invoice_code')
+          .in('id', Array.from(invoiceIdToSessMap.keys()));
+          
+        if (invErr) console.error('Lỗi lấy invoices:', invErr);
         
-        sessInvoices?.forEach(inv => {
-          if (inv.service_session_id && inv.invoice_code) {
-            invoiceCodeMap.set(inv.service_session_id, inv.invoice_code);
-          }
+        invs?.forEach(inv => {
+          const sId = invoiceIdToSessMap.get(inv.id);
+          if (sId) invoiceCodeMap.set(sId, inv.invoice_code);
         });
       }
 
