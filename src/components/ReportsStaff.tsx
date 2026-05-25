@@ -45,8 +45,8 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       const startStr = startObj.toISOString();
       const endStr = endObj.toISOString();
 
-      // Fetch sessions (cuốc phục vụ)
-      const { data: sessions, error: sessErr } = await supabase
+      // Fetch sessions (cuốc phục vụ) created in range
+      const { data: createdSessions, error: sessErr } = await supabase
         .from('service_sessions')
         .select(`
           id,
@@ -64,12 +64,43 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
 
       if (sessErr) console.error('Lỗi lấy service_sessions chi tiết:', sessErr);
 
+      // Fetch commission logs in range to find sessions checked out in range but created before
+      const { data: commsInRange } = await supabase
+        .from('commission_logs')
+        .select('service_session_id')
+        .eq('staff_id', staff.id)
+        .in('type', ['service_execution', 'execution'])
+        .neq('status', 'cancelled')
+        .gte('created_at', startStr)
+        .lte('created_at', endStr);
+
+      const additionalSessIds = commsInRange?.map(c => c.service_session_id).filter(id => id && !(createdSessions || []).find(s => s.id === id)) || [];
+      
+      let additionalSessions: any[] = [];
+      if (additionalSessIds.length > 0) {
+         const { data: addSess } = await supabase
+           .from('service_sessions')
+           .select(`
+             id,
+             created_at,
+             status,
+             customer_package_id,
+             services (name, price),
+             customer_packages (customer_name)
+           `)
+           .eq('status', 'completed')
+           .in('id', Array.from(new Set(additionalSessIds)));
+         additionalSessions = addSess || [];
+      }
+      
+      const sessions = [...(createdSessions || []), ...additionalSessions];
+
       const validSessIds = new Set(sessions?.map(s => s.id) || []);
 
       // ĐỌC revenue_logs (Thay vì đọc cột từ service_sessions)
       const { data: sessRevenues } = await supabase
         .from('revenue_logs')
-        .select('service_session_id, amount, invoices(invoice_code)')
+        .select('service_session_id, amount, invoice_id, invoices(invoice_code)')
         .in('service_session_id', Array.from(validSessIds));
       
       const revenueMap = new Map();
@@ -81,6 +112,20 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
            invoiceCodeMap.set(r.service_session_id, (r.invoices as any).invoice_code);
          }
       });
+
+      // Lấy thêm invoices trực tiếp từ bảng invoices qua service_session_id (để chắc chắn)
+      if (validSessIds.size > 0) {
+        const { data: sessInvoices } = await supabase
+          .from('invoices')
+          .select('service_session_id, invoice_code')
+          .in('service_session_id', Array.from(validSessIds));
+        
+        sessInvoices?.forEach(inv => {
+          if (inv.service_session_id && inv.invoice_code) {
+            invoiceCodeMap.set(inv.service_session_id, inv.invoice_code);
+          }
+        });
+      }
 
       // ĐỌC commission_logs cho session (Thay vì đọc cột từ service_sessions)
       const { data: sessComms } = await supabase
@@ -228,14 +273,39 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         };
       });
 
-      // BƯỚC 2: Fetch service_sessions (Tính cuốc & doanh thu dịch vụ)
-      const { data: sessions } = await supabase
+      // BƯỚC 2: Fetch service_sessions (Tính cuốc & doanh thu dịch vụ) created in range
+      const { data: createdSessions } = await supabase
         .from('service_sessions')
         .select('id, staff_id')
         .eq('shop_id', shopId)
         .eq('status', 'completed')
         .gte('created_at', startStr)
         .lte('created_at', endStr);
+        
+      // Fetch commission logs in range to find sessions checked out in range but created before
+      const { data: allCommsInRange } = await supabase
+        .from('commission_logs')
+        .select('service_session_id, staff_id, amount, type')
+        .eq('shop_id', shopId)
+        .neq('status', 'cancelled')
+        .gte('created_at', startStr)
+        .lte('created_at', endStr);
+
+      const additionalSessIds2 = allCommsInRange
+        ?.filter(c => (c.type === 'service_execution' || c.type === 'execution') && c.service_session_id && !(createdSessions || []).find(s => s.id === c.service_session_id))
+        .map(c => c.service_session_id) || [];
+
+      let additionalSessions2: any[] = [];
+      if (additionalSessIds2.length > 0) {
+        const { data: addSess2 } = await supabase
+          .from('service_sessions')
+          .select('id, staff_id')
+          .eq('status', 'completed')
+          .in('id', Array.from(new Set(additionalSessIds2)));
+        additionalSessions2 = addSess2 || [];
+      }
+
+      const sessions = [...(createdSessions || []), ...additionalSessions2];
 
       const validSessionIds = new Set<string>();
       const sessionStaffMap = new Map<string, string>();
@@ -283,14 +353,8 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         });
       }
 
-      // BƯỚC 3: Fetch commission_logs (Tính hoa hồng)
-      const { data: commissions } = await supabase
-        .from('commission_logs')
-        .select('staff_id, amount, type, service_session_id')
-        .eq('shop_id', shopId)
-        .neq('status', 'cancelled')
-        .gte('created_at', startStr)
-        .lte('created_at', endStr);
+      // BƯỚC 3: Tính hoa hồng từ allCommsInRange (đã fetch ở BƯỚC 2)
+      const commissions = allCommsInRange;
 
       if (commissions) {
         commissions.forEach(c => {
