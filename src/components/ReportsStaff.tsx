@@ -45,7 +45,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       const startStr = startObj.toISOString();
       const endStr = endObj.toISOString();
 
-      // B1 & B2 & B3 & B4 — Fetch sessions directly with deep relations
+      // BƯỚC 1: Load sessions THÔ
       const { data: createdSessions, error: sessErr } = await supabase
         .from('service_sessions')
         .select(`
@@ -54,15 +54,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           status,
           customer_package_id,
           retail_customer_name,
-          services (name, price),
-          customer_packages (
-            customer_name,
-            package_sales (
-              invoices (
-                invoice_code
-              )
-            )
-          )
+          services (name, price)
         `)
         .eq('staff_id', staff.id)
         .eq('status', 'completed')
@@ -125,20 +117,62 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         });
       }
 
-      // Xây dựng danh sách hiển thị
+      // BƯỚC 2: Tách riêng query customer_packages
+      const cpIds = sessions.map(s => s.customer_package_id).filter(Boolean);
+      const cpMap: Record<string, any> = {};
+      if (cpIds.length > 0) {
+        const { data: customerPackages } = await supabase
+          .from('customer_packages')
+          .select('id, customer_name, package_sale_id')
+          .in('id', Array.from(new Set(cpIds)));
+        
+        if (customerPackages) {
+          customerPackages.forEach(cp => {
+            cpMap[cp.id] = cp;
+          });
+        }
+      }
+
+      // BƯỚC 3: Load package_sales
+      const saleIds = Object.values(cpMap).map((cp: any) => cp.package_sale_id).filter(Boolean);
+      const saleMap: Record<string, any> = {};
+      if (saleIds.length > 0) {
+        const { data: sales } = await supabase
+          .from('package_sales')
+          .select('id, invoice_id')
+          .in('id', Array.from(new Set(saleIds)));
+          
+        if (sales) {
+          sales.forEach(s => {
+            saleMap[s.id] = s;
+          });
+        }
+      }
+
+      // BƯỚC 4: Load invoices
+      const pkgInvoiceIds = Object.values(saleMap).map((s: any) => s.invoice_id).filter(Boolean);
+      const invMap: Record<string, any> = {};
+      if (pkgInvoiceIds.length > 0) {
+        const { data: pkgInvoices } = await supabase
+          .from('invoices')
+          .select('id, invoice_code')
+          .in('id', Array.from(new Set(pkgInvoiceIds)));
+          
+        if (pkgInvoices) {
+          pkgInvoices.forEach(inv => {
+            invMap[inv.id] = inv;
+          });
+        }
+      }
+
+      // BƯỚC 5: Xây dựng danh sách hiển thị bằng MAP TAY
       const allSessions = sessions.map(s => {
-         const cp = s.customer_packages;
-         // Trích xuất mã hóa đơn từ liên kết package_sales -> invoices
-         let pkgInvoiceCode = null;
-         if (cp && cp.package_sales) {
-            const psData = Array.isArray(cp.package_sales) ? cp.package_sales[0] : cp.package_sales;
-            if (psData && psData.invoices) {
-               pkgInvoiceCode = Array.isArray(psData.invoices) ? psData.invoices[0]?.invoice_code : psData.invoices.invoice_code;
-            }
-         }
+         const cp = s.customer_package_id ? cpMap[s.customer_package_id] : null;
+         const sale = cp?.package_sale_id ? saleMap[cp.package_sale_id] : null;
+         const pkgInvoice = sale?.invoice_id ? invMap[sale.invoice_id] : null;
          
          const finalCustomerName = cp?.customer_name || retailCustomerNameMap.get(s.id) || s.retail_customer_name || 'Khách vãng lai';
-         const finalInvoiceCode = pkgInvoiceCode || invoiceCodeMap.get(s.id) || null;
+         const finalInvoiceCode = pkgInvoice?.invoice_code || invoiceCodeMap.get(s.id) || null;
          
          return {
            ...s,
