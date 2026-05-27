@@ -52,9 +52,9 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           id,
           created_at,
           status,
+          service_id,
           customer_package_id,
-          retail_customer_name,
-          services (name, price)
+          retail_customer_name
         `)
         .eq('staff_id', staff.id)
         .eq('status', 'completed')
@@ -69,16 +69,18 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       // Lấy thêm commission_logs để lấy đúng tiền hoa hồng
       const { data: sessComms } = await supabase
         .from('commission_logs')
-        .select('service_session_id, amount')
+        .select('service_session_id, amount, note')
         .eq('staff_id', staff.id)
         .in('type', ['service_execution', 'execution'])
         .neq('status', 'cancelled')
         .in('service_session_id', validSessIds.length > 0 ? validSessIds : ['00000000-0000-0000-0000-000000000000']);
         
       const commMap = new Map();
+      const commNoteMap = new Map();
       sessComms?.forEach(c => {
          const current = commMap.get(c.service_session_id) || 0;
          commMap.set(c.service_session_id, current + Number(c.amount));
+         if (c.note) commNoteMap.set(c.service_session_id, c.note);
       });
 
       // Lấy revenue_logs cho hóa đơn bán lẻ (Dịch vụ lẻ)
@@ -165,6 +167,22 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         }
       }
 
+      // BƯỚC 4.5: Load services
+      const serviceIds = sessions.map(s => s.service_id).filter(Boolean);
+      const svcMap: Record<string, any> = {};
+      if (serviceIds.length > 0) {
+        const { data: servicesData } = await supabase
+          .from('services')
+          .select('id, name, price')
+          .in('id', Array.from(new Set(serviceIds)));
+          
+        if (servicesData) {
+          servicesData.forEach(svc => {
+            svcMap[svc.id] = svc;
+          });
+        }
+      }
+
       // BƯỚC 5: Xây dựng danh sách hiển thị bằng MAP TAY
       const allSessions = sessions.map(s => {
          const cp = s.customer_package_id ? cpMap[s.customer_package_id] : null;
@@ -174,12 +192,16 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
          const finalCustomerName = cp?.customer_name || retailCustomerNameMap.get(s.id) || s.retail_customer_name || 'Khách vãng lai';
          const finalInvoiceCode = pkgInvoice?.invoice_code || invoiceCodeMap.get(s.id) || null;
          
+         const finalSvc = s.service_id ? svcMap[s.service_id] : null;
+         const svcFallback = finalSvc || { name: commNoteMap.get(s.id) || 'Dịch vụ đã thực hiện' };
+
          return {
            ...s,
            revenue_amount: revenueMap.get(s.id) || 0,
            commission_amount: commMap.get(s.id) || 0,
            invoice_code: finalInvoiceCode,
-           customer_packages: { customer_name: finalCustomerName } // UI đang dùng thuộc tính này để hiện tên
+           customer_packages: { customer_name: finalCustomerName }, // UI đang dùng thuộc tính này để hiện tên
+           services: svcFallback
          };
       });
 
