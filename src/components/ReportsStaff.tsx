@@ -53,8 +53,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
           created_at,
           status,
           customer_package_id,
-          services (name, price),
-          customer_packages (customer_name)
+          services (name, price)
         `)
         .eq('staff_id', staff.id)
         .eq('status', 'completed')
@@ -85,8 +84,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
              created_at,
              status,
              customer_package_id,
-             services (name, price),
-             customer_packages (customer_name)
+             services (name, price)
            `)
            .eq('status', 'completed')
            .in('id', Array.from(new Set(additionalSessIds)));
