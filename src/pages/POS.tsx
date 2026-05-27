@@ -254,6 +254,12 @@ const POS = () => {
         }]).select().single();
         if (saleErr || !sale) throw new Error(`Lỗi tạo giao dịch bán gói: ${saleErr?.message || 'Không có dữ liệu'}`);
 
+        // Cập nhật ngược ID sale vào customer_packages để dễ dàng truy vấn
+        await supabase
+          .from('customer_packages')
+          .update({ package_sale_id: sale.id })
+          .eq('id', custPkg.id);
+
         const { error: commLogErr } = await supabase.from('commission_logs').insert([{ shop_id: shopId, staff_id: validSellerId, amount: salesComm, type: 'package_sale', package_sale_id: sale.id, note: `Bán gói: ${pkg_name}` }]);
         if (commLogErr) throw new Error(`Lỗi lưu hoa hồng bán gói: ${commLogErr.message}`);
         const { error: revLogErr } = await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', package_sale_id: sale.id }]);
