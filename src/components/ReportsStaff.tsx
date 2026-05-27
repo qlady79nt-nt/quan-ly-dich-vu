@@ -160,17 +160,49 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
          commMap.set(c.service_session_id, current + Number(c.amount));
       });
 
-      // TÌM INVOICE CODE CHO PACKAGE SESSIONS (Liệu trình)
+      // TÌM THÔNG TIN CUSTOMER VÀ INVOICE CODE CHO PACKAGE SESSIONS (Liệu trình)
       const cpIds = (sessions || []).map(s => s.customer_package_id).filter(Boolean);
+      const pkgCustomerNameMap = new Map();
       const pkgInvoiceCodeMap = new Map();
+      
       if (cpIds.length > 0) {
-        const { data: psData } = await supabase.from('package_sales').select('customer_package_id, invoices(invoice_code)').in('customer_package_id', Array.from(new Set(cpIds)));
-        if (psData) {
-          psData.forEach(ps => {
-            if (ps.invoices && (ps.invoices as any).invoice_code) {
-              pkgInvoiceCodeMap.set(ps.customer_package_id, (ps.invoices as any).invoice_code);
-            }
+        // Lấy tên khách hàng từ customer_packages
+        const { data: cpData } = await supabase
+          .from('customer_packages')
+          .select('id, customer_name')
+          .in('id', Array.from(new Set(cpIds)));
+          
+        if (cpData) {
+          cpData.forEach(cp => {
+            pkgCustomerNameMap.set(cp.id, cp.customer_name);
           });
+        }
+
+        // Lấy hóa đơn từ package_sales
+        const { data: psData } = await supabase
+          .from('package_sales')
+          .select('customer_package_id, invoice_id')
+          .in('customer_package_id', Array.from(new Set(cpIds)));
+          
+        if (psData && psData.length > 0) {
+          const invIds = psData.map(ps => ps.invoice_id).filter(Boolean);
+          if (invIds.length > 0) {
+            const { data: invData } = await supabase
+              .from('invoices')
+              .select('id, invoice_code')
+              .in('id', Array.from(new Set(invIds)));
+              
+            const invCodeMap = new Map();
+            if (invData) {
+              invData.forEach(inv => invCodeMap.set(inv.id, inv.invoice_code));
+            }
+            
+            psData.forEach(ps => {
+              if (ps.invoice_id && invCodeMap.has(ps.invoice_id)) {
+                pkgInvoiceCodeMap.set(ps.customer_package_id, invCodeMap.get(ps.invoice_id));
+              }
+            });
+          }
         }
       }
 
@@ -190,13 +222,15 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
 
       const enrichedSessions = (sessions || []).map(s => {
          const inv = invoiceBySessionId[s.id];
+         const pkgCustomerName = s.customer_package_id ? pkgCustomerNameMap.get(s.customer_package_id) : null;
+         
          return {
            ...s,
            revenue_amount: revenueMap.get(s.id) || (inv ? inv.total_amount : 0),
            commission_amount: commMap.get(s.id) || 0,
            invoice_code: s.customer_package_id ? (pkgInvoiceCodeMap.get(s.customer_package_id) || null) : (invoiceCodeMap.get(s.id) || inv?.invoice_code || null),
-           // Dự phòng tên khách nếu customer_packages ko có
-           customer_packages: s.customer_packages || (inv?.customer_name ? { customer_name: inv.customer_name } : null)
+           // Ưu tiên tên khách từ liệu trình, sau đó đến nested (nếu có), cuối cùng là từ invoice
+           customer_packages: pkgCustomerName ? { customer_name: pkgCustomerName } : (s.customer_packages || (inv?.customer_name ? { customer_name: inv.customer_name } : null))
          };
       });
 
