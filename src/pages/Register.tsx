@@ -132,96 +132,87 @@ const Register = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg-main)' }}>
-      {/* Left side - Branding */}
-      <div style={{ flex: 1, background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '4rem', color: 'white', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }}></div>
-        <div style={{ position: 'absolute', bottom: '-50px', left: '-50px', width: '200px', height: '200px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }}></div>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', padding: '1rem' }}>
+      <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '420px', padding: '2.5rem' }}>
         
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ width: '50px', height: '50px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-              <Scissors size={28} />
-            </div>
-            <h1 style={{ fontSize: '2rem', fontWeight: '800', margin: 0 }}>Spa & POS</h1>
-          </div>
+        {/* Back to Home Link */}
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.875rem', marginBottom: '2rem', fontWeight: '500' }}>
+          <Shield size={16} style={{ visibility: 'hidden' }} /> {/* Placeholder to align */}
+          <span style={{ position: 'absolute', left: '2.5rem' }}>← Quay lại Trang chủ</span>
+        </Link>
 
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+          <div style={{ width: '64px', height: '64px', background: 'var(--primary)', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', margin: '0 auto 1.5rem' }}>
+            <Scissors size={32} />
+          </div>
+          <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Đăng ký ngay</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>Bắt đầu trải nghiệm miễn phí 30 ngày.</p>
         </div>
-      </div>
 
-      {/* Right side - Form */}
-      <div style={{ width: '550px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: 'white' }}>
-        <div style={{ width: '100%', maxWidth: '400px' }}>
-          <div style={{ marginBottom: '2.5rem' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Đăng ký ngay</h2>
-            <p style={{ color: 'var(--text-secondary)' }}>Bắt đầu trải nghiệm miễn phí 30 ngày.</p>
+        {error && (
+          <div style={{ background: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.75rem', fontSize: '0.875rem', marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'start' }}>
+            <Shield size={18} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <label className="form-label">Tên cửa hàng của bạn</label>
+            <div style={{ position: 'relative' }}>
+              <Building2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Ví dụ: Spa Anna..." 
+                required
+                style={{ paddingLeft: '2.75rem' }}
+                value={shopName}
+                onChange={(e) => setShopName(e.target.value)}
+              />
+            </div>
           </div>
 
-          {error && (
-            <div style={{ background: '#fee2e2', color: '#dc2626', padding: '1rem', borderRadius: '0.75rem', fontSize: '0.875rem', marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'start' }}>
-              <Shield size={18} style={{ flexShrink: 0 }} />
-              <span>{error}</span>
+          <div>
+            <label className="form-label">Tên đăng nhập quản trị</label>
+            <div style={{ position: 'relative' }}>
+              <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="admin, quanly..." 
+                required
+                style={{ paddingLeft: '2.75rem' }}
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())}
+              />
             </div>
-          )}
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>Không khoảng trắng & ký tự đặc biệt.</p>
+          </div>
 
-          <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div>
-              <label className="form-label">Tên cửa hàng của bạn</label>
-              <div style={{ position: 'relative' }}>
-                <Building2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="Ví dụ: Spa Anna, Viện thẩm mỹ..." 
-                  required
-                  style={{ paddingLeft: '2.75rem' }}
-                  value={shopName}
-                  onChange={(e) => setShopName(e.target.value)}
-                />
-              </div>
+          <div>
+            <label className="form-label">Mật khẩu</label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+              <input 
+                type="password" 
+                className="form-input" 
+                placeholder="Tối thiểu 6 ký tự" 
+                required
+                style={{ paddingLeft: '2.75rem' }}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
+          </div>
 
-            <div>
-              <label className="form-label">Tên đăng nhập quản trị</label>
-              <div style={{ position: 'relative' }}>
-                <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="admin, quanly..." 
-                  required
-                  style={{ paddingLeft: '2.75rem' }}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())}
-                />
-              </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>Không bao gồm khoảng trắng và ký tự đặc biệt.</p>
-            </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '1rem', marginTop: '1rem' }} disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" /> : 'Tạo cửa hàng miễn phí'}
+          </button>
+        </form>
 
-            <div>
-              <label className="form-label">Mật khẩu</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  placeholder="Tối thiểu 6 ký tự" 
-                  required
-                  style={{ paddingLeft: '2.75rem' }}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginTop: '1rem' }}>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '54px', fontSize: '1.125rem' }} disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : 'Tạo cửa hàng miễn phí'}
-              </button>
-            </div>
-          </form>
-
-          <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-light)' }}>
+          <div style={{ paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
             Bạn đã có tài khoản? <Link to="/login" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'none' }}>Đăng nhập ngay</Link>
           </div>
         </div>
