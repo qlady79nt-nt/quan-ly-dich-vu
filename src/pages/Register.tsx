@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Shield, Lock, User, Building2, Loader2, Scissors, Sparkles, CheckCircle } from 'lucide-react';
+import { Shield, Lock, User, Building2, Loader2, Scissors, CheckCircle } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
