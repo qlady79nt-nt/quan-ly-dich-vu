@@ -12,7 +12,7 @@ interface ReportsStaffProps {
 const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
   const [loading, setLoading] = useState(true);
   const [staffStats, setStaffStats] = useState<any[]>([]);
-  const [debugCounts, setDebugCounts] = useState({ staffs: 0, sessions: 0, commissions: 0 });
+
 
   // States cho chi tiết KTV
   const [selectedStaff, setSelectedStaff] = useState<any | null>(null);
@@ -401,11 +401,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
 
       setStaffStats(activeStaff);
       
-      setDebugCounts({
-        staffs: staffList.length,
-        sessions: sessions?.length || 0,
-        commissions: commissions?.length || 0
-      });
+
 
     } catch (e) {
       console.error(e);
