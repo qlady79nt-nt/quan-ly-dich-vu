@@ -87,6 +87,9 @@ const Beds = () => {
   };
 
   const handleAddBed = async () => {
+    if (profile?.role !== 'shop_admin' && profile?.role !== 'super_admin') {
+      return alert('Chỉ Quản lý (Shop Admin) mới có quyền thêm chỗ mới!');
+    }
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
     if (!shopId) return alert('Lỗi: Chưa xác định được cửa hàng.');
     const name = window.prompt('Nhập tên chỗ mới:');
@@ -229,9 +232,11 @@ const Beds = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Chỗ & Điều phối</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Theo dõi thời gian thực các dịch vụ đang diễn ra</p>
         </div>
-        <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddBed}>
-          <Plus size={18} /> Thêm Chỗ
-        </button>
+        {(profile?.role === 'shop_admin' || profile?.role === 'super_admin') && (
+          <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddBed}>
+            <Plus size={18} /> Thêm Chỗ
+          </button>
+        )}
       </div>
 
       {loading ? (
