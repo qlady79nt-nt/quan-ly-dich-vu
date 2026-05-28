@@ -565,44 +565,44 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div className="premium-card animate-fade modal-fullscreen-mobile" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--border)' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Chi tiết hiệu suất nhân sự</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0.25rem 0 0 0' }}>
-                  Nhân viên: <strong style={{ color: 'var(--primary)' }}>{selectedStaff.name}</strong> <em style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>({selectedStaff.role})</em> • Từ {new Date(startDate).toLocaleDateString('vi-VN')} đến {new Date(endDate).toLocaleDateString('vi-VN')}
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Chi tiết hiệu suất nhân sự</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0.25rem 0 0 0' }}>
+                  <strong style={{ color: 'var(--primary)' }}>{selectedStaff.name}</strong> <em style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>({selectedStaff.role})</em> • Từ {new Date(startDate).toLocaleDateString('vi-VN')} đến {new Date(endDate).toLocaleDateString('vi-VN')}
                 </p>
               </div>
               <button type="button" onClick={handleCloseModal} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}><X size={24} /></button>
             </div>
 
             {/* Tabs & Stats */}
-            <div style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
-              <div className="grid grid-cols-3" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+            <div style={{ padding: '1rem 1rem 0 1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng số cuốc làm</div>
                   <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--primary)' }}>{selectedStaff.total_sessions}</div>
                 </div>
-                <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng Giá trị Hiệu suất</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--success)' }}>
+                <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Tổng Giá trị Hiệu suất</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '800', marginTop: '0.1rem', color: 'var(--success)' }}>
                     {(selectedStaff.total_revenue + (selectedStaff.total_sales_revenue || 0)).toLocaleString('vi-VN')}đ
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
-                    Thực hiện: {selectedStaff.total_revenue.toLocaleString('vi-VN')}đ | Bán hàng: {(selectedStaff.total_sales_revenue || 0).toLocaleString('vi-VN')}đ
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+                    Thực hiện: {selectedStaff.total_revenue.toLocaleString('vi-VN')}đ<br/>Bán hàng: {(selectedStaff.total_sales_revenue || 0).toLocaleString('vi-VN')}đ
                   </div>
                 </div>
-                <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng Hoa Hồng Nhận</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '800', marginTop: '0.25rem', color: 'var(--warning)' }}>
+                <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Tổng Hoa Hồng Nhận</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '800', marginTop: '0.1rem', color: 'var(--warning)' }}>
                     {selectedStaff.total_commission.toLocaleString('vi-VN')}đ
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
-                    Thực hiện: {selectedStaff.execution_commission.toLocaleString('vi-VN')}đ | Khác: {(selectedStaff.total_commission - selectedStaff.execution_commission).toLocaleString('vi-VN')}đ
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
+                    Thực hiện: {selectedStaff.execution_commission.toLocaleString('vi-VN')}đ<br/>Khác: {(selectedStaff.total_commission - selectedStaff.execution_commission).toLocaleString('vi-VN')}đ
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                 <button
                   onClick={() => setActiveModalTab('sessions')}
                   className="btn"
@@ -626,7 +626,8 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                     background: activeModalTab === 'commissions' ? 'rgba(109, 40, 217, 0.08)' : 'transparent',
                     color: activeModalTab === 'commissions' ? 'var(--primary)' : 'var(--text-secondary)',
                     fontWeight: activeModalTab === 'commissions' ? '700' : '500',
-                    border: 'none'
+                    border: 'none',
+                    flexShrink: 0
                   }}
                 >
                   Hoa hồng & Nghiệp vụ khác ({commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').length})
@@ -635,7 +636,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
             </div>
 
             {/* Content */}
-            <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
+            <div style={{ flex: 1, padding: '1rem', overflowY: 'auto' }}>
               {loadingDetail ? (
                 <div style={{ textAlign: 'center', padding: '2rem' }}><Loader2 className="animate-spin text-primary mx-auto" /></div>
               ) : activeModalTab === 'sessions' ? (
@@ -705,34 +706,23 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                   {/* MOBILE VIEW (CARDS) */}
                   <div className="visible-mobile">
                     {sessionsDetail.map((sess, idx) => (
-                      <div key={sess.id || idx} className="report-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                      <div key={sess.id || idx} className="report-card" style={{ padding: '0.75rem', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>{formatDateTime(sess.created_at)}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontWeight: '600' }}>
-                            <Scissors size={14} />
-                            <span>{sess.services?.name || 'Dịch vụ'}</span>
+                          <span style={{ color: 'var(--text-light)' }}>HĐ: {sess.invoice_code ? <a href={`/app/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>#{sess.invoice_code}</a> : '---'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-main)', maxWidth: '60%' }}>
+                            {sess.customer_packages?.customer_name || 'Khách vãng lai'}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontWeight: '600', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                              <Scissors size={12} />
+                              <span>{sess.services?.name || 'Dịch vụ'}</span>
+                            </div>
                           </div>
-                        </div>
-                        <div style={{ fontWeight: '600', marginBottom: '1rem', fontSize: '1rem' }}>
-                          {sess.customer_packages?.customer_name || 'Khách vãng lai'}
-                        </div>
-                        <div className="report-card-row">
-                          <span style={{ color: 'var(--text-secondary)' }}>Hóa đơn</span>
-                          <span>
-                            {sess.invoice_code ? (
-                              <a href={`/app/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>
-                                #{sess.invoice_code}
-                              </a>
-                            ) : '---'}
-                          </span>
-                        </div>
-                        <div className="report-card-row">
-                          <span style={{ color: 'var(--text-secondary)' }}>Doanh thu</span>
-                          <span className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(sess.revenue_amount || 0).toLocaleString()}đ</span>
-                        </div>
-                        <div className="report-card-row">
-                          <span style={{ color: 'var(--text-secondary)' }}>Hoa hồng KTV</span>
-                          <span className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)' }}>{Number(sess.commission_amount || 0).toLocaleString()}đ</span>
+                          <div style={{ textAlign: 'right' }}>
+                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>DT: <span className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(sess.revenue_amount || 0).toLocaleString()}đ</span></div>
+                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>HH: <span className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)' }}>{Number(sess.commission_amount || 0).toLocaleString()}đ</span></div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -799,23 +789,21 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                      {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').map((comm, idx) => {
                        const rev = comm.package_sales?.amount_paid || 0;
                        return (
-                         <div key={comm.id || idx} className="report-card">
-                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                         <div key={comm.id || idx} className="report-card" style={{ padding: '0.75rem', marginBottom: '0.75rem' }}>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
                              <span style={{ color: 'var(--text-secondary)' }}>{formatDateTime(comm.created_at)}</span>
-                             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                               <ShoppingBag size={12} /> Bán hàng
+                             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}>
+                               <ShoppingBag size={10} /> Bán hàng
                              </span>
                            </div>
-                           <div style={{ fontWeight: '600', marginBottom: '1rem', fontSize: '1rem' }}>
-                             {comm.note || 'Thưởng doanh số'}
-                           </div>
-                           <div className="report-card-row">
-                             <span style={{ color: 'var(--text-secondary)' }}>Doanh thu</span>
-                             <span className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}</span>
-                           </div>
-                           <div className="report-card-row">
-                             <span style={{ color: 'var(--text-secondary)' }}>Hoa hồng nhận</span>
-                             <span className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)' }}>+{Number(comm.amount || 0).toLocaleString()}đ</span>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                             <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-main)', maxWidth: '60%' }}>
+                               {comm.note || 'Thưởng doanh số'}
+                             </div>
+                             <div style={{ textAlign: 'right' }}>
+                               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>DT: <span className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}</span></div>
+                               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>HH: <span className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)' }}>+{Number(comm.amount || 0).toLocaleString()}đ</span></div>
+                             </div>
                            </div>
                          </div>
                        );
@@ -827,7 +815,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', background: 'var(--bg-main)' }}>
+            <div style={{ padding: '1rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', background: 'var(--bg-main)' }}>
               <button type="button" onClick={handleCloseModal} className="btn btn-secondary" style={{ padding: '0.5rem 1.5rem' }}>Đóng</button>
             </div>
           </div>
