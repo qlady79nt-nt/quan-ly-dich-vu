@@ -62,7 +62,7 @@ const MainLayout = () => {
       ...(profile?.role === 'shop_admin' ? [{ path: '/app/customers', label: 'Khách hàng', icon: UserCircle }] : []),
       ...(profile?.role === 'shop_admin' ? [{ path: '/app/packages', label: 'Liệu trình', icon: Package }] : []),
       { path: '/app/invoices', label: 'Hoá đơn', icon: FileText },
-      ...(profile?.role === 'shop_admin' ? [{ path: '/app/reports', label: 'Báo cáo', icon: BarChart3 }] : []),
+      { path: '/app/reports', label: 'Báo cáo', icon: BarChart3 },
     ];
   }
 

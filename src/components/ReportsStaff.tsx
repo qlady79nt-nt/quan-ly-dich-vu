@@ -430,9 +430,6 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
       ) : staffStats.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'var(--bg-main)', borderRadius: '1rem', color: 'var(--text-light)' }}>
           Không có dữ liệu nhân viên trong khoảng thời gian này
-          <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            (Debug: Start: {startDate}, End: {endDate}, Staffs: {debugCounts.staffs}, Sessions: {debugCounts.sessions}, Commissions: {debugCounts.commissions})
-          </div>
         </div>
       ) : (
         <>

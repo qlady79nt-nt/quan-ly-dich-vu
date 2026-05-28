@@ -33,7 +33,8 @@ const Reports = () => {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
   const [missingStaffData, setMissingStaffData] = useState<any[]>([]);
-  const [view, setView] = useState<'revenue' | 'commission' | 'staff'>('revenue');
+  const isShopAdmin = profile?.role === 'shop_admin';
+  const [view, setView] = useState<'revenue' | 'commission' | 'staff'>(isShopAdmin ? 'revenue' : 'staff');
   const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'package_sale' | 'package_session'>('all');
   const [revenueDisplayCount, setRevenueDisplayCount] = useState(10);
   const [detailModal, setDetailModal] = useState<any>(null);
@@ -505,32 +506,42 @@ const Reports = () => {
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Báo cáo Tổng hợp</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Theo dõi dòng tiền, doanh thu và hiệu suất</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Từ:</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
+        
+        {isShopAdmin && (
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Từ:</span>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Đến:</span>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
+            </div>
+            <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Search size={16} /> Tìm kiếm
+            </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Đến:</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
+        )}
+        {!isShopAdmin && (
+          <div style={{ background: 'var(--bg-main)', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
+            Hôm nay: {new Date().toLocaleDateString('vi-VN')}
           </div>
-          <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Search size={16} /> Tìm kiếm
-          </button>
-        </div>
+        )}
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-        <button onClick={() => setView('revenue')} className="btn" style={{ background: view === 'revenue' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'revenue' ? 'white' : 'inherit' }}>
-          <TrendingUp size={18} /> Doanh thu
-        </button>
-        <button onClick={() => setView('commission')} className="btn" style={{ background: view === 'commission' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'commission' ? 'white' : 'inherit' }}>
-          <Users size={18} /> Hoa hồng (Chi tiết)
-        </button>
-        <button onClick={() => setView('staff')} className="btn" style={{ background: view === 'staff' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'staff' ? 'white' : 'inherit' }}>
-          <Briefcase size={18} /> Báo cáo nhân viên
-        </button>
-      </div>
+      {isShopAdmin && (
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+          <button onClick={() => setView('revenue')} className="btn" style={{ background: view === 'revenue' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'revenue' ? 'white' : 'inherit' }}>
+            <TrendingUp size={18} /> Doanh thu
+          </button>
+          <button onClick={() => setView('commission')} className="btn" style={{ background: view === 'commission' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'commission' ? 'white' : 'inherit' }}>
+            <Users size={18} /> Hoa hồng (Chi tiết)
+          </button>
+          <button onClick={() => setView('staff')} className="btn" style={{ background: view === 'staff' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'staff' ? 'white' : 'inherit' }}>
+            <Briefcase size={18} /> Báo cáo nhân viên
+          </button>
+        </div>
+      )}
       
       {view === 'revenue' && (
         <>
