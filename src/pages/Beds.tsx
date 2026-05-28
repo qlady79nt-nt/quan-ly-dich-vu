@@ -237,60 +237,58 @@ const Beds = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
       ) : (
-        <div className="grid grid-cols-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
           {beds.map((bed) => (
-            <div key={bed.id} className="premium-card" style={{ borderTop: `4px solid ${getStatusColor(bed.computed_status)}`, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div style={{ color: getStatusColor(bed.computed_status) }}>
-                  <BedDouble size={32} />
+            <div key={bed.id} className="premium-card" style={{ borderTop: `4px solid ${getStatusColor(bed.computed_status)}`, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: bed.session ? '1rem' : '0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ color: getStatusColor(bed.computed_status) }}>
+                    <BedDouble size={24} />
+                  </div>
+                  <h4 style={{ fontSize: '1rem', margin: 0, fontWeight: '800' }}>{bed.name}</h4>
                 </div>
-                <div style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: getStatusColor(bed.computed_status), background: `${getStatusColor(bed.computed_status)}15`, padding: '0.25rem 0.5rem', borderRadius: '1rem' }}>
-                  {bed.computed_status === 'available' ? 'Trống' : (bed.computed_status === 'occupied' ? 'Đang có khách' : 'Đang vệ sinh')}
+                <div style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', color: getStatusColor(bed.computed_status), background: `${getStatusColor(bed.computed_status)}15`, padding: '0.25rem 0.5rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
+                  {bed.computed_status === 'available' ? 'Trống' : (bed.computed_status === 'occupied' ? 'Có khách' : 'Vệ sinh')}
                 </div>
               </div>
-              <h4 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: '800' }}>{bed.name}</h4>
               
-              {bed.session ? (() => {
+              {bed.session && (() => {
                 const expectedMinutes = bed.session.services?.duration_minutes || 60;
                 const elapsedMinutes = bed.session.start_time ? Math.floor((now.getTime() - new Date(bed.session.start_time).getTime()) / 60000) : 0;
                 const remainingMinutes = expectedMinutes - elapsedMinutes;
                 const isOvertime = remainingMinutes < 0;
 
                 return (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--text-light)' }}>Khách:</span> <strong>{bed.session.customer_packages?.customer_name || bed.session.retail_customer_name || 'Khách lẻ'}</strong>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-light)' }}>Khách:</span> <strong style={{ marginLeft: '0.5rem', textAlign: 'right' }}>{bed.session.customer_packages?.customer_name || bed.session.retail_customer_name || 'Khách lẻ'}</strong>
                   </div>
-                  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--text-light)' }}>Dịch vụ:</span> <strong style={{ color: 'var(--primary)' }}>{bed.session.services?.name}</strong>
+                  <div style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-light)' }}>DV:</span> <strong style={{ color: 'var(--primary)', marginLeft: '0.5rem', textAlign: 'right' }}>{bed.session.services?.name}</strong>
                   </div>
-                  <div style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
-                    <span style={{ color: 'var(--text-light)' }}>KTV:</span> <strong>{bed.session.staffs?.full_name}</strong>
+                  <div style={{ fontSize: '0.8rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-light)' }}>KTV:</span> <strong style={{ marginLeft: '0.5rem', textAlign: 'right' }}>{bed.session.staffs?.full_name}</strong>
                   </div>
                   
-                  <div style={{ background: isOvertime ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                  <div style={{ background: isOvertime ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', padding: '0.5rem', borderRadius: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Dự kiến: {expectedMinutes}p</span>
                       <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>Đã làm: {elapsedMinutes}p</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isOvertime ? 'var(--danger)' : 'var(--warning)', fontWeight: '800', fontSize: '1.1rem' }}>
-                      <Clock size={18} />
-                      {isOvertime ? `Quá giờ: +${Math.abs(remainingMinutes)} phút` : `Còn: ${remainingMinutes} phút`}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: isOvertime ? 'var(--danger)' : 'var(--warning)', fontWeight: '700', fontSize: '0.9rem' }}>
+                      <Clock size={14} />
+                      {isOvertime ? `Quá giờ: +${Math.abs(remainingMinutes)}p` : `Còn: ${remainingMinutes}p`}
                     </div>
                   </div>
                   
                   <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={() => openCheckout(bed.session)} className={`btn ${bed.session.customer_package_id ? 'btn' : 'btn-primary'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', width: '100%', background: bed.session.customer_package_id ? 'var(--success)' : 'var(--primary)', color: 'white', border: 'none' }}>
-                      {bed.session.customer_package_id ? 'HOÀN THÀNH (TRỪ BUỔI)' : 'TÍNH TIỀN'}
+                    <button onClick={() => openCheckout(bed.session)} className={`btn ${bed.session.customer_package_id ? 'btn' : 'btn-primary'}`} style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', width: '100%', background: bed.session.customer_package_id ? 'var(--success)' : 'var(--primary)', color: 'white', border: 'none', minHeight: '36px' }}>
+                      {bed.session.customer_package_id ? 'TRỪ BUỔI' : 'TÍNH TIỀN'}
                     </button>
                   </div>
                 </div>
                 );
-              })() : (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)', fontSize: '0.875rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px dashed var(--border)' }}>
-                  Chỗ đang trống
-                </div>
-              )}
+              })()}
             </div>
           ))}
           {beds.length === 0 && (
