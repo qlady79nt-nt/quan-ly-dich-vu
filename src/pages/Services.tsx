@@ -139,7 +139,9 @@ const Services = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Dịch vụ</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Thiết lập bảng giá và hoa hồng cho kỹ thuật viên</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            {profile?.role === 'shop_admin' || profile?.role === 'super_admin' ? 'Thiết lập bảng giá và hoa hồng cho kỹ thuật viên' : 'Danh sách bảng giá dịch vụ'}
+          </p>
         </div>
         {profile?.role === 'shop_admin' && (
           <button 
@@ -193,9 +195,11 @@ const Services = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-secondary)' }}>
                     ⏱ {s.duration_minutes} phút
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: s.status === 'inactive' ? 'var(--text-secondary)' : 'var(--success)', fontWeight: '600' }}>
-                    Hoa hồng: {s.commission_type === 'percent' ? `${s.commission_value}%` : `${Number(s.commission_value).toLocaleString()}đ`}
-                  </div>
+                  {(profile?.role === 'shop_admin' || profile?.role === 'super_admin') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: s.status === 'inactive' ? 'var(--text-secondary)' : 'var(--success)', fontWeight: '600' }}>
+                      Hoa hồng: {s.commission_type === 'percent' ? `${s.commission_value}%` : `${Number(s.commission_value).toLocaleString()}đ`}
+                    </div>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
