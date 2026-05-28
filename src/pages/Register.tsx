@@ -145,21 +145,7 @@ const Register = () => {
             </div>
             <h1 style={{ fontSize: '2rem', fontWeight: '800', margin: 0 }}>Spa & POS</h1>
           </div>
-          <h2 style={{ fontSize: '3rem', fontWeight: '800', marginBottom: '1.5rem', lineHeight: 1.2 }}>Quản lý Spa chuyên nghiệp & Tối giản.</h2>
-          <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '3rem', maxWidth: '500px' }}>
-            Hệ thống quản lý SaaS giúp bạn kiểm soát doanh thu, hoa hồng và chỗ mọi lúc, mọi nơi.
-          </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={20} /></div>
-              <span>Tạo cửa hàng nhanh trong 30 giây</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Shield size={20} /></div>
-              <span>Bảo mật dữ liệu chuẩn quốc tế</span>
-            </div>
-          </div>
         </div>
       </div>
 
