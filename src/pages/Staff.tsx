@@ -88,7 +88,9 @@ const Staff = () => {
     password: '',
     role: 'staff',
     permissions: [],
-    staff_id: ''
+    staff_id: '',
+    work_start_time: '',
+    work_end_time: ''
   });
 
   useEffect(() => {
@@ -253,14 +255,16 @@ const Staff = () => {
 
     setSaving(true);
 
-    const { username, password, role, permissions, staff_id } = accountFormData;
+    const { username, password, role, permissions, staff_id, work_start_time, work_end_time } = accountFormData;
     let targetProfileId = editingAccountId;
 
     const staffName = staff.find(s => s.id === staff_id)?.full_name || username;
     const payload: any = { 
        role,
        staff_id: staff_id || null,
-       full_name: staffName
+       full_name: staffName,
+       work_start_time: work_start_time || null,
+       work_end_time: work_end_time || null
     };
 
     if (targetProfileId) {
@@ -412,11 +416,13 @@ const Staff = () => {
         password: '',
         role: a.role || 'staff',
         permissions: a.user_permissions || [],
-        staff_id: a.staff_id || ''
+        staff_id: a.staff_id || '',
+        work_start_time: a.work_start_time ? a.work_start_time.substring(0, 5) : '',
+        work_end_time: a.work_end_time ? a.work_end_time.substring(0, 5) : ''
       });
     } else {
       setEditingAccountId(null);
-      setAccountFormData({ username: '', password: '', role: 'staff', permissions: PRESETS['staff'], staff_id: '' });
+      setAccountFormData({ username: '', password: '', role: 'staff', permissions: PRESETS['staff'], staff_id: '', work_start_time: '', work_end_time: '' });
     }
     setIsAccountModalOpen(true);
   };
@@ -597,10 +603,13 @@ const Staff = () => {
                 {filteredAccounts.map((a) => (
                   <tr key={a.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : '3px solid transparent', opacity: a.status === 'inactive' ? 0.6 : 1 }}>
                     <td style={{ padding: '1rem', fontWeight: '700', color: 'var(--primary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                         <KeyRound size={16} />
                         <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
                         {a.status === 'inactive' && <span className="badge" style={{ background: 'var(--danger)', color: 'white', fontSize: '0.65rem', padding: '0.2rem 0.4rem' }}>Đã khóa</span>}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>
+                        {a.work_start_time && a.work_end_time ? `Giờ làm: ${a.work_start_time.substring(0, 5)} → ${a.work_end_time.substring(0, 5)}` : 'Giờ làm: Không giới hạn'}
                       </div>
                     </td>
                     <td>
@@ -654,9 +663,14 @@ const Staff = () => {
             {filteredAccounts.map((a) => (
               <div key={a.id} className="report-card" style={{ opacity: a.status === 'inactive' ? 0.6 : 1, borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', color: 'var(--primary)', fontSize: '1.1rem' }}>
-                    <KeyRound size={16} />
-                    <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                      <KeyRound size={16} />
+                      <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      {a.work_start_time && a.work_end_time ? `Giờ làm: ${a.work_start_time.substring(0, 5)} → ${a.work_end_time.substring(0, 5)}` : 'Giờ làm: Không giới hạn'}
+                    </div>
                   </div>
                   {a.status === 'inactive' ? (
                     <span className="badge" style={{ background: 'var(--danger)', color: 'white' }}>Đã khóa</span>
@@ -789,6 +803,14 @@ const Staff = () => {
                     <option value="staff">Nhân viên thông thường (Lễ tân)</option>
                     <option value="manager">Quản lý cấp trung</option>
                   </select>
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Giờ bắt đầu (Để trống: Không GH)</label>
+                  <input type="time" className="form-input" value={accountFormData.work_start_time} onChange={(e) => setAccountFormData({...accountFormData, work_start_time: e.target.value})} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Giờ kết thúc (Để trống: Không GH)</label>
+                  <input type="time" className="form-input" value={accountFormData.work_end_time} onChange={(e) => setAccountFormData({...accountFormData, work_end_time: e.target.value})} />
                 </div>
               </div>
 

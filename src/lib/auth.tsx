@@ -12,6 +12,8 @@ interface Profile {
   role: 'super_admin' | 'shop_admin' | 'staff';
   status: string;
   permissions: string[];
+  work_start_time?: string;
+  work_end_time?: string;
   shop?: {
     name?: string;
     status: string;
@@ -60,6 +62,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (profErr) throw profErr;
+
+      // Kiểm tra khung giờ làm việc
+      if (prof.role !== 'super_admin' && prof.role !== 'shop_admin') {
+        if (prof.work_start_time && prof.work_end_time) {
+          const now = new Date();
+          const currentHour = now.getHours();
+          const currentMinute = now.getMinutes();
+          const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          
+          const start = prof.work_start_time.substring(0, 5); // Cắt lấy hh:mm
+          const end = prof.work_end_time.substring(0, 5);
+
+          let isAllowed = false;
+          if (start <= end) {
+            isAllowed = currentTimeStr >= start && currentTimeStr <= end;
+          } else {
+            // Ca đêm (vd 22:00 -> 06:00)
+            isAllowed = currentTimeStr >= start || currentTimeStr <= end;
+          }
+
+          if (!isAllowed) {
+            await supabase.auth.signOut();
+            alert(`Bạn chỉ được phép truy cập trong khung giờ: ${start} → ${end}`);
+            throw new Error('Ngoài thời gian làm việc');
+          }
+        }
+      }
 
       const { data: perms } = await supabase
         .from('user_permissions')
