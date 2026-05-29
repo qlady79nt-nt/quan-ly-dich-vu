@@ -425,7 +425,13 @@ const Staff = () => {
   const closeAccountModal = () => { setIsAccountModalOpen(false); setEditingAccountId(null); };
 
   // --- FILTERING ---
-  const filteredStaff = staff.filter(s => (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredStaff = staff
+    .filter(s => (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      if (a.status === 'active' && b.status === 'inactive') return -1;
+      if (a.status === 'inactive' && b.status === 'active') return 1;
+      return 0;
+    });
   
   // Tab account: Lọc theo từ khóa (hiển thị cả tài khoản đang bị khóa)
   const filteredAccounts = accounts.filter(a => 

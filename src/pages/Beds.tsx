@@ -82,6 +82,9 @@ const Beds = () => {
       };
     });
 
+    // Sắp xếp tự nhiên (Natural sort) để "Giường 10" đứng sau "Giường 9"
+    mapped.sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true }));
+
     setBeds(mapped);
     setLoading(false);
   };
