@@ -238,7 +238,11 @@ const MainLayout = () => {
         </Link>
         <button onClick={() => setIsMobileMenuOpen(true)} className="mobile-nav-item" style={{ background: 'transparent', border: 'none' }}>
           <MoreHorizontal size={24} />
-          <span>Thêm</span>
+          <span>Menu</span>
+        </button>
+        <button onClick={handleSignOut} className="mobile-nav-item" style={{ background: 'transparent', border: 'none', color: 'var(--danger)' }}>
+          <LogOut size={24} />
+          <span>Thoát</span>
         </button>
       </nav>
     </div>
