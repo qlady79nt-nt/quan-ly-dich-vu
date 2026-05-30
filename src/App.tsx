@@ -148,38 +148,46 @@ const MainLayout = () => {
       {/* Main Content */}
       <main className="app-main">
         <header style={{ height: '70px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1rem', position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
             <button 
               className="mobile-menu-btn"
               onClick={() => setIsMobileMenuOpen(true)}
-              style={{ padding: '0.5rem', background: 'transparent', border: 'none' }}
+              style={{ padding: '0.5rem', background: 'transparent', border: 'none', flexShrink: 0 }}
             >
               <Menu size={24} />
             </button>
-            <span className="desktop-only" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              Trang chủ <ChevronRight size={14} /> {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
+            <span className="desktop-only" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Trang chủ <ChevronRight size={14} style={{ flexShrink: 0 }} /> {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
             </span>
-            <span className="mobile-only" style={{ fontSize: '1.25rem', fontWeight: '800' }}>
+            <span className="mobile-only" style={{ fontSize: '1.25rem', fontWeight: '800', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
             <div className="desktop-only" style={{ textAlign: 'right' }}>
               <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{profile?.full_name || 'Quản trị viên'}</div>
               <div style={{ fontSize: '0.75rem', color: profile?.role === 'super_admin' ? 'var(--secondary)' : 'var(--text-light)', fontWeight: profile?.role === 'super_admin' ? '700' : '400' }}>
                 {profile?.role === 'super_admin' ? 'Hệ thống' : (profile?.shop?.name || 'Cửa hàng')}
               </div>
             </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+            <div className="desktop-only" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
               <UserCircle size={24} />
             </div>
             <button 
               onClick={handleSignOut} 
               className="mobile-only" 
-              style={{ background: 'transparent', border: 'none', color: 'var(--danger)', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ 
+                background: 'var(--danger)', 
+                border: 'none', 
+                color: 'white', 
+                padding: '0.4rem 0.75rem', 
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: '600'
+              }}
             >
-              <LogOut size={24} />
+              Thoát
             </button>
           </div>
         </header>
