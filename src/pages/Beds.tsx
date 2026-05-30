@@ -229,11 +229,11 @@ const Beds = () => {
 
   return (
     <>
-      <div className="animate-fade no-print">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="page-container animate-fade no-print">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Chỗ & Điều phối</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Theo dõi thời gian thực các dịch vụ đang diễn ra</p>
+          <h1 className="page-title">Quản lý Chỗ & Điều phối</h1>
+          <p className="page-subtitle">Theo dõi thời gian thực các dịch vụ đang diễn ra</p>
         </div>
         {(profile?.role === 'shop_admin' || profile?.role === 'super_admin') && (
           <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddBed}>

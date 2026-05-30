@@ -500,24 +500,24 @@ const Reports = () => {
   if (loading && !detailModal) return <div style={{ textAlign: 'center', padding: '5rem' }}><Loader2 className="animate-spin" size={40} /></div>;
 
   return (
-    <div className="animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="page-container animate-fade">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Báo cáo Tổng hợp</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Theo dõi dòng tiền, doanh thu và hiệu suất</p>
+          <h1 className="page-title">Báo cáo Tổng hợp</h1>
+          <p className="page-subtitle">Theo dõi dòng tiền, doanh thu và hiệu suất</p>
         </div>
         
         {isShopAdmin && (
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+          <div className="mobile-stack" style={{ alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)', flex: 1 }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Từ:</span>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500', width: '100%' }} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)', flex: 1 }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Đến:</span>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500' }} />
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500', width: '100%' }} />
             </div>
-            <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
               <Search size={16} /> Tìm kiếm
             </button>
           </div>
@@ -530,14 +530,14 @@ const Reports = () => {
       </div>
 
       {isShopAdmin && (
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-          <button onClick={() => setView('revenue')} className="btn" style={{ background: view === 'revenue' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'revenue' ? 'white' : 'inherit' }}>
+        <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+          <button onClick={() => setView('revenue')} className="btn mobile-tab" style={{ background: view === 'revenue' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'revenue' ? 'white' : 'inherit' }}>
             <TrendingUp size={18} /> Doanh thu
           </button>
-          <button onClick={() => setView('commission')} className="btn" style={{ background: view === 'commission' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'commission' ? 'white' : 'inherit' }}>
+          <button onClick={() => setView('commission')} className="btn mobile-tab" style={{ background: view === 'commission' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'commission' ? 'white' : 'inherit' }}>
             <Users size={18} /> Hoa hồng (Chi tiết)
           </button>
-          <button onClick={() => setView('staff')} className="btn" style={{ background: view === 'staff' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'staff' ? 'white' : 'inherit' }}>
+          <button onClick={() => setView('staff')} className="btn mobile-tab" style={{ background: view === 'staff' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'staff' ? 'white' : 'inherit' }}>
             <Briefcase size={18} /> Báo cáo nhân viên
           </button>
         </div>
@@ -547,7 +547,7 @@ const Reports = () => {
         <>
           {hasPermission('report.revenue.view') ? (
             <>
-              <div className="grid grid-cols-4" style={{ marginBottom: '2rem' }}>
+              <div className="kpi-grid" style={{ marginBottom: '2rem' }}>
                 <div className="premium-card" style={{ borderLeft: '4px solid var(--secondary)', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tiền thu vào (Tổng Cashflow)</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '800', marginTop: '0.25rem' }}>{stats.totalCashFlow.toLocaleString()}đ</div>
@@ -593,11 +593,11 @@ const Reports = () => {
                 </div>
 
                 {/* Sub-tabs cho Doanh thu */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-                  <button onClick={() => { setRevenueTab('all'); setRevenueDisplayCount(10); }} className="btn" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Tất cả</button>
-                  <button onClick={() => { setRevenueTab('retail'); setRevenueDisplayCount(10); }} className="btn" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Dịch vụ lẻ</button>
-                  <button onClick={() => { setRevenueTab('package_sale'); setRevenueDisplayCount(10); }} className="btn" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Bán liệu trình</button>
-                  <button onClick={() => { setRevenueTab('package_session'); setRevenueDisplayCount(10); }} className="btn" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Sử dụng liệu trình (Trừ buổi)</button>
+                <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+                  <button onClick={() => { setRevenueTab('all'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Tất cả</button>
+                  <button onClick={() => { setRevenueTab('retail'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Dịch vụ lẻ</button>
+                  <button onClick={() => { setRevenueTab('package_sale'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Bán liệu trình</button>
+                  <button onClick={() => { setRevenueTab('package_session'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Sử dụng liệu trình (Trừ buổi)</button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

@@ -78,30 +78,30 @@ const AuditLogs = () => {
   }
 
   return (
-    <div className="animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="page-container animate-fade">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ShieldAlert className="text-danger" /> Nhật ký Hoạt động (Audit Logs)
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Theo dõi các hành động nhạy cảm của quản trị viên và nhân viên trên toàn hệ thống</p>
+          </h1>
+          <p className="page-subtitle">Theo dõi các hành động nhạy cảm của quản trị viên và nhân viên trên toàn hệ thống</p>
         </div>
-        
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <select className="form-select" value={filterAction} onChange={e => setFilterAction(e.target.value)}>
+        <div className="mobile-stack" style={{ gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
+          <select className="form-select" value={filterAction} onChange={e => setFilterAction(e.target.value)} style={{ width: '100%', maxWidth: '300px' }}>
             <option value="ALL">-- Tất cả hành động --</option>
             <option value="DELETE_INVOICE">Xóa Hoá Đơn</option>
             <option value="APPLY_DISCOUNT">Giảm Giá</option>
             <option value="RESET_PASSWORD">Reset Mật Khẩu</option>
           </select>
 
-          <div className="search-container" style={{ width: '300px' }}>
+          <div className="search-container" style={{ width: '100%', maxWidth: '300px' }}>
             <Search size={18} />
             <input 
               type="text" 
               placeholder="Tìm theo nội dung, tên người dùng..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%' }}
             />
           </div>
         </div>

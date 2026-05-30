@@ -453,11 +453,11 @@ const Staff = () => {
   });
 
   return (
-    <div className="animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="page-container animate-fade">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Nhân sự & Tài khoản</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Quản lý nhân viên (hoa hồng) và tài khoản (đăng nhập)</p>
+          <h1 className="page-title">Quản lý Nhân sự & Tài khoản</h1>
+          <p className="page-subtitle">Quản lý nhân viên (hoa hồng) và tài khoản (đăng nhập)</p>
         </div>
         
         {activeTab === 'staffs' && (
@@ -472,23 +472,23 @@ const Staff = () => {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-        <button onClick={() => setActiveTab('staffs')} className="btn" style={{ background: activeTab === 'staffs' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'staffs' ? 'white' : 'inherit' }}>
+      <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+        <button onClick={() => setActiveTab('staffs')} className="btn mobile-tab" style={{ background: activeTab === 'staffs' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'staffs' ? 'white' : 'inherit' }}>
           <Users size={18} /> Nhân sự Spa (KTV, Lễ tân)
         </button>
-        <button onClick={() => setActiveTab('accounts')} className="btn" style={{ background: activeTab === 'accounts' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'accounts' ? 'white' : 'inherit' }}>
+        <button onClick={() => setActiveTab('accounts')} className="btn mobile-tab" style={{ background: activeTab === 'accounts' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'accounts' ? 'white' : 'inherit' }}>
           <KeyRound size={18} /> Tài khoản Đăng nhập
         </button>
       </div>
 
-      <div className="premium-card" style={{ marginBottom: '2rem' }}>
-        <div style={{ position: 'relative', maxWidth: '400px' }}>
+      <div className="premium-card mobile-stack" style={{ marginBottom: '2rem' }}>
+        <div style={{ position: 'relative', flex: 1, width: '100%' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
           <input 
             type="text" 
             className="form-input" 
             placeholder="Tìm kiếm..." 
-            style={{ paddingLeft: '2.75rem' }}
+            style={{ paddingLeft: '2.75rem', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -499,7 +499,7 @@ const Staff = () => {
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" size={32} /></div>
       ) : activeTab === 'staffs' ? (
         <div className="premium-card">
-          <div className="hidden-mobile table-responsive">
+          <div className="desktop-only table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
@@ -548,29 +548,35 @@ const Staff = () => {
             </table>
           </div>
 
-          <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
+          <div className="mobile-only flex flex-col" style={{ gap: '1rem' }}>
             {filteredStaff.map((s) => (
-              <div key={s.id} className="report-card" style={{ opacity: s.status === 'inactive' ? 0.6 : 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <div style={{ fontWeight: '700', fontSize: '1.1rem' }}>{s.full_name}</div>
-                  {s.status === 'inactive' ? (
-                    <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Nghỉ làm</span>
-                  ) : (
-                    <span className="badge badge-success">Đang làm</span>
-                  )}
+              <div key={s.id} className="report-card" style={{ opacity: s.status === 'inactive' ? 0.6 : 1, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--primary)' }}>{s.full_name}</div>
+                  <div style={{ marginTop: '0.25rem' }}>
+                    {s.status === 'inactive' ? (
+                      <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>Nghỉ làm</span>
+                    ) : (
+                      <span className="badge badge-success">Đang làm</span>
+                    )}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Số điện thoại:</span>
-                  <span>{s.phone || '---'}</span>
+                
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Số điện thoại:</div>
+                  <div style={{ fontWeight: '600' }}>{s.phone || '---'}</div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Vị trí:</span>
-                  <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
-                    {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'CTV' : s.position === 'staff' ? 'KTV' : (s.position || 'KTV')}
-                  </span>
+
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Vị trí:</div>
+                  <div style={{ marginTop: '0.25rem' }}>
+                    <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
+                      {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'CTV' : s.position === 'staff' ? 'KTV' : (s.position || 'KTV')}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+
+                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-start' }}>
                   <button onClick={() => openStaffEdit(s)} className="btn" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
                   <button onClick={() => handleToggleStaffStatus(s)} className="btn" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'transparent', color: s.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
                     {s.status === 'inactive' ? 'Khôi phục' : 'Cho nghỉ'}
@@ -588,7 +594,7 @@ const Staff = () => {
         </div>
       ) : (
         <div className="premium-card">
-          <div className="hidden-mobile table-responsive">
+          <div className="desktop-only table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
@@ -661,48 +667,51 @@ const Staff = () => {
 
           <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
             {filteredAccounts.map((a) => (
-              <div key={a.id} className="report-card" style={{ opacity: a.status === 'inactive' ? 0.6 : 1, borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : 'none' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', color: 'var(--primary)', fontSize: '1.1rem' }}>
-                      <KeyRound size={16} />
-                      <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      {a.work_start_time && a.work_end_time ? `Giờ làm: ${a.work_start_time.substring(0, 5)} → ${a.work_end_time.substring(0, 5)}` : 'Giờ làm: Không giới hạn'}
-                    </div>
+              <div key={a.id} className="report-card" style={{ opacity: a.status === 'inactive' ? 0.6 : 1, borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : 'none', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                    <KeyRound size={16} />
+                    <span style={{ textDecoration: a.status === 'inactive' ? 'line-through' : 'none' }}>{a.username}</span>
                   </div>
-                  {a.status === 'inactive' ? (
-                    <span className="badge" style={{ background: 'var(--danger)', color: 'white' }}>Đã khóa</span>
-                  ) : a.role === 'shop_admin' ? (
-                    <span className="badge" style={{ background: 'var(--secondary)', color: 'white' }}>Chủ cửa hàng</span>
-                  ) : a.role === 'manager' ? (
-                    <span className="badge" style={{ background: 'var(--primary-light)', color: 'white' }}>Quản lý</span>
-                  ) : (
-                    <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>Nhân viên</span>
-                  )}
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    {a.work_start_time && a.work_end_time ? `Giờ làm: ${a.work_start_time.substring(0, 5)} → ${a.work_end_time.substring(0, 5)}` : 'Giờ làm: Không giới hạn'}
+                  </div>
+                  <div style={{ marginTop: '0.25rem' }}>
+                    {a.status === 'inactive' ? (
+                      <span className="badge" style={{ background: 'var(--danger)', color: 'white' }}>Đã khóa</span>
+                    ) : a.role === 'shop_admin' ? (
+                      <span className="badge" style={{ background: 'var(--secondary)', color: 'white' }}>Chủ cửa hàng</span>
+                    ) : a.role === 'manager' ? (
+                      <span className="badge" style={{ background: 'var(--primary-light)', color: 'white' }}>Quản lý</span>
+                    ) : (
+                      <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>Nhân viên</span>
+                    )}
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Nhân sự:</span>
-                  {a.staffs ? (
-                    <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
-                  ) : (
-                    <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
-                  )}
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Nhân sự liên kết:</div>
+                  <div style={{ marginTop: '0.1rem' }}>
+                    {a.staffs ? (
+                      <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
+                    ) : (
+                      <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
+                    )}
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Phân quyền:</span>
-                  {a.role === 'shop_admin' ? (
-                    <span style={{ color: 'var(--success)' }}>Toàn quyền</span>
-                  ) : (
-                    <span>{a.user_permissions?.length || 0} quyền chi tiết</span>
-                  )}
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Phân quyền:</div>
+                  <div style={{ fontWeight: '600', marginTop: '0.1rem' }}>
+                    {a.role === 'shop_admin' ? (
+                      <span style={{ color: 'var(--success)' }}>Toàn quyền</span>
+                    ) : (
+                      <span>{a.user_permissions?.length || 0} quyền chi tiết</span>
+                    )}
+                  </div>
                 </div>
 
-                <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-start' }}>
                   <button onClick={() => openAccountEdit(a)} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Sửa Quyền</button>
                   {a.role !== 'shop_admin' && (
                     <>

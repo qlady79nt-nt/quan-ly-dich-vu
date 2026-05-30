@@ -135,11 +135,11 @@ const Services = () => {
   );
 
   return (
-    <div className="animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="page-container animate-fade">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Dịch vụ</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+          <h1 className="page-title">Quản lý Dịch vụ</h1>
+          <p className="page-subtitle">
             {profile?.role === 'shop_admin' || profile?.role === 'super_admin' ? 'Thiết lập bảng giá và hoa hồng cho kỹ thuật viên' : 'Danh sách bảng giá dịch vụ'}
           </p>
         </div>
@@ -160,14 +160,14 @@ const Services = () => {
         )}
       </div>
 
-      <div className="premium-card" style={{ marginBottom: '2rem' }}>
-        <div style={{ position: 'relative', maxWidth: '400px' }}>
+      <div className="premium-card mobile-stack" style={{ marginBottom: '2rem' }}>
+        <div style={{ position: 'relative', flex: 1, width: '100%' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
           <input 
             type="text" 
             className="form-input" 
             placeholder="Tìm theo tên dịch vụ..." 
-            style={{ paddingLeft: '2.75rem' }}
+            style={{ paddingLeft: '2.75rem', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -177,7 +177,7 @@ const Services = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /> Đang tải...</div>
       ) : (
-        <div className="grid grid-cols-2">
+        <div className="kpi-grid">
           {filteredServices.map((s) => (
             <div key={s.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', opacity: s.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: s.status === 'inactive' ? 'rgba(0,0,0,0.05)' : 'rgba(109, 40, 217, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.status === 'inactive' ? 'var(--text-light)' : 'var(--primary)', flexShrink: 0 }}>

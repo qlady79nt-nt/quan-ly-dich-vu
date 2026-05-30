@@ -283,6 +283,88 @@ h1, h2, h3, h4 {
 .hidden-mobile { display: block; }
 .visible-mobile { display: none; }
 
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+
+/* Mobile Design System */
+.page-container {
+  width: 100%;
+  max-width: 100%;
+  padding: 2rem;
+  overflow-x: hidden;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.2;
+  word-break: keep-all;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.mobile-stack {
+  display: flex;
+  gap: 12px;
+}
+
+.mobile-tabs {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.mobile-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-tab {
+  flex-shrink: 0;
+  min-width: max-content;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: white;
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.mobile-nav-item.active {
+  color: var(--primary);
+}
+
 /* Report Card (Mobile) */
 .report-card {
   background: white;
@@ -333,6 +415,9 @@ h1, h2, h3, h4 {
   .grid-cols-3 {
     grid-template-columns: repeat(2, 1fr);
   }
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .pos-grid {
     grid-template-columns: 1fr;
   }
@@ -346,6 +431,45 @@ h1, h2, h3, h4 {
   
   .hidden-mobile { display: none !important; }
   .visible-mobile { display: block !important; }
+  
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block !important; }
+
+  .page-container {
+    padding: 12px;
+  }
+
+  .page-title {
+    font-size: 28px;
+  }
+
+  .mobile-stack {
+    flex-direction: column;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Bottom Navigation overrides Sidebar */
+  .app-sidebar {
+    display: none !important;
+  }
+  
+  .app-main header {
+    display: none !important; /* Hide top header on mobile if bottom nav is used */
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding-bottom: 80px; /* Space for bottom nav */
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+    justify-content: space-around;
+  }
   
   .modal-fullscreen-mobile {
     max-width: 100% !important;

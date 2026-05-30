@@ -389,21 +389,20 @@ const POS = () => {
   };
 
   return (
-    <div className="pos-grid">
-      <div className="no-print">
-        <div className="premium-card" style={{ marginBottom: '1.5rem', padding: '0.5rem' }}>
-          <div style={{ display: 'flex' }}>
-            <button onClick={() => setActiveTab('retail')} style={{ flex: 1, padding: '1rem', background: activeTab === 'retail' ? 'var(--primary)' : 'transparent', color: activeTab === 'retail' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+    <div className="page-container animate-fade">
+      <div className="pos-grid">
+        <div className="no-print">
+          <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+            <button onClick={() => setActiveTab('retail')} className="btn mobile-tab" style={{ background: activeTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'retail' ? 'white' : 'inherit' }}>
               <Zap size={18} /> Bán lẻ
             </button>
-            <button onClick={() => setActiveTab('sell_package')} style={{ flex: 1, padding: '1rem', background: activeTab === 'sell_package' ? 'var(--primary)' : 'transparent', color: activeTab === 'sell_package' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <button onClick={() => setActiveTab('sell_package')} className="btn mobile-tab" style={{ background: activeTab === 'sell_package' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'sell_package' ? 'white' : 'inherit' }}>
               <PackageIcon size={18} /> Bán liệu trình
             </button>
-            <button onClick={() => setActiveTab('use_package')} style={{ flex: 1, padding: '1rem', background: activeTab === 'use_package' ? 'var(--primary)' : 'transparent', color: activeTab === 'use_package' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <button onClick={() => setActiveTab('use_package')} className="btn mobile-tab" style={{ background: activeTab === 'use_package' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'use_package' ? 'white' : 'inherit' }}>
               <Calendar size={18} /> Dùng liệu trình
             </button>
           </div>
-        </div>
 
         {activeTab === 'retail' && (
           <div className="animate-fade">
@@ -682,6 +681,7 @@ const POS = () => {
         </div>,
         document.body
       )}
+    </div>
     </div>
   );
 };

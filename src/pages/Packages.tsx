@@ -208,11 +208,11 @@ const Packages = () => {
   };
 
   return (
-    <div className="animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="page-container animate-fade">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Liệu trình (Gói)</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Quản lý cấu hình gói và danh sách khách hàng đã mua</p>
+          <h1 className="page-title">Quản lý Liệu trình (Gói)</h1>
+          <p className="page-subtitle">Quản lý cấu hình gói và danh sách khách hàng đã mua</p>
         </div>
         {activeTab === 'config' && profile?.role === 'shop_admin' && (
           <button 
@@ -231,21 +231,19 @@ const Packages = () => {
         )}
       </div>
 
-      <div className="premium-card" style={{ marginBottom: '1.5rem', padding: '0.5rem' }}>
-        <div style={{ display: 'flex' }}>
-          <button onClick={() => setActiveTab('config')} style={{ flex: 1, padding: '1rem', background: activeTab === 'config' ? 'var(--primary)' : 'transparent', color: activeTab === 'config' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <PackageIcon size={18} /> Cấu hình gói
-          </button>
-          <button onClick={() => setActiveTab('customers')} style={{ flex: 1, padding: '1rem', background: activeTab === 'customers' ? 'var(--primary)' : 'transparent', color: activeTab === 'customers' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <Users size={18} /> Khách đã mua
-          </button>
-        </div>
+      <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+        <button onClick={() => setActiveTab('config')} className="btn mobile-tab" style={{ background: activeTab === 'config' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'config' ? 'white' : 'inherit' }}>
+          <PackageIcon size={18} /> Cấu hình gói
+        </button>
+        <button onClick={() => setActiveTab('customers')} className="btn mobile-tab" style={{ background: activeTab === 'customers' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'customers' ? 'white' : 'inherit' }}>
+          <Users size={18} /> Khách đã mua
+        </button>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /> Đang tải...</div>
       ) : activeTab === 'config' ? (
-        <div className="grid grid-cols-2">
+        <div className="kpi-grid">
           {packages.map((p) => (
             <div key={p.id} className="premium-card" style={{ opacity: p.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
@@ -293,14 +291,14 @@ const Packages = () => {
         </div>
       ) : (
         <div className="animate-fade">
-          <div className="premium-card" style={{ marginBottom: '1.5rem' }}>
-            <div style={{ position: 'relative', maxWidth: '400px' }}>
+          <div className="premium-card mobile-stack" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ position: 'relative', flex: 1, width: '100%' }}>
               <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
               <input 
                 type="text" 
                 className="form-input" 
                 placeholder="Tìm theo tên hoặc số điện thoại..." 
-                style={{ paddingLeft: '2.75rem' }}
+                style={{ paddingLeft: '2.75rem', width: '100%' }}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

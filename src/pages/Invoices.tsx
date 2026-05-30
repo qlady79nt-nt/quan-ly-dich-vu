@@ -465,41 +465,42 @@ const Invoices = () => {
   // Removed permission check to allow non-admins to see today's invoices
 
   return (
-    <div className="animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="page-container animate-fade">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Hoá đơn & Phiếu</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Tra cứu hoá đơn bán hàng và lịch sử trừ buổi</p>
+          <h1 className="page-title">Quản lý Hoá đơn & Phiếu</h1>
+          <p className="page-subtitle">Tra cứu hoá đơn bán hàng và lịch sử trừ buổi</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="mobile-stack" style={{ gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
           {selectedInvoices.length > 0 && view === 'retail' && hasPermission('sale.delete') && (
             <button 
               onClick={handleDeleteMultiple} 
               className="btn" 
-              style={{ background: 'var(--danger)', color: 'white' }}
+              style={{ background: 'var(--danger)', color: 'white', whiteSpace: 'nowrap' }}
               disabled={isDeleting}
             >
               {isDeleting ? <Loader2 className="animate-spin" size={18} /> : `Xóa ${selectedInvoices.length} hoá đơn`}
             </button>
           )}
-          <div className="search-container" style={{ width: '300px' }}>
+          <div className="search-container" style={{ width: '100%', maxWidth: '300px' }}>
             <Search size={18} />
             <input
               type="text"
               placeholder="Tìm theo tên khách, mã..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%' }}
             />
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-        <button onClick={() => setView('retail')} className="btn" style={{ background: view === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'retail' ? 'white' : 'inherit' }}>
+      <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+        <button onClick={() => setView('retail')} className="btn mobile-tab" style={{ background: view === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'retail' ? 'white' : 'inherit' }}>
           <FileText size={18} /> Hoá đơn bán hàng
         </button>
-        <button onClick={() => setView('session')} className="btn" style={{ background: view === 'session' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'session' ? 'white' : 'inherit' }}>
+        <button onClick={() => setView('session')} className="btn mobile-tab" style={{ background: view === 'session' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'session' ? 'white' : 'inherit' }}>
           <Filter size={18} /> Phiếu dùng liệu trình
         </button>
       </div>
@@ -508,7 +509,7 @@ const Invoices = () => {
         <div style={{ textAlign: 'center', padding: '5rem' }}><Loader2 className="animate-spin" size={40} /></div>
       ) : view === 'retail' ? (
         <div className="premium-card">
-          <div className="hidden-mobile table-responsive">
+          <div className="desktop-only table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
@@ -568,15 +569,15 @@ const Invoices = () => {
             </table>
           </div>
 
-          <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
+          <div className="mobile-only flex flex-col" style={{ gap: '1rem' }}>
             {filteredInvoices.map(inv => (
               <div 
                 key={inv.id} 
                 className="report-card" 
                 onClick={() => handleViewInvoice(inv)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <div onClick={(e) => e.stopPropagation()} style={{ marginRight: '0.5rem' }}>
                       <input 
@@ -588,35 +589,35 @@ const Invoices = () => {
                         }}
                       />
                     </div>
-                    <div style={{ fontWeight: '700', color: 'var(--secondary)' }}>#{inv.invoice_code || '---'}</div>
+                    <div style={{ fontWeight: '700', color: 'var(--primary)' }}>#{inv.invoice_code || '---'}</div>
                   </div>
-                  <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
-                    {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ'}
-                  </span>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{new Date(inv.created_at).toLocaleString()}</div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Khách:</span>
-                  <span style={{ fontWeight: '600' }}>{inv.customer_name || 'Khách lẻ'}</span>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Khách:</div>
+                  <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{inv.customer_name || 'Khách lẻ'}</div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Người tạo:</span>
-                  <span>{inv.profiles?.full_name || 'Hệ thống'}</span>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Người tạo:</div>
+                  <div style={{ fontWeight: '600' }}>{inv.profiles?.full_name || 'Hệ thống'}</div>
                 </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Thời gian:</span>
-                  <span>{new Date(inv.created_at).toLocaleString()}</span>
-                </div>
-
-                <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Tổng tiền:</span>
-                  <span className="financial-cell" style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary)' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Trạng thái:</div>
+                  <div style={{ marginTop: '0.25rem' }}>
+                    <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
+                      {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng tiền:</div>
+                  <div className="financial-cell" style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
                     {Number(inv.final_amount).toLocaleString()}đ
-                  </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -672,34 +673,34 @@ const Invoices = () => {
                 key={sess.id} 
                 className="report-card" 
                 onClick={() => handleViewSession(sess)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                  <div style={{ fontWeight: '700', color: 'var(--secondary)' }}>#{sess.session_code || '---'}</div>
-                  <span className="badge badge-success">Đã hoàn thành</span>
+                <div>
+                  <div style={{ fontWeight: '700', color: 'var(--primary)' }}>#{sess.session_code || '---'}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(sess.created_at).toLocaleString()}</div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Khách:</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: '600' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{sess.customer_packages?.customer_phone}</div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Khách:</div>
+                  <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>{sess.customer_packages?.customer_phone}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Gói dịch vụ:</div>
+                  <div style={{ fontWeight: '600' }}>{sess.customer_packages?.packages?.name || 'N/A'}</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Kỹ thuật viên:</div>
+                  <div style={{ fontWeight: '600' }}>{sess.profiles?.full_name || 'N/A'}</div>
+                </div>
+                
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Trạng thái:</div>
+                  <div style={{ marginTop: '0.25rem' }}>
+                    <span className="badge badge-success">Đã hoàn thành</span>
                   </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Gói dịch vụ:</span>
-                  <span style={{ fontWeight: '600' }}>{sess.customer_packages?.packages?.name || 'N/A'}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Kỹ thuật viên:</span>
-                  <span>{sess.profiles?.full_name || 'N/A'}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Ngày dùng:</span>
-                  <span>{new Date(sess.created_at).toLocaleString()}</span>
                 </div>
               </div>
             ))}

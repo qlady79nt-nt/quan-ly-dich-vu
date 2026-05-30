@@ -517,42 +517,42 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
               key={`card-${staff.id}`} 
               className="report-card"
               onClick={() => handleOpenDetail(staff)}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
             >
-              <div className="report-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.25rem' }}>
                   {staff.name.charAt(0)}
                 </div>
                 <div>
-                  <div style={{ fontWeight: '700', color: 'var(--text-main)', fontSize: '1rem' }}>{staff.name}</div>
+                  <div style={{ fontWeight: '700', color: 'var(--text-main)', fontSize: '1.1rem' }}>{staff.name}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Kỹ thuật viên / Bán hàng</div>
                 </div>
               </div>
               
-              <div className="report-card-row">
-                <span style={{ color: 'var(--text-secondary)' }}>DT Bán gói</span>
-                <span style={{ fontWeight: '500' }}>{staff.total_sales_revenue.toLocaleString('vi-VN')}đ</span>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>DT Bán gói:</div>
+                <div style={{ fontWeight: '500' }}>{staff.total_sales_revenue.toLocaleString('vi-VN')}đ</div>
               </div>
-              <div className="report-card-row">
-                <span style={{ color: 'var(--text-secondary)' }}>DT Dịch vụ</span>
-                <span style={{ fontWeight: '500' }}>{staff.total_revenue.toLocaleString('vi-VN')}đ</span>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>DT Dịch vụ:</div>
+                <div style={{ fontWeight: '500' }}>{staff.total_revenue.toLocaleString('vi-VN')}đ</div>
               </div>
-              <div className="report-card-row">
-                <span style={{ color: 'var(--text-secondary)' }}>HH Bán hàng</span>
-                <span style={{ fontWeight: '600', color: 'var(--success)' }}>{staff.sales_commission.toLocaleString('vi-VN')}đ</span>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>HH Bán hàng:</div>
+                <div style={{ fontWeight: '600', color: 'var(--success)' }}>{staff.sales_commission.toLocaleString('vi-VN')}đ</div>
               </div>
-              <div className="report-card-row">
-                <span style={{ color: 'var(--text-secondary)' }}>HH Dịch vụ</span>
-                <span style={{ fontWeight: '600', color: 'var(--primary)' }}>{staff.execution_commission.toLocaleString('vi-VN')}đ</span>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>HH Dịch vụ:</div>
+                <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{staff.execution_commission.toLocaleString('vi-VN')}đ</div>
               </div>
-              <div className="report-card-row">
-                <span style={{ color: 'var(--text-secondary)' }}>Số cuốc</span>
-                <span style={{ background: 'rgba(109, 40, 217, 0.1)', color: 'var(--primary)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontWeight: '700' }}>{staff.total_sessions}</span>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Số cuốc:</div>
+                <div style={{ background: 'rgba(109, 40, 217, 0.1)', color: 'var(--primary)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontWeight: '700', display: 'inline-block', marginTop: '0.25rem' }}>{staff.total_sessions}</div>
               </div>
               
-              <div className="report-card-row bold">
-                <span>Tổng Hoa Hồng</span>
-                <span style={{ color: 'var(--danger)', fontSize: '1.25rem' }}>{staff.total_commission.toLocaleString('vi-VN')}đ</span>
+              <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 'bold' }}>Tổng Hoa Hồng:</div>
+                <div style={{ color: 'var(--danger)', fontSize: '1.25rem', fontWeight: '800' }}>{staff.total_commission.toLocaleString('vi-VN')}đ</div>
               </div>
             </div>
           ))}
@@ -706,23 +706,35 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                   {/* MOBILE VIEW (CARDS) */}
                   <div className="visible-mobile">
                     {sessionsDetail.map((sess, idx) => (
-                      <div key={sess.id || idx} className="report-card" style={{ padding: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>{formatDateTime(sess.created_at)}</span>
-                          <span style={{ color: 'var(--text-light)' }}>HĐ: {sess.invoice_code ? <a href={`/app/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'none' }}>#{sess.invoice_code}</a> : '---'}</span>
+                      <div key={sess.id || idx} className="report-card" style={{ padding: '1rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div>
+                          <div style={{ fontWeight: '700', color: 'var(--primary)' }}>
+                            {sess.invoice_code ? <a href={`/app/invoices?search=${sess.invoice_code}`} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>#{sess.invoice_code}</a> : '#---'}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatDateTime(sess.created_at)}</div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-main)', maxWidth: '60%' }}>
-                            {sess.customer_packages?.customer_name || 'Khách vãng lai'}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontWeight: '600', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                              <Scissors size={12} />
-                              <span>{sess.services?.name || 'Dịch vụ'}</span>
-                            </div>
+                        
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Khách:</div>
+                          <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{sess.customer_packages?.customer_name || 'Khách vãng lai'}</div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Dịch vụ:</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontWeight: '600' }}>
+                            <Scissors size={14} />
+                            <span>{sess.services?.name || 'Dịch vụ'}</span>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
-                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>DT: <span className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(sess.revenue_amount || 0).toLocaleString()}đ</span></div>
-                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>HH: <span className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)' }}>{Number(sess.commission_amount || 0).toLocaleString()}đ</span></div>
-                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Doanh thu:</div>
+                          <div className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(sess.revenue_amount || 0).toLocaleString()}đ</div>
+                        </div>
+
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Hoa hồng:</div>
+                          <div className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)', fontSize: '1.1rem' }}>{Number(sess.commission_amount || 0).toLocaleString()}đ</div>
                         </div>
                       </div>
                     ))}
@@ -789,21 +801,27 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                      {commissionsDetail.filter(c => c.type !== 'service_execution' && c.type !== 'execution').map((comm, idx) => {
                        const rev = comm.package_sales?.amount_paid || 0;
                        return (
-                         <div key={comm.id || idx} className="report-card" style={{ padding: '0.75rem', marginBottom: '0.75rem' }}>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.75rem' }}>
-                             <span style={{ color: 'var(--text-secondary)' }}>{formatDateTime(comm.created_at)}</span>
-                             <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}>
-                               <ShoppingBag size={10} /> Bán hàng
-                             </span>
+                         <div key={comm.id || idx} className="report-card" style={{ padding: '1rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                           <div>
+                             <div style={{ fontWeight: '700', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                               <ShoppingBag size={14} /> Bán hàng
+                             </div>
+                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatDateTime(comm.created_at)}</div>
                            </div>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                             <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-main)', maxWidth: '60%' }}>
-                               {comm.note || 'Thưởng doanh số'}
-                             </div>
-                             <div style={{ textAlign: 'right' }}>
-                               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>DT: <span className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}</span></div>
-                               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>HH: <span className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)' }}>+{Number(comm.amount || 0).toLocaleString()}đ</span></div>
-                             </div>
+                           
+                           <div>
+                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Nghiệp vụ:</div>
+                             <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{comm.note || 'Thưởng doanh số'}</div>
+                           </div>
+
+                           <div>
+                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Doanh thu:</div>
+                             <div className="financial-cell" style={{ fontWeight: '600', color: 'var(--success)' }}>{Number(rev) > 0 ? Number(rev).toLocaleString() + 'đ' : '-'}</div>
+                           </div>
+
+                           <div>
+                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Hoa hồng:</div>
+                             <div className="financial-cell" style={{ fontWeight: '700', color: 'var(--warning)', fontSize: '1.1rem' }}>+{Number(comm.amount || 0).toLocaleString()}đ</div>
                            </div>
                          </div>
                        );

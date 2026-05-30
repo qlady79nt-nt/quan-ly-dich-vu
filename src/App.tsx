@@ -15,7 +15,8 @@ import {
   LayoutDashboard,
   FileText,
   Menu,
-  X
+  X,
+  MoreHorizontal
 } from 'lucide-react';
 import { AuthProvider, useAuth, ProtectedRoute } from './lib/auth';
 
@@ -172,7 +173,7 @@ const MainLayout = () => {
           </div>
         </header>
 
-        <div style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+        <div className="page-container" style={{ flex: 1, overflowY: 'auto' }}>
           {shopStatus.status !== 'active' && (
             <div className="premium-card" style={{ marginBottom: '1.5rem', background: shopStatus.status === 'locked' ? '#fee2e2' : '#fef3c7', border: shopStatus.status === 'locked' ? '1px solid #ef4444' : '1px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '1rem', color: shopStatus.status === 'locked' ? '#991b1b' : '#92400e' }}>
               <ShieldAlert size={24} />
@@ -197,6 +198,30 @@ const MainLayout = () => {
           </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-bottom-nav">
+        <Link to="/app/dashboard" className={`mobile-nav-item ${location.pathname.includes('/dashboard') ? 'active' : ''}`}>
+          <LayoutDashboard size={24} />
+          <span>Tổng quan</span>
+        </Link>
+        <Link to="/app/invoices" className={`mobile-nav-item ${location.pathname.includes('/invoices') ? 'active' : ''}`}>
+          <FileText size={24} />
+          <span>Hóa đơn</span>
+        </Link>
+        <Link to="/app/pos" className={`mobile-nav-item ${location.pathname.includes('/pos') ? 'active' : ''}`}>
+          <ShoppingCart size={24} />
+          <span>Bán hàng</span>
+        </Link>
+        <Link to="/app/customers" className={`mobile-nav-item ${location.pathname.includes('/customers') ? 'active' : ''}`}>
+          <UserCircle size={24} />
+          <span>Khách hàng</span>
+        </Link>
+        <button onClick={() => setIsMobileMenuOpen(true)} className="mobile-nav-item" style={{ background: 'transparent', border: 'none' }}>
+          <MoreHorizontal size={24} />
+          <span>Thêm</span>
+        </button>
+      </nav>
     </div>
   );
 };

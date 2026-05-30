@@ -148,11 +148,11 @@ const Customers = () => {
   });
 
   return (
-    <div className="animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="page-container animate-fade">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Quản lý Khách hàng</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Lưu trữ thông tin và lịch sử dịch vụ của khách</p>
+          <h1 className="page-title">Quản lý Khách hàng</h1>
+          <p className="page-subtitle">Lưu trữ thông tin và lịch sử dịch vụ của khách</p>
         </div>
         {activeTab === 'general' && (
           <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddCustomer}>
@@ -161,26 +161,26 @@ const Customers = () => {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-        <button onClick={() => setActiveTab('general')} className="btn" style={{ background: activeTab === 'general' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'general' ? 'white' : 'inherit' }}>
+      <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+        <button onClick={() => setActiveTab('general')} className="btn mobile-tab" style={{ background: activeTab === 'general' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'general' ? 'white' : 'inherit' }}>
           <UserCircle size={18} /> Khách vãng lai / Đăng ký
         </button>
-        <button onClick={() => setActiveTab('packages')} className="btn" style={{ background: activeTab === 'packages' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'packages' ? 'white' : 'inherit' }}>
+        <button onClick={() => setActiveTab('packages')} className="btn mobile-tab" style={{ background: activeTab === 'packages' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'packages' ? 'white' : 'inherit' }}>
           <Package size={18} /> Khách hàng liệu trình
         </button>
-        <button onClick={() => setActiveTab('archived')} className="btn" style={{ background: activeTab === 'archived' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'archived' ? 'white' : 'inherit' }}>
+        <button onClick={() => setActiveTab('archived')} className="btn mobile-tab" style={{ background: activeTab === 'archived' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'archived' ? 'white' : 'inherit' }}>
           <CreditCard size={18} /> Đã lưu trữ
         </button>
       </div>
 
-      <div className="premium-card" style={{ marginBottom: '2rem' }}>
-        <div style={{ position: 'relative', maxWidth: '400px' }}>
+      <div className="premium-card mobile-stack" style={{ marginBottom: '2rem' }}>
+        <div style={{ position: 'relative', flex: 1, width: '100%' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
           <input 
             type="text" 
             className="form-input" 
             placeholder="Tìm theo tên hoặc số điện thoại..." 
-            style={{ paddingLeft: '2.75rem' }}
+            style={{ paddingLeft: '2.75rem', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
