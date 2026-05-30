@@ -439,6 +439,12 @@ const POS = () => {
         <div className="no-print">
         {activeTab === 'retail' && (
           <div className="animate-fade">
+            {services.length === 0 && !loading && (
+              <div className="premium-card" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                <p style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Không tìm thấy dịch vụ nào</p>
+                <p style={{ fontSize: '0.875rem' }}>Vui lòng kiểm tra lại cấu hình Database (RLS / shop_id).</p>
+              </div>
+            )}
             <div className="grid grid-cols-2">
               {services.map(s => (
                 <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
