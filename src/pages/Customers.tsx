@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Loader2, UserCircle, Phone, CreditCard, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { TableSkeleton } from '../components/Skeleton';
 import { ActionMenu } from '../components/ActionMenu';
 
 const Customers = () => {
@@ -179,7 +180,7 @@ const Customers = () => {
           <input 
             type="text" 
             className="form-input" 
-            placeholder="Tìm theo tên hoặc số điện thoại..." 
+            placeholder="Tìm theo tên khách, sđt..." 
             style={{ paddingLeft: '2.75rem', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -188,7 +189,7 @@ const Customers = () => {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
+        <TableSkeleton />
       ) : activeTab === 'general' ? (
         <div className="premium-card">
           <div className="desktop-only table-responsive">

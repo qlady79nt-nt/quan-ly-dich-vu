@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { TableSkeleton } from '../components/Skeleton';
 import { createPortal } from 'react-dom';
 import ReportsStaff from '../components/ReportsStaff';
 
@@ -497,7 +498,11 @@ const Reports = () => {
     }
   };
 
-  if (loading && !detailModal) return <div style={{ textAlign: 'center', padding: '5rem' }}><Loader2 className="animate-spin" size={40} /></div>;
+  if (loading && !detailModal) return (
+    <div className="page-container animate-fade">
+      <TableSkeleton />
+    </div>
+  );
 
   return (
     <div className="page-container animate-fade">
