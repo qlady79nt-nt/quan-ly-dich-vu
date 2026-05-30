@@ -413,6 +413,14 @@ const POS = () => {
     window.print();
   };
 
+  if (!shopId) {
+    return (
+      <div className="page-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <Loader2 className="animate-spin" style={{ marginRight: '0.5rem' }} /> Đang tải dữ liệu cửa hàng...
+      </div>
+    );
+  }
+
   return (
     <div className="page-container animate-fade">
       <div className="no-print mobile-tabs" style={{ marginBottom: '1.5rem' }}>
