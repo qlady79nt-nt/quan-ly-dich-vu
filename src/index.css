@@ -318,15 +318,23 @@ h1, h2, h3, h4 {
   gap: 12px;
   overflow-x: auto;
   padding-bottom: 4px;
+  scrollbar-width: none; /* Firefox */
 }
-
 .mobile-tabs::-webkit-scrollbar {
-  display: none;
+  display: none; /* Safari and Chrome */
 }
-
 .mobile-tab {
   flex-shrink: 0;
-  min-width: max-content;
+  min-width: 140px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s;
 }
 
 .kpi-grid {
@@ -347,15 +355,35 @@ h1, h2, h3, h4 {
 
 .mobile-bottom-nav {
   display: none;
+}
+
+.checkout-bar {
   position: fixed;
-  bottom: 0;
+  bottom: 72px; /* Above bottom nav */
   left: 0;
   right: 0;
-  height: 70px;
   background: white;
+  padding: 12px 16px;
   border-top: 1px solid var(--border);
-  z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+}
+.checkout-bar-hidden {
+  display: none;
+}
+
+.empty-order {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-light);
+  text-align: center;
 }
 
 .mobile-nav-item {
@@ -465,11 +493,12 @@ h1, h2, h3, h4 {
   .mobile-only { display: block !important; }
 
   .page-container {
-    padding: 12px;
+    padding: 16px;
+    padding-bottom: 100px; /* Space for bottom nav */
   }
 
   .page-title {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .mobile-stack {
@@ -478,6 +507,18 @@ h1, h2, h3, h4 {
 
   .kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .premium-card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .btn {
+    height: 48px;
+    font-size: 15px;
+    border-radius: 14px;
+    padding: 0 1.25rem;
   }
 
   /* Bottom Navigation overrides Sidebar initially, but we still need it for Thêm menu */
@@ -492,12 +533,22 @@ h1, h2, h3, h4 {
   .app-main {
     margin-left: 0 !important;
     width: 100% !important;
-    padding-bottom: 80px; /* Space for bottom nav */
+    padding-bottom: 0px; /* Handled by page-container */
   }
 
   .mobile-bottom-nav {
     display: flex;
     justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 72px;
+    background: white;
+    border-top: 1px solid var(--border);
+    z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   
   .modal-fullscreen-mobile {

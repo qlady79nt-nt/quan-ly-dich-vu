@@ -9,7 +9,8 @@ import {
   Zap,
   Calendar,
   Printer,
-  CheckCircle2
+  CheckCircle2,
+  ShoppingCart
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -531,13 +532,21 @@ const POS = () => {
           <div className="premium-card pos-cart-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Chi tiết đơn hàng</h3>
             <div style={{ flex: 1, overflowY: 'auto' }}>
-              {cart.map((item, idx) => (
-                <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px dashed var(--border)' }}>
-                  <div style={{ fontSize: '0.875rem' }}>{item.name}</div>
-                  <div style={{ fontWeight: '600' }}>{Number(item.price).toLocaleString()}đ</div>
-                  <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer' }}><Trash2 size={14} /></button>
+              {cart.length === 0 ? (
+                <div className="empty-order">
+                  <ShoppingCart size={48} />
+                  <h3 style={{ margin: 0 }}>Chưa có dịch vụ</h3>
+                  <p style={{ margin: 0, fontSize: '0.875rem' }}>Chọn dịch vụ để bắt đầu tạo đơn hàng</p>
                 </div>
-              ))}
+              ) : (
+                cart.map((item, idx) => (
+                  <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px dashed var(--border)' }}>
+                    <div style={{ fontSize: '0.875rem' }}>{item.name}</div>
+                    <div style={{ fontWeight: '600' }}>{Number(item.price).toLocaleString()}đ</div>
+                    <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                  </div>
+                ))
+              )}
             </div>
             {cart.length > 0 && (
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
@@ -556,13 +565,13 @@ const POS = () => {
                   <option value="">-- Chọn Chỗ (Trống) --</option>
                   {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem', marginTop: '1rem' }}>
+                <div className="desktop-only" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem', marginTop: '1rem' }}>
                   <span>Phí dịch vụ (tạm tính):</span>
                   <span style={{ color: 'var(--primary)' }}>
                     {cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
                   </span>
                 </div>
-                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%' }}>
+                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary desktop-only" style={{ width: '100%' }}>
                   {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP CHỖ'}
                 </button>
               </div>
@@ -680,6 +689,18 @@ const POS = () => {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Sticky Checkout Bar Mobile */}
+      {activeTab === 'retail' && cart.length > 0 && (
+        <div className="checkout-bar mobile-only">
+          <div style={{ fontWeight: '800', fontSize: '1.1rem' }}>
+            Tổng: <span style={{ color: 'var(--primary)' }}>{cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ</span>
+          </div>
+          <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ height: '48px', padding: '0 1.5rem' }}>
+            {loading ? <Loader2 className="animate-spin" /> : 'Xếp chỗ ngay'}
+          </button>
+        </div>
       )}
     </div>
     </div>

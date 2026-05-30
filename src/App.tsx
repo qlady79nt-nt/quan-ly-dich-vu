@@ -147,24 +147,28 @@ const MainLayout = () => {
 
       {/* Main Content */}
       <main className="app-main">
-        <header style={{ height: '70px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <header style={{ height: '70px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1rem', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button 
               className="mobile-menu-btn"
               onClick={() => setIsMobileMenuOpen(true)}
+              style={{ padding: '0.5rem', background: 'transparent', border: 'none' }}
             >
               <Menu size={24} />
             </button>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className="desktop-only" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               Trang chủ <ChevronRight size={14} /> {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
+            </span>
+            <span className="mobile-only" style={{ fontSize: '1.25rem', fontWeight: '800' }}>
+              {menuItems.find(m => location.pathname.includes(m.path))?.label || 'Dashboard'}
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ textAlign: 'right' }}>
+            <div className="desktop-only" style={{ textAlign: 'right' }}>
               <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{profile?.full_name || 'Quản trị viên'}</div>
               <div style={{ fontSize: '0.75rem', color: profile?.role === 'super_admin' ? 'var(--secondary)' : 'var(--text-light)', fontWeight: profile?.role === 'super_admin' ? '700' : '400' }}>
-                {profile?.role === 'super_admin' ? 'Hệ thống (Super Admin)' : (profile?.role === 'shop_admin' ? `${profile?.shop?.name || 'Cửa hàng'} (${profile?.shop?.shop_code || '---'})` : 'Nhân viên')}
+                {profile?.role === 'super_admin' ? 'Hệ thống' : (profile?.shop?.name || 'Cửa hàng')}
               </div>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
