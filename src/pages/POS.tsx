@@ -61,6 +61,7 @@ const POS = () => {
 
   // --- MOBILE RESPONSIVE STATE ---
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+  const [showMobileCart, setShowMobileCart] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1024);
@@ -91,7 +92,7 @@ const POS = () => {
     console.log('fetchData execution started...');
     setLoading(true);
     const [svc, pkg, stf, custs, bds, activeSessionsRes] = await Promise.all([
-      supabase.from('services').select('*'), // Tạm xoá toàn bộ filter để test RLS
+      supabase.from('services').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('staffs').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('customers').select('*').eq('shop_id', shopId).is('deleted_at', null),
@@ -120,6 +121,9 @@ const POS = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán hàng');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền tạo đơn hàng');
     setCart([{ ...svc, cartId: Math.random() }]); // Chỉ cho phép 1 dịch vụ 1 lần
+    if (isMobile) {
+      setShowMobileCart(true);
+    }
   };
 
   const handleRetailCheckoutClick = async () => {
@@ -427,9 +431,6 @@ const POS = () => {
         <div className="no-print">
         {activeTab === 'retail' && (
           <div className="animate-fade">
-            <div style={{ background: 'red', color: 'white', padding: '10px' }}>
-              DEBUG: activeTab={activeTab} | services.length={services.length} | isMobile={isMobile ? 'true' : 'false'}
-            </div>
             <div className="grid grid-cols-2">
               {services.map(s => (
                 <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -542,7 +543,8 @@ const POS = () => {
         )}
       </div>
 
-      <div className="no-print pos-right-column">
+      {(!isMobile || showMobileCart || completedInvoice) && (
+        <div className={`no-print pos-right-column ${isMobile && showMobileCart && !completedInvoice ? 'mobile-cart-modal' : ''}`}>
         {completedInvoice ? (
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
@@ -552,8 +554,13 @@ const POS = () => {
             <button onClick={() => setCompletedInvoice(null)} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Tiếp tục bán hàng</button>
           </div>
         ) : (
-          <div className="premium-card pos-cart-card" style={{ display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Chi tiết đơn hàng</h3>
+          <div className="premium-card pos-cart-card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Chi tiết đơn hàng</h3>
+              {isMobile && (
+                <button onClick={() => setShowMobileCart(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', lineHeight: 1 }}>&times;</button>
+              )}
+            </div>
             <div style={{ flex: 1, overflowY: 'auto' }}>
               {cart.length === 0 ? (
                 <div className="empty-order">
@@ -594,7 +601,7 @@ const POS = () => {
                     {cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
                   </span>
                 </div>
-                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary desktop-only" style={{ width: '100%' }}>
+                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%' }}>
                   {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP CHỖ'}
                 </button>
               </div>
@@ -602,8 +609,19 @@ const POS = () => {
           </div>
         )}
       </div>
+      )}
 
-      {/* GIAO DIỆN IN HOÁ ĐƠN TẬP TRUNG */}
+      {/* THANH STICKY DÀNH RIÊNG CHO MOBILE NẰM DƯỚI CÙNG */}
+      {activeTab === 'retail' && cart.length > 0 && isMobile && !showMobileCart && (
+        <div className="checkout-bar mobile-only" onClick={() => setShowMobileCart(true)} style={{ cursor: 'pointer' }}>
+          <div style={{ fontWeight: '800', fontSize: '1.1rem' }}>
+            Tổng: <span style={{ color: 'var(--primary)' }}>{cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ</span>
+          </div>
+          <button className="btn btn-primary" style={{ height: '48px', padding: '0 1.5rem' }}>
+            Tiếp tục
+          </button>
+        </div>
+      )}
       <ReceiptTemplate
         invoice={completedInvoice}
         config={{
