@@ -174,6 +174,13 @@ const MainLayout = () => {
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
               <UserCircle size={24} />
             </div>
+            <button 
+              onClick={handleSignOut} 
+              className="mobile-only" 
+              style={{ background: 'transparent', border: 'none', color: 'var(--danger)', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <LogOut size={24} />
+            </button>
           </div>
         </header>
 
