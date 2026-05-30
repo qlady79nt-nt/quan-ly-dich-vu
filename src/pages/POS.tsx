@@ -424,8 +424,11 @@ const POS = () => {
 
       <div className="pos-grid">
         <div className="no-print">
-        {activeTab === 'retail' && (!isMobile || mobileStep === 'services') && (
+        {activeTab === 'retail' && (
           <div className="animate-fade">
+            <div style={{ background: 'red', color: 'white', padding: '10px' }}>
+              DEBUG: activeTab={activeTab} | services.length={services.length} | isMobile={isMobile ? 'true' : 'false'} | mobileStep={mobileStep}
+            </div>
             <div className="grid grid-cols-2">
               {services.map(s => (
                 <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -538,8 +541,7 @@ const POS = () => {
         )}
       </div>
 
-      {(!isMobile || (activeTab === 'retail' && mobileStep === 'cart') || completedInvoice) && (
-        <div className="no-print pos-right-column">
+      <div className="no-print pos-right-column">
         {completedInvoice ? (
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
@@ -607,7 +609,6 @@ const POS = () => {
           </div>
         )}
       </div>
-      )}
 
       {/* GIAO DIỆN IN HOÁ ĐƠN TẬP TRUNG */}
       <ReceiptTemplate
