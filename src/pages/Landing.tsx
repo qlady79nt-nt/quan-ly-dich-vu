@@ -74,7 +74,7 @@ const Landing = () => {
       </section>
 
       <footer style={{ padding: '40px 5%', textAlign: 'center', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-        © 2026 Spa & POS Platform. Thiết kế cho sự phát triển bền vững.
+        © 2026 Spa & POS Platform. Thiết kế cho sự phát triển bền vững. 0905550738
       </footer>
     </div>
   );
