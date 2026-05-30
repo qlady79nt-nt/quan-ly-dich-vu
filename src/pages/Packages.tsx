@@ -306,60 +306,108 @@ const Packages = () => {
           </div>
           
           <div className="premium-card">
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                  <th style={{ padding: '1rem' }}>Khách hàng</th>
-                  <th>Gói liệu trình</th>
-                  <th>Tiến độ</th>
-                  <th>Trạng thái</th>
-                  <th>Ngày mua</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customerPackages.filter(cp => {
-                  const s = searchTerm.toLowerCase();
-                  if (!s) return true;
-                  const nameMatch = cp.customer_name ? cp.customer_name.toLowerCase().includes(s) : false;
-                  const phoneMatch = cp.customer_phone ? cp.customer_phone.includes(s) : false;
-                  const cardMatch = cp.card_code ? cp.card_code.toLowerCase().includes(s) : false;
-                  return nameMatch || phoneMatch || cardMatch;
-                }).map(cp => (
-                  <tr key={cp.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
-                    <td style={{ padding: '1rem' }}>
-                      <div style={{ fontWeight: '600' }}>{cp.customer_name || 'Khách lẻ'}</div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>SĐT: {cp.customer_phone}</div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Mã thẻ: <strong>{cp.card_code || 'Không có'}</strong></div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{cp.packages?.name}</div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{Number(cp.sale_price).toLocaleString()}đ</div>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ flex: 1, height: '8px', background: 'var(--bg-main)', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
+            <div className="desktop-only table-responsive">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                    <th style={{ padding: '1rem' }}>Khách hàng</th>
+                    <th>Gói liệu trình</th>
+                    <th>Tiến độ</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày mua</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customerPackages.filter(cp => {
+                    const s = searchTerm.toLowerCase();
+                    if (!s) return true;
+                    const nameMatch = cp.customer_name ? cp.customer_name.toLowerCase().includes(s) : false;
+                    const phoneMatch = cp.customer_phone ? cp.customer_phone.includes(s) : false;
+                    const cardMatch = cp.card_code ? cp.card_code.toLowerCase().includes(s) : false;
+                    return nameMatch || phoneMatch || cardMatch;
+                  }).map(cp => (
+                    <tr key={cp.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
+                      <td style={{ padding: '1rem' }}>
+                        <div style={{ fontWeight: '600' }}>{cp.customer_name || 'Khách lẻ'}</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>SĐT: {cp.customer_phone}</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Mã thẻ: <strong>{cp.card_code || 'Không có'}</strong></div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{cp.packages?.name}</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{Number(cp.sale_price).toLocaleString()}đ</div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ flex: 1, height: '8px', background: 'var(--bg-main)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
+                          </div>
+                          <span style={{ fontWeight: '600', minWidth: '40px' }}>{cp.used_sessions}/{cp.total_sessions}</span>
                         </div>
-                        <span style={{ fontWeight: '600', minWidth: '40px' }}>{cp.used_sessions}/{cp.total_sessions}</span>
+                      </td>
+                      <td>
+                        <span className={`badge ${cp.status === 'active' ? 'badge-success' : 'badge-secondary'}`}>
+                          {cp.status === 'active' ? 'Đang dùng' : 'Đã xong'}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{new Date(cp.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                  {customerPackages.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+                        Chưa có khách hàng nào mua liệu trình
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mobile-only flex flex-col" style={{ gap: '1rem', padding: '1rem' }}>
+              {customerPackages.filter(cp => {
+                const s = searchTerm.toLowerCase();
+                if (!s) return true;
+                const nameMatch = cp.customer_name ? cp.customer_name.toLowerCase().includes(s) : false;
+                const phoneMatch = cp.customer_phone ? cp.customer_phone.includes(s) : false;
+                const cardMatch = cp.card_code ? cp.card_code.toLowerCase().includes(s) : false;
+                return nameMatch || phoneMatch || cardMatch;
+              }).map(cp => (
+                <div key={cp.id} className="report-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>{cp.customer_name || 'Khách lẻ'}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>SĐT: {cp.customer_phone || '---'}</div>
+                    </div>
+                    <span className={`badge ${cp.status === 'active' ? 'badge-success' : 'badge-secondary'}`}>
+                      {cp.status === 'active' ? 'Đang dùng' : 'Đã xong'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.875rem' }}>Mã thẻ: <strong>{cp.card_code || 'Không có'}</strong></div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{new Date(cp.created_at).toLocaleDateString()}</div>
+                  </div>
+
+                  <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ fontWeight: '600', color: 'var(--primary)', fontSize: '0.875rem' }}>{cp.packages?.name}</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600' }}>{Number(cp.sale_price).toLocaleString()}đ</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ flex: 1, height: '6px', background: 'var(--bg-main)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
                       </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${cp.status === 'active' ? 'badge-success' : 'badge-secondary'}`}>
-                        {cp.status === 'active' ? 'Đang dùng' : 'Đã xong'}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{new Date(cp.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-                {customerPackages.length === 0 && (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
-                      Chưa có khách hàng nào mua liệu trình
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      <span style={{ fontWeight: '700', fontSize: '0.75rem', minWidth: '40px', textAlign: 'right' }}>{cp.used_sessions}/{cp.total_sessions}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {customerPackages.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+                  Chưa có khách hàng nào mua liệu trình
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

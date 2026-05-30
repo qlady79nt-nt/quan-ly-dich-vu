@@ -711,7 +711,7 @@ const Reports = () => {
                           </div>
                         </div>
 
-                        <div className="table-responsive">
+                        <div className="desktop-only table-responsive">
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                           <thead>
                             <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
@@ -750,6 +750,35 @@ const Reports = () => {
                             </tbody>
                           </table>
                         </div>
+
+                        <div className="mobile-only flex flex-col" style={{ gap: '0.75rem', marginTop: '1rem' }}>
+                          {s.logs.map((log: any, idx: number) => (
+                            <div key={idx} style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                  <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.25rem' }}>{log.note || 'Thực hiện dịch vụ'}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(log.created_at).toLocaleString()}</div>
+                                </div>
+                                <span className={`badge ${log.type === 'package_sale' || log.type === 'retail' ? 'badge-primary' : 'badge-success'}`}>
+                                  {log.type === 'package_sale' || log.type === 'retail' ? 'Bán hàng' : 'Thực hiện'}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px dashed var(--border)', paddingTop: '0.5rem' }}>
+                                <button 
+                                  onClick={() => openRevenueDetail(log)}
+                                  style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0 }}
+                                >
+                                  #{log.mapped_code || '---'}
+                                  {!log.mapped_code && <span style={{fontSize: '0.7rem', color: 'var(--danger)', marginLeft: '0.25rem'}}>(Đã xoá)</span>}
+                                  <FileText size={12} />
+                                </button>
+                                <div style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                                  +{Number(log.amount).toLocaleString()}đ
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))
                   )}
@@ -771,7 +800,7 @@ const Reports = () => {
                           <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--danger)' }}>{missingStaffData.length}</div>
                         </div>
                       </div>
-                      <div className="table-responsive">
+                      <div className="desktop-only table-responsive">
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                           <thead>
                             <tr style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>
@@ -794,6 +823,25 @@ const Reports = () => {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+
+                      <div className="mobile-only flex flex-col" style={{ gap: '0.75rem', marginTop: '1rem' }}>
+                        {missingStaffData.map((m: any, idx: number) => (
+                          <div key={idx} style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div>
+                                <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.25rem' }}>{m.type}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(m.date).toLocaleString()}</div>
+                              </div>
+                              <div style={{ fontWeight: '700', color: 'var(--danger)', fontSize: '1.1rem' }}>
+                                {Number(m.amount).toLocaleString()}đ
+                              </div>
+                            </div>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontFamily: 'monospace', borderTop: '1px dashed rgba(239, 68, 68, 0.3)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
+                               Mã phiếu: #{m.mapped_invoice_code || m.mapped_session_code || '---'}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
