@@ -61,7 +61,6 @@ const POS = () => {
 
   // --- MOBILE RESPONSIVE STATE ---
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
-  const [mobileStep, setMobileStep] = useState<'services' | 'cart'>('services');
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1024);
@@ -69,16 +68,13 @@ const POS = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (cart.length === 0) {
-      setMobileStep('services');
-    }
-  }, [cart]);
+  // Bỏ logic tự reset mobileStep vì đã dùng kiến trúc mới
   const [selectedCustPkgId, setSelectedCustPkgId] = useState('');
   const [technicianId, setTechnicianId] = useState('');
   const [packageBedId, setPackageBedId] = useState('');
 
   useEffect(() => {
+    console.log('FETCH RUN - useEffect triggered');
     if (shopId) fetchData();
     // Setup afterprint listener
     const handleAfterPrint = () => {
@@ -92,9 +88,10 @@ const POS = () => {
   }, [shopId, profile]);
 
   const fetchData = async () => {
+    console.log('fetchData execution started...');
     setLoading(true);
     const [svc, pkg, stf, custs, bds, activeSessionsRes] = await Promise.all([
-      supabase.from('services').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
+      supabase.from('services').select('*'), // Tạm xoá toàn bộ filter để test RLS
       supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('staffs').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('customers').select('*').eq('shop_id', shopId).is('deleted_at', null),
@@ -123,9 +120,6 @@ const POS = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán hàng');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền tạo đơn hàng');
     setCart([{ ...svc, cartId: Math.random() }]); // Chỉ cho phép 1 dịch vụ 1 lần
-    if (isMobile) {
-      setMobileStep('cart');
-    }
   };
 
   const handleRetailCheckoutClick = async () => {
@@ -431,8 +425,11 @@ const POS = () => {
 
       <div className="pos-grid">
         <div className="no-print">
-        {activeTab === 'retail' && (!isMobile || mobileStep === 'services') && (
+        {activeTab === 'retail' && (
           <div className="animate-fade">
+            <div style={{ background: 'red', color: 'white', padding: '10px' }}>
+              DEBUG: activeTab={activeTab} | services.length={services.length} | isMobile={isMobile ? 'true' : 'false'}
+            </div>
             <div className="grid grid-cols-2">
               {services.map(s => (
                 <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -545,8 +542,7 @@ const POS = () => {
         )}
       </div>
 
-      {(!isMobile || (activeTab === 'retail' && mobileStep === 'cart') || completedInvoice) && (
-        <div className="no-print pos-right-column">
+      <div className="no-print pos-right-column">
         {completedInvoice ? (
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
@@ -558,14 +554,6 @@ const POS = () => {
         ) : (
           <div className="premium-card pos-cart-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Chi tiết đơn hàng</h3>
-            {isMobile && (
-              <button 
-                onClick={() => setMobileStep('services')}
-                style={{ marginBottom: '1rem', background: 'transparent', border: '1px solid var(--border)', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: '600' }}
-              >
-                ← Chọn lại dịch vụ
-              </button>
-            )}
             <div style={{ flex: 1, overflowY: 'auto' }}>
               {cart.length === 0 ? (
                 <div className="empty-order">
@@ -614,7 +602,6 @@ const POS = () => {
           </div>
         )}
       </div>
-      )}
 
       {/* GIAO DIỆN IN HOÁ ĐƠN TẬP TRUNG */}
       <ReceiptTemplate
