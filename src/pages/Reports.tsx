@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   Users, 
-  Loader2,
   FileText,
   Lock,
   Search,

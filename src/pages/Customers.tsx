@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Loader2, UserCircle, Phone, CreditCard, Package } from 'lucide-react';
+import { Search, Plus, UserCircle, Phone, CreditCard, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { TableSkeleton } from '../components/Skeleton';

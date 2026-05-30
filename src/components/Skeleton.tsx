@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const Skeleton = ({ width, height, borderRadius = '0.5rem', style = {}, className = '' }: any) => {
   return (
     <div 
