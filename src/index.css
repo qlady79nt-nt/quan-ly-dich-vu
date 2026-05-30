@@ -467,7 +467,7 @@ h1, h2, h3, h4 {
   }
   .pos-grid {
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
     height: auto;
   }
   .pos-right-column {

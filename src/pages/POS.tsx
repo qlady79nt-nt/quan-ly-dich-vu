@@ -406,7 +406,7 @@ const POS = () => {
       <div className="pos-grid">
         <div className="no-print">
         {activeTab === 'retail' && (
-          <div className="animate-fade">
+          <div className={`animate-fade ${cart.length > 0 ? 'desktop-only' : ''}`}>
             <div className="grid grid-cols-2">
               {services.map(s => (
                 <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -519,7 +519,7 @@ const POS = () => {
         )}
       </div>
 
-      <div className={`no-print pos-right-column ${activeTab !== 'retail' && !completedInvoice ? 'desktop-only' : ''}`}>
+      <div className={`no-print pos-right-column ${((activeTab !== 'retail' && !completedInvoice) || (activeTab === 'retail' && cart.length === 0 && !completedInvoice)) ? 'desktop-only' : ''}`}>
         {completedInvoice ? (
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
