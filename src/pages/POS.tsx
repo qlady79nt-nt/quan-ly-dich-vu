@@ -518,7 +518,7 @@ const POS = () => {
         )}
       </div>
 
-      <div className="no-print" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '1.5rem' }}>
+      <div className="no-print pos-right-column">
         {completedInvoice ? (
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
@@ -528,7 +528,7 @@ const POS = () => {
             <button onClick={() => setCompletedInvoice(null)} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Tiếp tục bán hàng</button>
           </div>
         ) : (
-          <div className="premium-card" style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+          <div className="premium-card pos-cart-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Chi tiết đơn hàng</h3>
             <div style={{ flex: 1, overflowY: 'auto' }}>
               {cart.map((item, idx) => (

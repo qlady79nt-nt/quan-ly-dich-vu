@@ -404,6 +404,15 @@ h1, h2, h3, h4 {
   border-top: 1px dashed var(--border);
 }
 
+.pos-right-column {
+  border-left: 1px solid var(--border);
+  padding-left: 1.5rem;
+}
+
+.pos-cart-card {
+  height: calc(100vh - 120px);
+}
+
 @media (max-width: 1024px) {
   /* Tablet adjustments */
   .app-sidebar {
@@ -430,6 +439,16 @@ h1, h2, h3, h4 {
   }
   .pos-grid {
     grid-template-columns: 1fr;
+    height: auto;
+  }
+  .pos-right-column {
+    border-left: none;
+    padding-left: 0;
+    border-top: 2px dashed var(--border);
+    padding-top: 1.5rem;
+  }
+  .pos-cart-card {
+    height: auto;
   }
 }
 
@@ -461,9 +480,9 @@ h1, h2, h3, h4 {
     grid-template-columns: 1fr;
   }
 
-  /* Bottom Navigation overrides Sidebar */
+  /* Bottom Navigation overrides Sidebar initially, but we still need it for Thêm menu */
   .app-sidebar {
-    display: none !important;
+    /* Removed display: none !important so it can be opened via setIsMobileMenuOpen */
   }
   
   .app-main header {
