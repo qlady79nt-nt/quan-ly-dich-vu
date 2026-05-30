@@ -466,7 +466,8 @@ h1, h2, h3, h4 {
     grid-template-columns: repeat(2, 1fr);
   }
   .pos-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column-reverse;
     height: auto;
   }
   .pos-right-column {

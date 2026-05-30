@@ -391,20 +391,20 @@ const POS = () => {
 
   return (
     <div className="page-container animate-fade">
+      <div className="no-print mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+        <button onClick={() => setActiveTab('retail')} className="btn mobile-tab" style={{ background: activeTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'retail' ? 'white' : 'inherit' }}>
+          <Zap size={18} /> Bán lẻ
+        </button>
+        <button onClick={() => setActiveTab('sell_package')} className="btn mobile-tab" style={{ background: activeTab === 'sell_package' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'sell_package' ? 'white' : 'inherit' }}>
+          <PackageIcon size={18} /> Bán liệu trình
+        </button>
+        <button onClick={() => setActiveTab('use_package')} className="btn mobile-tab" style={{ background: activeTab === 'use_package' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'use_package' ? 'white' : 'inherit' }}>
+          <Calendar size={18} /> Dùng liệu trình
+        </button>
+      </div>
+
       <div className="pos-grid">
         <div className="no-print">
-          <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
-            <button onClick={() => setActiveTab('retail')} className="btn mobile-tab" style={{ background: activeTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'retail' ? 'white' : 'inherit' }}>
-              <Zap size={18} /> Bán lẻ
-            </button>
-            <button onClick={() => setActiveTab('sell_package')} className="btn mobile-tab" style={{ background: activeTab === 'sell_package' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'sell_package' ? 'white' : 'inherit' }}>
-              <PackageIcon size={18} /> Bán liệu trình
-            </button>
-            <button onClick={() => setActiveTab('use_package')} className="btn mobile-tab" style={{ background: activeTab === 'use_package' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'use_package' ? 'white' : 'inherit' }}>
-              <Calendar size={18} /> Dùng liệu trình
-            </button>
-          </div>
-
         {activeTab === 'retail' && (
           <div className="animate-fade">
             <div className="grid grid-cols-2">
@@ -519,7 +519,7 @@ const POS = () => {
         )}
       </div>
 
-      <div className="no-print pos-right-column">
+      <div className={`no-print pos-right-column ${activeTab !== 'retail' && !completedInvoice ? 'desktop-only' : ''}`}>
         {completedInvoice ? (
           <div className="premium-card animate-fade" style={{ textAlign: 'center' }}>
             <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
