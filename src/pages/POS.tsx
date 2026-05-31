@@ -598,7 +598,7 @@ const POS = () => {
 
             {/* FIXED FOOTER FORM */}
             {cart.length > 0 && (
-              <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'white', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}>
+              <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'white', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
                 <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailCustomerId} onChange={e => { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }}>
                   <option value="">Khách vãng lai (Nhập tên)</option>
                   {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
@@ -620,7 +620,7 @@ const POS = () => {
                     {cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
                   </span>
                 </div>
-                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px' }}>
+                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px', position: 'sticky', bottom: 0 }}>
                   {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP CHỖ'}
                 </button>
               </div>

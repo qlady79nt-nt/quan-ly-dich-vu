@@ -613,23 +613,21 @@ h1, h2, h3, h4 {
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-end !important;
-    height: auto !important;
   }
   .mobile-cart-modal .pos-cart-card {
-    height: auto !important;
-    max-height: 90% !important;
+    max-height: 90dvh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
     margin: 0 !important;
     border-radius: 24px 24px 0 0 !important;
     padding: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
     background: white !important;
   }
   .mobile-cart-modal .cart-items-container {
-    flex: 1 1 0% !important;
     overflow-y: auto !important;
-    min-height: 0 !important;
+    max-height: 30vh !important;
+    min-height: auto !important;
   }
 }
 
