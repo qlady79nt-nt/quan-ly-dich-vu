@@ -347,6 +347,79 @@ h1, h2, h3, h4 {
   margin-bottom: -0.5rem;
 }
 
+.mobile-list-container {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+}
+
+.mobile-list-row {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  background: white;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-list-row:last-child {
+  border-bottom: none;
+}
+.mobile-list-row:active {
+  background: #f9fafb;
+}
+
+.bottom-sheet-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(2px);
+  z-index: 9999;
+  animation: fadeIn 220ms ease-out forwards;
+}
+
+.bottom-sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: white;
+  border-radius: 24px 24px 0 0;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 220ms ease-out forwards;
+}
+
+.bottom-sheet-header {
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bottom-sheet-content {
+  padding: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.bottom-sheet-actions {
+  padding: 1rem;
+  background: white;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  position: sticky;
+  bottom: 0;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .invoice-card-compact {
   background: white;
   border: none;

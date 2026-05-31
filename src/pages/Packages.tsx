@@ -18,6 +18,11 @@ const Packages = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Bottom sheet states
+  const [selectedCustomerPackage, setSelectedCustomerPackage] = useState<any | null>(null);
+  const [customerPackageHistory, setCustomerPackageHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     service_id: '',
@@ -113,6 +118,27 @@ const Packages = () => {
     }
     
     setLoading(false);
+  };
+
+  const handleViewCustomerDetail = async (cp: any) => {
+    setSelectedCustomerPackage(cp);
+    setCustomerPackageHistory([]);
+    setLoadingHistory(true);
+    
+    // Fetch session history for this package
+    const { data } = await supabase.from('service_sessions')
+      .select('id, created_at, notes, profiles(name)')
+      .eq('customer_package_id', cp.id)
+      .order('created_at', { ascending: false });
+      
+    if (data) {
+      setCustomerPackageHistory(data);
+    }
+    setLoadingHistory(false);
+  };
+
+  const handleCloseBottomSheet = () => {
+    setSelectedCustomerPackage(null);
   };
 
   // Logic tự động tính giá bán khi thay đổi giá gốc hoặc giảm giá
@@ -243,52 +269,71 @@ const Packages = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /> Đang tải...</div>
       ) : activeTab === 'config' ? (
-        <div className="kpi-grid">
-          {packages.map((p) => (
-            <div key={p.id} className="premium-card" style={{ opacity: p.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: p.status === 'inactive' ? 'rgba(0,0,0,0.05)' : 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: p.status === 'inactive' ? 'var(--text-light)' : 'var(--secondary)' }}>
-                    <PackageIcon size={24} />
+        <>
+          <div className="desktop-only kpi-grid">
+            {packages.map((p) => (
+              <div key={p.id} className="premium-card" style={{ opacity: p.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: p.status === 'inactive' ? 'rgba(0,0,0,0.05)' : 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: p.status === 'inactive' ? 'var(--text-light)' : 'var(--secondary)' }}>
+                      <PackageIcon size={24} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <h4 style={{ fontSize: '1.1rem', margin: 0, textDecoration: p.status === 'inactive' ? 'line-through' : 'none' }}>{p.name}</h4>
+                        {p.status === 'inactive' && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>NGƯNG BÁN</span>}
+                      </div>
+                      <div style={{ fontSize: '0.875rem', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        <Link2 size={14} /> Gắn với: {p.services?.name}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <h4 style={{ fontSize: '1.1rem', margin: 0, textDecoration: p.status === 'inactive' ? 'line-through' : 'none' }}>{p.name}</h4>
-                      {p.status === 'inactive' && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>NGƯNG BÁN</span>}
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                      <Link2 size={14} /> Gắn với: {p.services?.name}
-                    </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '800', color: p.status === 'inactive' ? 'var(--text-secondary)' : 'var(--primary)' }}>{Number(p.sale_price).toLocaleString()}đ</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', textDecoration: 'line-through' }}>{Number(p.original_price).toLocaleString()}đ</div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '800', color: p.status === 'inactive' ? 'var(--text-secondary)' : 'var(--primary)' }}>{Number(p.sale_price).toLocaleString()}đ</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', textDecoration: 'line-through' }}>{Number(p.original_price).toLocaleString()}đ</div>
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-main)', padding: '0.75rem 1rem', borderRadius: '0.5rem' }}>
-                <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-                  <div>Số buổi: <strong>{p.total_sessions}</strong></div>
-                  <div>HH Bán: <strong>{p.commission_sale_type === 'percent' ? `${p.commission_sale_value}%` : `${p.commission_sale_value}đ`}</strong></div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {profile?.role === 'shop_admin' && (
-                    <button onClick={() => handleEdit(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
-                  )}
-                  {profile?.role === 'shop_admin' && (
-                    <button onClick={() => handleToggleStatus(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: p.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
-                      {p.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
-                    </button>
-                  )}
-                  {profile?.role === 'super_admin' && (
-                    <button onClick={() => handleHardDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={14} /></button>
-                  )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-main)', padding: '0.75rem 1rem', borderRadius: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
+                    <div>Số buổi: <strong>{p.total_sessions}</strong></div>
+                    <div>HH Bán: <strong>{p.commission_sale_type === 'percent' ? `${p.commission_sale_value}%` : `${p.commission_sale_value}đ`}</strong></div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {profile?.role === 'shop_admin' && (
+                      <button onClick={() => handleEdit(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
+                    )}
+                    {profile?.role === 'shop_admin' && (
+                      <button onClick={() => handleToggleStatus(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: p.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
+                        {p.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
+                      </button>
+                    )}
+                    {profile?.role === 'super_admin' && (
+                      <button onClick={() => handleHardDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={14} /></button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          <div className="mobile-only mobile-list-container" style={{ marginBottom: '1.5rem' }}>
+            {packages.map((p) => (
+              <div key={p.id} className="mobile-list-row" onClick={() => handleEdit(p)} style={{ opacity: p.status === 'inactive' ? 0.6 : 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--text-main)', textDecoration: p.status === 'inactive' ? 'line-through' : 'none' }}>{p.name}</div>
+                  <div style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(p.sale_price).toLocaleString()}đ</div>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {p.total_sessions} buổi • HH {p.commission_sale_type === 'percent' ? `${p.commission_sale_value}%` : `${Number(p.commission_sale_value).toLocaleString()}đ`}
+                </div>
+                {p.status === 'inactive' && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--danger)', marginTop: '0.25rem', fontWeight: '600' }}>[Đã ngưng bán]</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         <div className="animate-fade">
           <div className="premium-card mobile-stack" style={{ marginBottom: '1.5rem' }}>
@@ -363,7 +408,7 @@ const Packages = () => {
               </table>
             </div>
 
-            <div className="mobile-only flex flex-col" style={{ gap: '1rem', padding: '1rem' }}>
+            <div className="mobile-only mobile-list-container" style={{ margin: '0 1rem 1rem 1rem' }}>
               {customerPackages.filter(cp => {
                 const s = searchTerm.toLowerCase();
                 if (!s) return true;
@@ -372,33 +417,28 @@ const Packages = () => {
                 const cardMatch = cp.card_code ? cp.card_code.toLowerCase().includes(s) : false;
                 return nameMatch || phoneMatch || cardMatch;
               }).map(cp => (
-                <div key={cp.id} className="report-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>{cp.customer_name || 'Khách lẻ'}</div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>SĐT: {cp.customer_phone || '---'}</div>
+                <div key={cp.id} className="mobile-list-row" onClick={() => handleViewCustomerDetail(cp)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                       <span style={{ fontWeight: '700', fontSize: '1.05rem', color: 'var(--text-main)' }}>{cp.customer_name || 'Khách lẻ'}</span>
+                       <span style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '0.85rem' }}>{cp.used_sessions}/{cp.total_sessions}</span>
                     </div>
-                    <span className={`badge ${cp.status === 'active' ? 'badge-success' : 'badge-secondary'}`}>
-                      {cp.status === 'active' ? 'Đang dùng' : 'Đã xong'}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{cp.customer_phone || '---'}</div>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', color: cp.status === 'active' ? 'var(--success)' : 'var(--text-secondary)', fontWeight: '600' }}>
+                       <span style={{ fontSize: '10px' }}>●</span> {cp.status === 'active' ? 'Đang dùng' : 'Đã xong'}
                     </span>
                   </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: '0.875rem' }}>Mã thẻ: <strong>{cp.card_code || 'Không có'}</strong></div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{new Date(cp.created_at).toLocaleDateString()}</div>
+                  
+                  <div style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '0.25rem', color: 'var(--text-main)' }}>{cp.packages?.name}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    <span>{Number(cp.sale_price).toLocaleString()}đ</span>
+                    <span>{new Date(cp.created_at).toLocaleDateString()}</span>
                   </div>
-
-                  <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <div style={{ fontWeight: '600', color: 'var(--primary)', fontSize: '0.875rem' }}>{cp.packages?.name}</div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600' }}>{Number(cp.sale_price).toLocaleString()}đ</div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ flex: 1, height: '6px', background: 'var(--bg-main)', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
-                      </div>
-                      <span style={{ fontWeight: '700', fontSize: '0.75rem', minWidth: '40px', textAlign: 'right' }}>{cp.used_sessions}/{cp.total_sessions}</span>
-                    </div>
+                  
+                  <div style={{ height: '6px', background: '#f3f4f6', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
                   </div>
                 </div>
               ))}
@@ -491,6 +531,117 @@ const Packages = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* BOTTOM SHEET: KHÁCH ĐÃ MUA DETAIL */}
+      {selectedCustomerPackage && createPortal(
+        <div className="bottom-sheet-overlay" onClick={handleCloseBottomSheet}>
+          <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div style={{ width: '40px', height: '4px', background: 'var(--border)', borderRadius: '2px', margin: '12px auto 0' }}></div>
+            
+            <div className="bottom-sheet-header">
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0 0 0.25rem 0' }}>{selectedCustomerPackage.customer_name || 'Khách lẻ'}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{selectedCustomerPackage.customer_phone || 'Chưa có SĐT'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', color: selectedCustomerPackage.status === 'active' ? 'var(--success)' : 'var(--text-secondary)', fontWeight: '600' }}>
+                   <span style={{ fontSize: '12px' }}>●</span> {selectedCustomerPackage.status === 'active' ? 'Đang dùng' : 'Đã xong'}
+                </div>
+              </div>
+            </div>
+
+            <div className="bottom-sheet-content">
+              {/* LIỆU TRÌNH */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.8rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>Thông tin liệu trình</h4>
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontWeight: '700', color: 'var(--primary)', marginBottom: '0.75rem', fontSize: '1.05rem' }}>{selectedCustomerPackage.packages?.name}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)' }}>Đã dùng</div>
+                      <div style={{ fontWeight: '700', color: 'var(--text-main)', fontSize: '1rem' }}>{selectedCustomerPackage.used_sessions}/{selectedCustomerPackage.total_sessions}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)' }}>Còn lại</div>
+                      <div style={{ fontWeight: '700', color: 'var(--success)', fontSize: '1rem' }}>{selectedCustomerPackage.total_sessions - selectedCustomerPackage.used_sessions} buổi</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)' }}>Ngày mua</div>
+                      <div style={{ fontWeight: '600' }}>{new Date(selectedCustomerPackage.created_at).toLocaleDateString('vi-VN')}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)' }}>Giá mua</div>
+                      <div style={{ fontWeight: '600' }}>{Number(selectedCustomerPackage.sale_price).toLocaleString()}đ</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* LỊCH SỬ TRỪ BUỔI */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.8rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>Lịch sử trừ buổi</h4>
+                {loadingHistory ? (
+                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-light)', fontSize: '0.85rem' }}>Đang tải lịch sử...</div>
+                ) : customerPackageHistory.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {customerPackageHistory.map((history, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', marginTop: '6px' }}></div>
+                        <div style={{ flex: 1, paddingBottom: '0.75rem', borderBottom: idx === customerPackageHistory.length - 1 ? 'none' : '1px dashed var(--border)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                            <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-main)' }}>{new Date(history.created_at).toLocaleDateString('vi-VN')} • Trừ 1 buổi</div>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            <span>NV: {history.profiles?.name || '---'}</span>
+                            <span>{new Date(history.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                          {history.notes && (
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.25rem', fontStyle: 'italic' }}>"{history.notes}"</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', color: 'var(--text-light)', fontSize: '0.85rem', textAlign: 'center', border: '1px dashed var(--border)' }}>
+                    Chưa có lịch sử trừ buổi nào
+                  </div>
+                )}
+              </div>
+
+              {/* GHI CHÚ */}
+              {selectedCustomerPackage.note && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.8rem', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>Ghi chú nội bộ</h4>
+                  <div style={{ background: 'rgba(212, 175, 55, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(212, 175, 55, 0.2)', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    {selectedCustomerPackage.note}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bottom-sheet-actions">
+              <button 
+                className="btn btn-primary" 
+                style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }}
+                onClick={() => {
+                  alert('Tính năng trừ buổi trực tiếp sẽ chuyển sang POS!');
+                }}
+              >
+                Trừ buổi
+              </button>
+              <button 
+                className="btn" 
+                style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', background: '#f3f4f6', color: 'var(--text-main)', border: 'none' }}
+                onClick={() => {
+                  alert('Tính năng chỉnh sửa đang phát triển!');
+                }}
+              >
+                Chỉnh sửa
+              </button>
+            </div>
           </div>
         </div>,
         document.body
