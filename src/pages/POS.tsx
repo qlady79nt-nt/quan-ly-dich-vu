@@ -568,14 +568,14 @@ const POS = () => {
             <button onClick={() => setCompletedInvoice(null)} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Tiếp tục bán hàng</button>
           </div>
         ) : (
-          <div className="premium-card pos-cart-card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div className="premium-card pos-cart-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Chi tiết đơn hàng</h3>
               {isMobile && (
                 <button onClick={() => setShowMobileCart(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', lineHeight: 1 }}>&times;</button>
               )}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="cart-items-container" style={{ flex: 1, overflowY: 'auto' }}>
               {cart.length === 0 ? (
                 <div className="empty-order">
                   <ShoppingCart size={48} />
