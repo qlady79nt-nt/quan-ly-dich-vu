@@ -454,79 +454,98 @@ const Packages = () => {
 
       {/* Modal */}
       {isModalOpen && createPortal(
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>{editingId ? 'Sửa thông tin Liệu trình' : 'Thiết lập Liệu trình mới'}</h3>
-            <form onSubmit={handleCreate}>
-              <div className="grid grid-cols-2" style={{ gap: '1.25rem' }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Tên liệu trình</label>
-                  <input type="text" className="form-input" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                </div>
-                
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Dịch vụ gắn kèm *</label>
-                  <select className="form-select" required value={formData.service_id} onChange={(e) => setFormData({...formData, service_id: e.target.value})}>
-                    <option value="">-- Chọn dịch vụ --</option>
-                    {services.map(s => <option key={s.id} value={s.id}>{s.name} ({Number(s.price).toLocaleString()}đ)</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Tổng số buổi</label>
-                  <input type="number" className="form-input" required value={formData.total_sessions} onChange={(e) => setFormData({...formData, total_sessions: Number(e.target.value)})} />
-                </div>
+        <div className="fullscreen-sheet-mobile-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="premium-card animate-fade fullscreen-sheet-mobile" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflow: 'hidden', padding: 0, display: 'flex', flexDirection: 'column' }}>
+            
+            {/* STICKY HEADER */}
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', zIndex: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', padding: 0, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-main)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800' }}>{editingId ? 'Sửa liệu trình' : 'Tạo liệu trình'}</h3>
+              </div>
+              <button type="submit" form="package-form" className="btn btn-primary desktop-only" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }} disabled={saving}>
+                Lưu
+              </button>
+            </div>
 
-                <div style={{ borderTop: '1px solid var(--border)', gridColumn: 'span 2', paddingTop: '1rem', marginTop: '0.5rem' }}>
-                  <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem' }}>Cấu hình giá & giảm giá</h4>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá gốc (đ)</label>
-                  <input type="number" className="form-input" required value={formData.original_price} onChange={(e) => setFormData({...formData, original_price: Number(e.target.value)})} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <form id="package-form" onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              {/* SCROLLABLE CONTENT */}
+              <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1 }}>
+                <div className="grid grid-cols-2 mobile-form-grid" style={{ gap: '1.25rem' }}>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Tên liệu trình</label>
+                    <input type="text" className="form-input" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }} />
+                  </div>
+                  
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Loại giảm</label>
-                    <select className="form-select" value={formData.discount_type} onChange={(e) => setFormData({...formData, discount_type: e.target.value})}>
-                      <option value="none">Không</option>
-                      <option value="percent">%</option>
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Dịch vụ gắn kèm *</label>
+                    <select className="form-select" required value={formData.service_id} onChange={(e) => setFormData({...formData, service_id: e.target.value})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }}>
+                      <option value="">-- Chọn dịch vụ --</option>
+                      {services.map(s => <option key={s.id} value={s.id}>{s.name} ({Number(s.price).toLocaleString()}đ)</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Tổng số buổi</label>
+                    <input type="number" className="form-input" required value={formData.total_sessions} onChange={(e) => setFormData({...formData, total_sessions: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }} />
+                  </div>
+
+                  <div className="mobile-section-gap" style={{ borderTop: '1px solid var(--border)', gridColumn: 'span 2', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                    <h4 style={{ marginBottom: '1rem', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>Cấu hình giá & giảm giá</h4>
+                  </div>
+
+                  <div style={{ gridColumn: 'span 2' }} className="mobile-form-grid">
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá gốc (đ)</label>
+                      <input type="number" className="form-input" required value={formData.original_price} onChange={(e) => setFormData({...formData, original_price: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px', width: '100%' }} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }} className="mobile-form-grid">
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Loại giảm</label>
+                        <select className="form-select" value={formData.discount_type} onChange={(e) => setFormData({...formData, discount_type: e.target.value})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }}>
+                          <option value="none">Không</option>
+                          <option value="percent">%</option>
+                          <option value="fixed">Tiền mặt</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá trị</label>
+                        <input type="number" className="form-input" disabled={formData.discount_type === 'none'} value={formData.discount_value} onChange={(e) => setFormData({...formData, discount_value: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ gridColumn: 'span 2', background: '#faf5ff', padding: '16px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Giá bán cuối: </span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary)' }}>{formData.sale_price.toLocaleString()}đ</span>
+                  </div>
+
+                  <div className="mobile-section-gap" style={{ borderTop: '1px solid var(--border)', gridColumn: 'span 2', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                    <h4 style={{ marginBottom: '1rem', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>Hoa hồng khi bán gói</h4>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Loại hoa hồng</label>
+                    <select className="form-select" value={formData.commission_sale_type} onChange={(e) => setFormData({...formData, commission_sale_type: e.target.value})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }}>
+                      <option value="percent">% (Trên giá bán)</option>
                       <option value="fixed">Tiền mặt</option>
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá trị</label>
-                    <input type="number" className="form-input" disabled={formData.discount_type === 'none'} value={formData.discount_value} onChange={(e) => setFormData({...formData, discount_value: Number(e.target.value)})} />
-                  </div>
-                </div>
-
-                <div style={{ gridColumn: 'span 2', background: 'rgba(109, 40, 217, 0.05)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(109, 40, 217, 0.1)', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Giá bán cuối cùng: </span>
-                  <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--primary)' }}>{formData.sale_price.toLocaleString()}đ</span>
-                </div>
-
-                <div style={{ borderTop: '1px solid var(--border)', gridColumn: 'span 2', paddingTop: '1rem', marginTop: '0.5rem' }}>
-                  <h4 style={{ marginBottom: '1rem', fontSize: '0.875rem' }}>Hoa hồng khi nhân viên BÁN gói này</h4>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Loại hoa hồng bán</label>
-                  <select className="form-select" value={formData.commission_sale_type} onChange={(e) => setFormData({...formData, commission_sale_type: e.target.value})}>
-                    <option value="percent">% (Trên giá bán)</option>
-                    <option value="fixed">Tiền mặt</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá trị HH bán</label>
-                  <input type="number" className="form-input" value={formData.commission_sale_value} onChange={(e) => setFormData({...formData, commission_sale_value: Number(e.target.value)})} />
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                    {formData.commission_sale_type === 'percent' ? 'Nhập số từ 1-100 (VD: 10 = 10% giá bán gói)' : 'Nhập số tiền mặt (VD: 50000 = 50.000đ)'}
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá trị HH</label>
+                    <input type="number" className="form-input" value={formData.commission_sale_value} onChange={(e) => setFormData({...formData, commission_sale_value: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }} />
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>
+                      {formData.commission_sale_type === 'percent' ? 'Ví dụ: 10 = 10% giá bán gói' : 'Ví dụ: 50000 = 50.000đ'}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ background: 'var(--border)' }}>Hủy</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
+              {/* STICKY FOOTER */}
+              <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--border)', background: 'white', display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ flex: 1, background: '#f3f4f6', color: 'var(--text-main)', border: 'none', height: '56px', fontSize: '1rem', fontWeight: '600', borderRadius: '14px' }}>Hủy</button>
+                <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, height: '56px', fontSize: '1rem', fontWeight: '600', borderRadius: '14px' }}>
                   {saving ? <Loader2 className="animate-spin" /> : editingId ? 'Cập nhật' : 'Lưu liệu trình'}
                 </button>
               </div>
