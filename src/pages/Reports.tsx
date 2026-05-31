@@ -755,28 +755,27 @@ const Reports = () => {
                           </table>
                         </div>
 
-                        <div className="mobile-only flex flex-col" style={{ gap: '0.75rem', marginTop: '1rem' }}>
+                        <div className="mobile-only flex flex-col" style={{ gap: '0.5rem', marginTop: '1rem' }}>
                           {s.logs.map((log: any, idx: number) => (
-                            <div key={idx} style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                  <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.25rem' }}>{log.note || 'Thực hiện dịch vụ'}</div>
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(log.created_at).toLocaleString()}</div>
-                                </div>
-                                <span className={`badge ${log.type === 'package_sale' || log.type === 'retail' ? 'badge-primary' : 'badge-success'}`}>
+                            <div key={idx} className="invoice-card-compact" style={{ padding: '0.75rem 1rem', cursor: 'default' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
+                                <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.95rem' }}>{log.note || 'Thực hiện dịch vụ'}</div>
+                                <span className={`badge ${log.type === 'package_sale' || log.type === 'retail' ? 'badge-primary' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
                                   {log.type === 'package_sale' || log.type === 'retail' ? 'Bán hàng' : 'Thực hiện'}
                                 </span>
                               </div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{new Date(log.created_at).toLocaleString()}</div>
+                              
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px dashed var(--border)', paddingTop: '0.5rem' }}>
                                 <button 
                                   onClick={() => openRevenueDetail(log)}
-                                  style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0 }}
+                                  style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0, fontWeight: '600' }}
                                 >
                                   #{log.mapped_code || '---'}
-                                  {!log.mapped_code && <span style={{fontSize: '0.7rem', color: 'var(--danger)', marginLeft: '0.25rem'}}>(Đã xoá)</span>}
+                                  {!log.mapped_code && <span style={{fontSize: '0.6rem', color: 'var(--danger)', marginLeft: '0.25rem'}}>(Đã xoá)</span>}
                                   <FileText size={12} />
                                 </button>
-                                <div style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                                <div style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '1rem' }}>
                                   +{Number(log.amount).toLocaleString()}đ
                                 </div>
                               </div>

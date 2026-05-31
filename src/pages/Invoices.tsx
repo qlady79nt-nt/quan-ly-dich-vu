@@ -13,6 +13,7 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [view, setView] = useState<'retail' | 'session'>('retail');
+  const [dateFilter, setDateFilter] = useState<'today' | '7days' | 'month' | 'all'>('today');
   const [searchTerm, setSearchTerm] = useState(() => {
     return new URLSearchParams(window.location.search).get('search') || '';
   });
@@ -24,18 +25,36 @@ const Invoices = () => {
 
   useEffect(() => {
     if (shopId) fetchData();
-  }, [shopId]);
+  }, [shopId, dateFilter]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const applyDateFilter = (query: any) => {
+        if (dateFilter === 'today') {
+          const tomorrow = new Date(todayStart);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          return query.gte('created_at', todayStart.toISOString()).lt('created_at', tomorrow.toISOString());
+        }
+        if (dateFilter === '7days') {
+          const sevenDaysAgo = new Date(todayStart);
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          return query.gte('created_at', sevenDaysAgo.toISOString());
+        }
+        if (dateFilter === 'month') {
+          const firstDayOfMonth = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+          return query.gte('created_at', firstDayOfMonth.toISOString());
+        }
+        return query; // 'all'
+      };
+
       // 1. Fetch Invoices (Bán hàng) - Manual Join
       let invQuery = supabase.from('invoices').select('*').eq('shop_id', shopId).order('created_at', { ascending: false });
-      if (profile?.role !== 'shop_admin' && profile?.role !== 'super_admin') {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        invQuery = invQuery.gte('created_at', todayStart.toISOString());
-      }
+      invQuery = applyDateFilter(invQuery);
+      
       const { data: invData, error: invErr } = await invQuery;
       if (invErr) console.error(invErr);
 
@@ -58,11 +77,8 @@ const Invoices = () => {
         .eq('shop_id', shopId)
         .not('customer_package_id', 'is', null)
         .order('created_at', { ascending: false });
-      if (profile?.role !== 'shop_admin' && profile?.role !== 'super_admin') {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        sessQuery = sessQuery.gte('created_at', todayStart.toISOString());
-      }
+      sessQuery = applyDateFilter(sessQuery);
+      
       const { data: sessData, error: sessErr } = await sessQuery;
       if (sessErr) console.error(sessErr);
 
@@ -467,13 +483,14 @@ const Invoices = () => {
 
   return (
     <div className="page-container animate-fade">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="page-title">Quản lý Hoá đơn & Phiếu</h1>
-          <p className="page-subtitle">Tra cứu hoá đơn bán hàng và lịch sử trừ buổi</p>
+          <h1 className="page-title hidden-mobile">Quản lý Hoá đơn & Phiếu</h1>
+          <h1 className="page-title visible-mobile" style={{ fontSize: '1.5rem' }}>Hóa đơn</h1>
+          <p className="page-subtitle hidden-mobile">Tra cứu hoá đơn bán hàng và lịch sử trừ buổi</p>
         </div>
 
-        <div className="mobile-stack" style={{ gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
+        <div className="mobile-stack mobile-search-sticky" style={{ gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
           {selectedInvoices.length > 0 && view === 'retail' && hasPermission('sale.delete') && (
             <button 
               onClick={handleDeleteMultiple} 
@@ -484,18 +501,33 @@ const Invoices = () => {
               {isDeleting ? <Loader2 className="animate-spin" size={18} /> : `Xóa ${selectedInvoices.length} hoá đơn`}
             </button>
           )}
-          <div className="premium-card mobile-stack" style={{ flex: 1, position: 'relative', maxWidth: '400px' }}>
+          <div className="premium-card mobile-stack" style={{ flex: 1, position: 'relative', maxWidth: '400px', padding: '0' }}>
             <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
             <input 
               type="text" 
               className="form-input" 
-              placeholder="Tìm theo mã HĐ, tên KH..." 
-              style={{ paddingLeft: '2.75rem', width: '100%' }}
+              placeholder="Tìm kiếm..." 
+              style={{ paddingLeft: '2.75rem', width: '100%', border: 'none', background: 'transparent', height: '44px' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
+      </div>
+
+      <div className="mobile-tabs" style={{ marginBottom: '1rem' }}>
+        <button onClick={() => setDateFilter('today')} className="btn mobile-tab" style={{ background: dateFilter === 'today' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'today' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+          Hôm nay
+        </button>
+        <button onClick={() => setDateFilter('7days')} className="btn mobile-tab" style={{ background: dateFilter === '7days' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === '7days' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+          7 ngày
+        </button>
+        <button onClick={() => setDateFilter('month')} className="btn mobile-tab" style={{ background: dateFilter === 'month' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'month' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+          Tháng này
+        </button>
+        <button onClick={() => setDateFilter('all')} className="btn mobile-tab" style={{ background: dateFilter === 'all' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'all' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+          Tất cả
+        </button>
       </div>
 
       <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
@@ -571,54 +603,29 @@ const Invoices = () => {
             </table>
           </div>
 
-          <div className="mobile-only flex flex-col" style={{ gap: '1rem' }}>
+          <div className="mobile-only flex flex-col">
             {filteredInvoices.map(inv => (
               <div 
                 key={inv.id} 
-                className="report-card" 
+                className="invoice-card-compact" 
                 onClick={() => handleViewInvoice(inv)}
-                style={{ cursor: 'pointer', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                style={{ cursor: 'pointer' }}
               >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div onClick={(e) => e.stopPropagation()} style={{ marginRight: '0.5rem' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedInvoices.includes(inv.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedInvoices(prev => [...prev, inv.id]);
-                          else setSelectedInvoices(prev => prev.filter(id => id !== inv.id));
-                        }}
-                      />
-                    </div>
-                    <div style={{ fontWeight: '700', color: 'var(--primary)' }}>#{inv.invoice_code || '---'}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                    {inv.customer_name || 'Khách lẻ'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{new Date(inv.created_at).toLocaleString()}</div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Khách:</div>
-                  <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{inv.customer_name || 'Khách lẻ'}</div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Người tạo:</div>
-                  <div style={{ fontWeight: '600' }}>{inv.profiles?.full_name || 'Hệ thống'}</div>
+                  <div style={{ fontWeight: '600', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                    #{inv.invoice_code || '---'}
+                  </div>
                 </div>
                 
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Trạng thái:</div>
-                  <div style={{ marginTop: '0.25rem' }}>
-                    <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
-                      {inv.status === 'paid' ? 'Đã thanh toán' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ'}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tổng tiền:</div>
-                  <div className="financial-cell" style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                  <div className="financial-cell" style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--primary)' }}>
                     {Number(inv.final_amount).toLocaleString()}đ
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
+                    {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {inv.profiles?.full_name || 'HT'} • {inv.status === 'paid' ? 'Đã TT' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ TT'}
                   </div>
                 </div>
               </div>
@@ -669,39 +676,29 @@ const Invoices = () => {
             </table>
           </div>
 
-          <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
+          <div className="visible-mobile flex flex-col">
             {filteredSessions.map(sess => (
               <div 
                 key={sess.id} 
-                className="report-card" 
+                className="invoice-card-compact" 
                 onClick={() => handleViewSession(sess)}
-                style={{ cursor: 'pointer', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+                style={{ cursor: 'pointer' }}
               >
-                <div>
-                  <div style={{ fontWeight: '700', color: 'var(--primary)' }}>#{sess.session_code || '---'}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(sess.created_at).toLocaleString()}</div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Khách:</div>
-                  <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{sess.customer_packages?.customer_name || 'N/A'}</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>{sess.customer_packages?.customer_phone}</div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Gói dịch vụ:</div>
-                  <div style={{ fontWeight: '600' }}>{sess.customer_packages?.packages?.name || 'N/A'}</div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Kỹ thuật viên:</div>
-                  <div style={{ fontWeight: '600' }}>{sess.profiles?.full_name || 'N/A'}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                    {sess.customer_packages?.customer_name || 'Khách lẻ'}
+                  </div>
+                  <div style={{ fontWeight: '600', color: 'var(--secondary)', fontSize: '0.875rem' }}>
+                    #{sess.session_code || '---'}
+                  </div>
                 </div>
                 
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Trạng thái:</div>
-                  <div style={{ marginTop: '0.25rem' }}>
-                    <span className="badge badge-success">Đã hoàn thành</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--primary)' }}>
+                    {sess.customer_packages?.packages?.name || 'Gói dịch vụ'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
+                    {new Date(sess.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • KTV {sess.profiles?.full_name || 'N/A'} • HT
                   </div>
                 </div>
               </div>
