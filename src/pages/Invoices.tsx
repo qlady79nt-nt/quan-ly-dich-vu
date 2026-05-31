@@ -13,7 +13,9 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [view, setView] = useState<'retail' | 'session'>('retail');
-  const [dateFilter, setDateFilter] = useState<'today' | '7days' | 'month' | 'all'>('today');
+  const [dateFilter, setDateFilter] = useState<'today' | '7days' | 'month' | 'all' | 'custom'>('today');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [searchTerm, setSearchTerm] = useState(() => {
     return new URLSearchParams(window.location.search).get('search') || '';
   });
@@ -25,7 +27,7 @@ const Invoices = () => {
 
   useEffect(() => {
     if (shopId) fetchData();
-  }, [shopId, dateFilter]);
+  }, [shopId, dateFilter, customStartDate, customEndDate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -34,19 +36,35 @@ const Invoices = () => {
       todayStart.setHours(0, 0, 0, 0);
 
       const applyDateFilter = (query: any) => {
-        if (dateFilter === 'today') {
+        const effectiveFilter = profile?.role === 'shop_admin' ? dateFilter : 'today';
+
+        if (effectiveFilter === 'today') {
           const tomorrow = new Date(todayStart);
           tomorrow.setDate(tomorrow.getDate() + 1);
           return query.gte('created_at', todayStart.toISOString()).lt('created_at', tomorrow.toISOString());
         }
-        if (dateFilter === '7days') {
+        if (effectiveFilter === '7days') {
           const sevenDaysAgo = new Date(todayStart);
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
           return query.gte('created_at', sevenDaysAgo.toISOString());
         }
-        if (dateFilter === 'month') {
+        if (effectiveFilter === 'month') {
           const firstDayOfMonth = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
           return query.gte('created_at', firstDayOfMonth.toISOString());
+        }
+        if (effectiveFilter === 'custom') {
+          let q = query;
+          if (customStartDate) {
+            const start = new Date(customStartDate);
+            start.setHours(0, 0, 0, 0);
+            q = q.gte('created_at', start.toISOString());
+          }
+          if (customEndDate) {
+            const end = new Date(customEndDate);
+            end.setHours(23, 59, 59, 999);
+            q = q.lte('created_at', end.toISOString());
+          }
+          return q;
         }
         return query; // 'all'
       };
@@ -515,20 +533,51 @@ const Invoices = () => {
         </div>
       </div>
 
-      <div className="mobile-tabs" style={{ marginBottom: '1rem' }}>
-        <button onClick={() => setDateFilter('today')} className="btn mobile-tab" style={{ background: dateFilter === 'today' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'today' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
-          Hôm nay
-        </button>
-        <button onClick={() => setDateFilter('7days')} className="btn mobile-tab" style={{ background: dateFilter === '7days' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === '7days' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
-          7 ngày
-        </button>
-        <button onClick={() => setDateFilter('month')} className="btn mobile-tab" style={{ background: dateFilter === 'month' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'month' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
-          Tháng này
-        </button>
-        <button onClick={() => setDateFilter('all')} className="btn mobile-tab" style={{ background: dateFilter === 'all' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'all' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
-          Tất cả
-        </button>
-      </div>
+      {profile?.role === 'shop_admin' && (
+        <div style={{ marginBottom: '1rem' }}>
+          <div className="mobile-tabs" style={{ marginBottom: dateFilter === 'custom' ? '0.5rem' : '0' }}>
+            <button onClick={() => setDateFilter('today')} className="btn mobile-tab" style={{ background: dateFilter === 'today' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'today' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+              Hôm nay
+            </button>
+            <button onClick={() => setDateFilter('7days')} className="btn mobile-tab" style={{ background: dateFilter === '7days' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === '7days' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+              7 ngày
+            </button>
+            <button onClick={() => setDateFilter('month')} className="btn mobile-tab" style={{ background: dateFilter === 'month' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'month' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+              Tháng này
+            </button>
+            <button onClick={() => setDateFilter('custom')} className="btn mobile-tab" style={{ background: dateFilter === 'custom' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'custom' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+              Tùy chỉnh
+            </button>
+            <button onClick={() => setDateFilter('all')} className="btn mobile-tab" style={{ background: dateFilter === 'all' ? 'var(--primary)' : 'var(--bg-card)', color: dateFilter === 'all' ? 'white' : 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', minWidth: 'auto', padding: '0 1rem' }}>
+              Tất cả
+            </button>
+          </div>
+          {dateFilter === 'custom' && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Từ ngày</div>
+                <input 
+                  type="date" 
+                  className="form-input" 
+                  value={customStartDate} 
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '0.875rem' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Đến ngày</div>
+                <input 
+                  type="date" 
+                  className="form-input" 
+                  value={customEndDate} 
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  style={{ width: '100%', height: '40px', fontSize: '0.875rem' }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
         <button onClick={() => setView('retail')} className="btn mobile-tab" style={{ background: view === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'retail' ? 'white' : 'inherit' }}>
