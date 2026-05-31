@@ -575,53 +575,51 @@ const POS = () => {
                 <button onClick={() => setShowMobileCart(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', lineHeight: 1 }}>&times;</button>
               )}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-              <div className="cart-items-container" style={{ flexShrink: 0 }}>
-                {cart.length === 0 ? (
-                  <div className="empty-order">
-                    <ShoppingCart size={48} />
-                    <h3 style={{ margin: 0 }}>Chưa có dịch vụ</h3>
-                    <p style={{ margin: 0, fontSize: '0.875rem' }}>Chọn dịch vụ để bắt đầu tạo đơn hàng</p>
-                  </div>
-                ) : (
-                  cart.map((item, idx) => (
-                    <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px dashed var(--border)' }}>
-                      <div style={{ fontSize: '0.875rem' }}>{item.name}</div>
-                      <div style={{ fontWeight: '600' }}>{Number(item.price).toLocaleString()}đ</div>
-                      <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                    </div>
-                  ))
-                )}
-              </div>
-              {cart.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto', flexShrink: 0 }}>
-                  <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailCustomerId} onChange={e => { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }}>
-                    <option value="">Khách vãng lai (Nhập tên)</option>
-                    {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
-                  </select>
-                  {!retailCustomerId && (
-                    <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.5rem' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
-                  )}
-                  <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
-                    <option value="">-- Kỹ thuật viên (Bắt buộc) --</option>
-                    {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-                  </select>
-                  <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailBedId} onChange={e => setRetailBedId(e.target.value)}>
-                    <option value="">-- Chọn Chỗ (Trống) --</option>
-                    {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
-                  <div className="desktop-only" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem', marginTop: '1rem' }}>
-                    <span>Phí dịch vụ (tạm tính):</span>
-                    <span style={{ color: 'var(--primary)' }}>
-                      {cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
-                    </span>
-                  </div>
-                  <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', minHeight: '48px', fontSize: '16px', fontWeight: 'bold' }}>
-                    {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP CHỖ'}
-                  </button>
+            <div className="cart-items-container" style={{ flexShrink: 1, overflowY: 'auto', minHeight: '50px' }}>
+              {cart.length === 0 ? (
+                <div className="empty-order">
+                  <ShoppingCart size={48} />
+                  <h3 style={{ margin: 0 }}>Chưa có dịch vụ</h3>
+                  <p style={{ margin: 0, fontSize: '0.875rem' }}>Chọn dịch vụ để bắt đầu tạo đơn hàng</p>
                 </div>
+              ) : (
+                cart.map((item, idx) => (
+                  <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px dashed var(--border)' }}>
+                    <div style={{ fontSize: '0.875rem' }}>{item.name}</div>
+                    <div style={{ fontWeight: '600' }}>{Number(item.price).toLocaleString()}đ</div>
+                    <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                  </div>
+                ))
               )}
             </div>
+            {cart.length > 0 && (
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem', flexShrink: 0 }}>
+                <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailCustomerId} onChange={e => { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }}>
+                  <option value="">Khách vãng lai (Nhập tên)</option>
+                  {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
+                </select>
+                {!retailCustomerId && (
+                  <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.5rem' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
+                )}
+                <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
+                  <option value="">-- Kỹ thuật viên (Bắt buộc) --</option>
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                </select>
+                <select className="form-select" style={{ marginBottom: '0.5rem' }} value={retailBedId} onChange={e => setRetailBedId(e.target.value)}>
+                  <option value="">-- Chọn Chỗ (Trống) --</option>
+                  {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+                <div className="desktop-only" style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1rem', marginTop: '1rem' }}>
+                  <span>Phí dịch vụ (tạm tính):</span>
+                  <span style={{ color: 'var(--primary)' }}>
+                    {cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
+                  </span>
+                </div>
+                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', minHeight: '48px', fontSize: '16px', fontWeight: 'bold' }}>
+                  {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP CHỖ'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
