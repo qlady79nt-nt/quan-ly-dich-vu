@@ -760,4 +760,111 @@ h1, h2, h3, h4 {
     width: 100%;
     justify-content: flex-start;
   }
+
+  /* Customer Mobile Tab */
+  .customer-card-mobile {
+    padding: 16px;
+    border-radius: 18px;
+    background: #fff;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .customer-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .customer-phone {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 12px;
+  }
+  .package-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  .usage-row {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--bg-main);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--primary);
+  }
+  .customer-actions {
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #eee;
+    padding-top: 12px;
+  }
+  .customer-actions button {
+    flex: 1;
+    padding: 8px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-use {
+    background: var(--primary);
+    color: white;
+  }
+  .btn-use:hover {
+    background: var(--primary-light);
+  }
+  .btn-detail {
+    background: var(--bg-main);
+    color: var(--text-secondary);
+  }
+  .btn-detail:hover {
+    background: #e2e8f0;
+  }
+  .mobile-filter-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+  .mobile-filter-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .filter-chip {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--bg-main);
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .filter-chip.active {
+    background: rgba(109, 40, 217, 0.1);
+    color: var(--primary);
+    border-color: rgba(109, 40, 217, 0.2);
+  }
+  .customer-search-mobile {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-main);
+    padding: 10px 0;
+    margin-bottom: 12px;
+  }
 }
