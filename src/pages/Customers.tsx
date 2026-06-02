@@ -13,7 +13,6 @@ const Customers = () => {
   const [packageCustomers, setPackageCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   useEffect(() => {
     if (shopId) {
