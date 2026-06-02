@@ -8,6 +8,7 @@ import { ActionMenu } from '../components/ActionMenu';
 const Customers = () => {
   const { profile, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
+  const [activeTab, setActiveTab] = useState<'general' | 'packages' | 'archived'>('general');
   const [customers, setCustomers] = useState<any[]>([]);
   const [packageCustomers, setPackageCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
