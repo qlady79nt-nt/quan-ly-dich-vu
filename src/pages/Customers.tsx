@@ -187,7 +187,7 @@ const Customers = () => {
         </button>
       </div>
 
-      <div className="desktop-only premium-card mobile-stack" style={{ marginBottom: '2rem' }}>
+      <div className="premium-card mobile-stack" style={{ marginBottom: '2rem', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ position: 'relative', flex: 1, width: '100%' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
           <input 
@@ -201,25 +201,11 @@ const Customers = () => {
         </div>
       </div>
 
-      <div className="mobile-only customer-search-mobile">
-        <div style={{ position: 'relative', width: '100%' }}>
-          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
-          <input 
-            type="text" 
-            className="form-input" 
-            placeholder="Tìm theo tên khách, sđt..." 
-            style={{ paddingLeft: '2.75rem', width: '100%', borderRadius: '14px', background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
       {loading ? (
         <TableSkeleton />
       ) : activeTab === 'general' ? (
         <div className="premium-card">
-          <div className="desktop-only table-responsive">
+          <div className="table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
@@ -261,24 +247,11 @@ const Customers = () => {
             </table>
           </div>
           
-          <div className="mobile-only flex flex-col" style={{ gap: '12px', paddingBottom: '16px' }}>
-            {filteredCustomers.map(customer => (
-              <div key={customer.id} className="customer-card-mobile">
-                <div className="customer-name">{customer.name}</div>
-                <div className="customer-phone">{customer.phone || 'Chưa có SĐT'}</div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Ngày tạo: {new Date(customer.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            ))}
-            {filteredCustomers.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không tìm thấy khách hàng.</div>
-            )}
-          </div>
+
         </div>
       ) : (
         <div className="premium-card">
-          <div className="desktop-only table-responsive">
+          <div className="table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
@@ -363,59 +336,7 @@ const Customers = () => {
             </table>
           </div>
           
-          <div className="mobile-only flex flex-col" style={{ gap: '12px', paddingBottom: '16px' }}>
-            {filteredPackageCustomers.map(cp => (
-              <div key={cp.id} className="customer-card-mobile" style={{ opacity: (cp.status === 'cancelled' || cp.status === 'archived') ? 0.6 : 1 }}>
-                <div className="customer-name">{cp.customer_name}</div>
-                <div className="customer-phone">{cp.customer_phone || 'Chưa có SĐT'}</div>
-                
-                <div className="package-name">{cp.packages?.name || 'Gói không xác định'}</div>
-                
-                <div className="usage-row">
-                  <span>Sử dụng</span>
-                  <span>{cp.used_sessions} / {cp.total_sessions} buổi</span>
-                </div>
-                
-                <div className="progress-bar">
-                  <div className="progress-bar-fill" style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%` }}></div>
-                </div>
 
-                <div className="customer-actions">
-                  {cp.status === 'active' && cp.used_sessions < cp.total_sessions ? (
-                    <button className="btn-use" onClick={() => alert('Chức năng Dùng tiếp sẽ mở màn POS (đang phát triển)')}>Dùng tiếp</button>
-                  ) : (
-                    <button className="btn-use" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', cursor: 'not-allowed' }} disabled>
-                      {cp.status === 'active' ? 'Hết buổi' : (cp.status === 'archived' ? 'Đã lưu' : 'Đã hủy')}
-                    </button>
-                  )}
-                  <button className="btn-detail" onClick={() => setExpandedCard(expandedCard === cp.id ? null : cp.id)}>Chi tiết</button>
-                </div>
-                
-                {expandedCard === cp.id && (
-                  <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {cp.used_sessions === 0 && cp.status !== 'cancelled' && (
-                      <button onClick={() => handleUpdatePackageStatus(cp.id, 'cancelled')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Hủy thẻ</button>
-                    )}
-                    {cp.used_sessions > 0 && cp.status !== 'archived' && (
-                      <button onClick={() => handleUpdatePackageStatus(cp.id, 'archived')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'var(--bg-main)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>Lưu trữ</button>
-                    )}
-                    {(cp.status === 'archived' || cp.status === 'cancelled') && (
-                      <button onClick={() => handleUpdatePackageStatus(cp.id, 'active')} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', border: '1px solid var(--success)' }}>Khôi phục</button>
-                    )}
-                    {profile?.role === 'super_admin' && (
-                      <button onClick={() => handleHardDeletePackage(cp.id)} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)' }}>Xóa vĩnh viễn</button>
-                    )}
-                    <div style={{ width: '100%', fontSize: '13px', color: 'var(--text-light)', marginTop: '4px' }}>
-                      Mã thẻ: {cp.card_code || 'N/A'} • Mua: {new Date(cp.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-            {filteredPackageCustomers.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không tìm thấy khách hàng liệu trình phù hợp.</div>
-            )}
-          </div>
         </div>
       )}
     </div>
