@@ -98,10 +98,17 @@ const MainLayout = () => {
               <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.5px', lineHeight: '1.2' }}>
                 {profile?.role === 'super_admin' ? 'Super Admin' : (profile?.shop?.name || 'SPA Manager')}
               </span>
-              {profile?.role !== 'super_admin' && profile?.shop?.shop_code && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '600' }}>
-                  ID: {profile?.shop?.shop_code}
-                </span>
+              {profile?.role !== 'super_admin' && (
+                <>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '500', marginTop: '2px' }}>
+                    {profile?.full_name || 'Quản trị viên'} ({profile?.username || 'admin'})
+                  </span>
+                  {profile?.shop?.shop_code && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '700', marginTop: '2px' }}>
+                      ID: {profile?.shop?.shop_code}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -166,8 +173,8 @@ const MainLayout = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
             <div className="desktop-only" style={{ textAlign: 'right' }}>
-              <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{profile?.full_name || 'Quản trị viên'}</div>
-              <div style={{ fontSize: '0.75rem', color: profile?.role === 'super_admin' ? 'var(--secondary)' : 'var(--text-light)', fontWeight: profile?.role === 'super_admin' ? '700' : '400' }}>
+              <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{profile?.full_name || 'Quản trị viên'} <span style={{fontWeight: '400', color: 'var(--text-light)'}}>({profile?.username || 'admin'})</span></div>
+              <div style={{ fontSize: '0.75rem', color: profile?.role === 'super_admin' ? 'var(--secondary)' : 'var(--text-light)', fontWeight: profile?.role === 'super_admin' ? '700' : '500' }}>
                 {profile?.role === 'super_admin' ? 'Hệ thống' : (profile?.shop?.name || 'Cửa hàng')}
               </div>
             </div>
