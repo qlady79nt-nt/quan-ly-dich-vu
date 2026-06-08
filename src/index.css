@@ -284,7 +284,9 @@ h1, h2, h3, h4 {
 .visible-mobile { display: none; }
 
 .desktop-only { display: block; }
-.mobile-only { display: none; }
+@media (min-width: 769px) {
+  .mobile-only, .visible-mobile { display: none !important; }
+}
 
 /* Mobile Design System */
 .page-container {
@@ -637,11 +639,7 @@ h1, h2, h3, h4 {
     grid-template-columns: 1fr;
   }
   
-  .hidden-mobile { display: none !important; }
-  .visible-mobile { display: block !important; }
-  
   .desktop-only { display: none !important; }
-  .mobile-only { display: block !important; }
 
   .page-container {
     padding: 16px;
