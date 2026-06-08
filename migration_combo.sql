@@ -23,6 +23,30 @@ ALTER TABLE invoice_items ADD COLUMN IF NOT EXISTS discount_value NUMERIC DEFAUL
 -- Enable RLS on combo_groups
 ALTER TABLE combo_groups ENABLE ROW LEVEL SECURITY;
 
+-- Thay thế Unique Index cũ bằng Trigger thông minh (Hỗ trợ Combo)
+DROP INDEX IF EXISTS enforce_single_active_session_per_bed;
+
+CREATE OR REPLACE FUNCTION trg_check_bed_availability()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM service_sessions 
+        WHERE bed_id = NEW.bed_id 
+        AND status = 'in_progress'
+        AND id != NEW.id
+        AND (NEW.combo_group_id IS NULL OR combo_group_id IS DISTINCT FROM NEW.combo_group_id)
+    ) THEN
+        RAISE EXCEPTION 'bed_in_use';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS check_bed_availability_trg ON service_sessions;
+CREATE TRIGGER check_bed_availability_trg
+BEFORE INSERT ON service_sessions
+FOR EACH ROW EXECUTE FUNCTION trg_check_bed_availability();
+
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'combo_groups' AND policyname = 'Users can view combo groups of their shop') THEN

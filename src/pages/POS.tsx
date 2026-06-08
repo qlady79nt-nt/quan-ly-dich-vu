@@ -251,7 +251,7 @@ const POS = () => {
       const { error: sessErr } = await supabase.from('service_sessions').insert(sessionsToInsert);
       
       if (sessErr) {
-        if (sessErr.code === '23505') {
+        if (sessErr.code === '23505' || sessErr.message?.includes('bed_in_use')) {
           throw new Error('Chỗ này vừa được người khác xếp! Vui lòng chọn chỗ khác.');
         } else {
           throw new Error('Lỗi tạo cuốc dịch vụ: ' + sessErr.message);
@@ -853,7 +853,16 @@ const POS = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1.25rem', fontSize: '1.1rem' }}>
                   <span>Tổng tiền:</span>
                   <span style={{ color: 'var(--primary)' }}>
-                    {(activeTab === 'retail' ? cart : comboCart).reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
+                    {(activeTab === 'retail' 
+                      ? cart.reduce((sum, item) => {
+                          const d = item.discountType === 'percent' ? (item.price * (item.discountValue || 0)) / 100 : (item.discountValue || 0);
+                          return sum + (Number(item.price) - d);
+                        }, 0)
+                      : comboCart.reduce((sum, item) => {
+                          const d = item.discountType === 'percent' ? (item.price * (item.discountValue || 0)) / 100 : (item.discountValue || 0);
+                          return sum + (Number(item.price) - d);
+                        }, 0)
+                    ).toLocaleString()}đ
                   </span>
                 </div>
                 <button onClick={activeTab === 'retail' ? handleRetailCheckoutClick : handleComboCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px', background: activeTab === 'combo' ? 'var(--warning)' : 'var(--primary)' }}>
