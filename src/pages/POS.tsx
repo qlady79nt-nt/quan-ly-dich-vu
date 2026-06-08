@@ -21,7 +21,7 @@ const POS = () => {
   const { profile, hasPermission, isRestricted } = useAuth();
   const shopId = profile?.shop_id;
 
-  const [activeTab, setActiveTab] = useState<'retail' | 'sell_package' | 'use_package'>('retail');
+  const [activeTab, setActiveTab] = useState<'retail' | 'sell_package' | 'use_package' | 'combo'>('retail');
   const [services, setServices] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
@@ -48,6 +48,13 @@ const POS = () => {
     for (let i = 0; i < 3; i++) code += numbers.charAt(Math.floor(Math.random() * numbers.length));
     return code;
   };
+
+  // --- COMBO STATE ---
+  const [comboCart, setComboCart] = useState<any[]>([]);
+  const [comboSearchTerm, setComboSearchTerm] = useState('');
+  const [comboCustomerName, setComboCustomerName] = useState('');
+  const [comboCustomerId, setComboCustomerId] = useState('');
+  const [comboBedId, setComboBedId] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [pkgCustomerName, setPkgCustomerName] = useState('');
   const [pkgCardCode, setPkgCardCode] = useState(generateCardCode());
@@ -145,6 +152,7 @@ const POS = () => {
       service_id: item.id,
       staff_id: retailStaffId,
       bed_id: retailBedId,
+      service_price: item.price,
       status: 'in_progress',
       is_retail: true,
       retail_customer_name: finalCustName,
@@ -178,6 +186,91 @@ const POS = () => {
     setPackageBedId('');
 
     alert('Đã xếp khách vào chỗ thành công! Chuyển sang tab Chỗ để theo dõi và thanh toán.');
+    setLoading(false);
+  };
+
+  const addToComboCart = (svc: any) => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán hàng');
+    if (!hasPermission('sale.create')) return alert('Bạn không có quyền tạo đơn hàng');
+    if (comboCart.length >= 5) return alert('Chỉ được chọn tối đa 5 dịch vụ trong 1 Combo');
+    setComboCart([...comboCart, { ...svc, cartId: Math.random(), staff_id: '' }]);
+    if (isMobile) {
+      setShowMobileCart(true);
+    }
+  };
+
+  const updateComboCartStaff = (cartId: number, staffId: string) => {
+    setComboCart(comboCart.map(item => item.cartId === cartId ? { ...item, staff_id: staffId } : item));
+  };
+
+  const handleComboCheckoutClick = async () => {
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện thanh toán');
+    if (!hasPermission('sale.create')) return alert('Bạn không có quyền thanh toán');
+    if (comboCart.length < 2) return alert('Combo phải chứa ít nhất 2 dịch vụ');
+    if (comboCart.some(item => !item.staff_id)) return alert('Vui lòng chọn Kỹ thuật viên cho tất cả dịch vụ');
+    if (!comboBedId) return alert('Vui lòng chọn Chỗ (Bắt buộc)');
+
+    setLoading(true);
+    const customer = comboCustomerId ? customersList.find(c => c.id === comboCustomerId) : null;
+    const finalCustName = customer?.name || comboCustomerName || 'Khách lẻ Combo';
+    const finalCustPhone = customer?.phone || '';
+
+    try {
+      // 1. Tạo combo_group
+      const comboCode = 'CB' + new Date().getFullYear().toString().slice(-2) + Math.floor(1000 + Math.random() * 9000).toString();
+      const { data: comboGrp, error: comboErr } = await supabase.from('combo_groups').insert([{
+        shop_id: shopId,
+        combo_code: comboCode,
+        customer_name: finalCustName,
+        customer_phone: finalCustPhone,
+        bed_id: comboBedId,
+        status: 'in_progress'
+      }]).select().single();
+
+      if (comboErr || !comboGrp) throw new Error('Lỗi tạo nhóm Combo: ' + comboErr?.message);
+
+      // 2. Tạo N service_sessions
+      const sessionsToInsert = comboCart.map((item, index) => ({
+        shop_id: shopId,
+        service_id: item.id,
+        staff_id: item.staff_id,
+        bed_id: comboBedId,
+        service_price: item.price,
+        status: 'in_progress',
+        is_retail: true,
+        retail_customer_name: finalCustName,
+        retail_customer_phone: finalCustPhone,
+        combo_group_id: comboGrp.id,
+        session_code: 'S' + new Date().getFullYear().toString().slice(-2) + Math.floor(100 + index).toString() + Math.floor(1000 + Math.random() * 9000).toString()
+      }));
+
+      const { error: sessErr } = await supabase.from('service_sessions').insert(sessionsToInsert);
+      
+      if (sessErr) {
+        if (sessErr.code === '23505') {
+          throw new Error('Chỗ này vừa được người khác xếp! Vui lòng chọn chỗ khác.');
+        } else {
+          throw new Error('Lỗi tạo cuốc dịch vụ: ' + sessErr.message);
+        }
+      }
+
+      setComboCart([]);
+      setComboBedId('');
+      setComboCustomerName('');
+      setComboCustomerId('');
+      
+      // Load lại list chỗ bằng cách tính toán động
+      const [newBedsRes, newSessionsRes] = await Promise.all([
+        supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
+        supabase.from('service_sessions').select('bed_id').eq('shop_id', shopId).eq('status', 'in_progress')
+      ]);
+      const activeIds = (newSessionsRes.data || []).map(s => s.bed_id);
+      setBedsList((newBedsRes.data || []).filter(b => !activeIds.includes(b.id)));
+
+      alert('Đã xếp khách COMBO vào chỗ thành công! Chuyển sang tab Chỗ để theo dõi và thanh toán.');
+    } catch (e: any) {
+      alert(e.message);
+    }
     setLoading(false);
   };
 
@@ -428,6 +521,9 @@ const POS = () => {
         <button onClick={() => setActiveTab('retail')} className="btn mobile-tab" style={{ background: activeTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'retail' ? 'white' : 'inherit' }}>
           <Zap size={18} /> Bán lẻ
         </button>
+        <button onClick={() => setActiveTab('combo')} className="btn mobile-tab" style={{ background: activeTab === 'combo' ? 'var(--warning)' : 'var(--bg-main)', color: activeTab === 'combo' ? 'white' : 'inherit' }}>
+          <Zap size={18} /> Combo
+        </button>
         <button onClick={() => setActiveTab('sell_package')} className="btn mobile-tab" style={{ background: activeTab === 'sell_package' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'sell_package' ? 'white' : 'inherit' }}>
           <PackageIcon size={18} /> Bán liệu trình
         </button>
@@ -467,6 +563,41 @@ const POS = () => {
                     <div style={{ color: 'var(--primary)', fontWeight: '700' }}>{Number(s.price).toLocaleString()}đ</div>
                   </div>
                   <Plus size={20} color="var(--text-light)" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'combo' && (
+          <div className="animate-fade">
+            <div className="premium-card mobile-stack" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+              <div style={{ position: 'relative', flex: 1, width: '100%' }}>
+                <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Tìm tên dịch vụ cho Combo..." 
+                  style={{ paddingLeft: '2.75rem', width: '100%' }}
+                  value={comboSearchTerm}
+                  onChange={(e) => setComboSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            {services.length === 0 && !loading && (
+              <div className="premium-card" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                <p style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Không tìm thấy dịch vụ nào</p>
+                <p style={{ fontSize: '0.875rem' }}>Vui lòng kiểm tra lại cấu hình Database.</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2">
+              {services.filter(s => s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => (
+                <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px dashed var(--warning)' }}>
+                  <div>
+                    <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
+                    <div style={{ color: 'var(--primary)', fontWeight: '700' }}>{Number(s.price).toLocaleString()}đ</div>
+                  </div>
+                  <Plus size={20} color="var(--warning)" />
                 </div>
               ))}
             </div>
@@ -593,7 +724,7 @@ const POS = () => {
 
             {/* SCROLLABLE ITEMS */}
             <div className="cart-items-container" style={{ padding: '0 1.25rem', flex: 1, overflowY: 'auto' }}>
-              {cart.length === 0 ? (
+              {(activeTab === 'retail' ? cart.length === 0 : comboCart.length === 0) ? (
                 <div className="empty-order" style={{ padding: '2rem 0' }}>
                   <ShoppingCart size={48} />
                   <h3 style={{ margin: 0 }}>Chưa có dịch vụ</h3>
@@ -601,28 +732,57 @@ const POS = () => {
                 </div>
               ) : (
                 <>
-                  {cart.map((item, idx) => (
+                  {activeTab === 'retail' && cart.map((item, idx) => (
                     <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderBottom: '1px dashed var(--border)' }}>
                       <div style={{ fontSize: '0.9rem' }}>{item.name}</div>
                       <div style={{ fontWeight: '700' }}>{Number(item.price).toLocaleString()}đ</div>
                       <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={16} /></button>
                     </div>
                   ))}
+
+                  {activeTab === 'combo' && comboCart.map((item, idx) => (
+                    <div key={item.cartId} style={{ padding: '1rem 0', borderBottom: '1px dashed var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>{item.name}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(item.price).toLocaleString()}đ</div>
+                          <button onClick={() => setComboCart(comboCart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                      <div>
+                        <select className="form-select" style={{ height: '36px', fontSize: '0.85rem' }} value={item.staff_id} onChange={e => updateComboCartStaff(item.cartId, e.target.value)}>
+                          <option value="">-- KTV cho dịch vụ này --</option>
+                          {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
                   
                   <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
-                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-main)', fontWeight: '700' }}>Thông tin khách & KTV</h4>
-                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailCustomerId} onChange={e => { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }}>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-main)', fontWeight: '700' }}>Thông tin khách & Chỗ</h4>
+                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={activeTab === 'retail' ? retailCustomerId : comboCustomerId} onChange={e => { 
+                      if (activeTab === 'retail') { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }
+                      else { setComboCustomerId(e.target.value); setComboCustomerName(''); }
+                    }}>
                       <option value="">Khách vãng lai (Nhập tên)</option>
                       {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
                     </select>
-                    {!retailCustomerId && (
-                      <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
+                    {!(activeTab === 'retail' ? retailCustomerId : comboCustomerId) && (
+                      <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={activeTab === 'retail' ? customerName : comboCustomerName} onChange={e => {
+                        if (activeTab === 'retail') setRetailCustomerName(e.target.value);
+                        else setComboCustomerName(e.target.value);
+                      }} />
                     )}
-                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
-                      <option value="">-- Kỹ thuật viên (Bắt buộc) --</option>
-                      {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-                    </select>
-                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailBedId} onChange={e => setRetailBedId(e.target.value)}>
+                    {activeTab === 'retail' && (
+                      <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
+                        <option value="">-- Kỹ thuật viên (Bắt buộc) --</option>
+                        {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                      </select>
+                    )}
+                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={activeTab === 'retail' ? retailBedId : comboBedId} onChange={e => {
+                      if (activeTab === 'retail') setRetailBedId(e.target.value);
+                      else setComboBedId(e.target.value);
+                    }}>
                       <option value="">-- Chọn Chỗ (Trống) --</option>
                       {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
@@ -632,15 +792,15 @@ const POS = () => {
             </div>
 
             {/* FIXED FOOTER FORM */}
-            {cart.length > 0 && (
+            {(activeTab === 'retail' ? cart.length > 0 : comboCart.length > 0) && (
               <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'white' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1.25rem', fontSize: '1.1rem' }}>
-                  <span>Tạm tính:</span>
+                  <span>Tổng tiền:</span>
                   <span style={{ color: 'var(--primary)' }}>
-                    {cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
+                    {(activeTab === 'retail' ? cart : comboCart).reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
                   </span>
                 </div>
-                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px' }}>
+                <button onClick={activeTab === 'retail' ? handleRetailCheckoutClick : handleComboCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px', background: activeTab === 'combo' ? 'var(--warning)' : 'var(--primary)' }}>
                   {loading ? <Loader2 className="animate-spin" /> : 'XẾP CHỖ NGAY'}
                 </button>
               </div>
