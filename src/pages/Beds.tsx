@@ -17,6 +17,7 @@ const Beds = () => {
   const [checkoutSession, setCheckoutSession] = useState<any>(null);
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
   const [discountValue, setDiscountValue] = useState(0);
+  const [comboItemDiscounts, setComboItemDiscounts] = useState<Record<string, { type: 'amount' | 'percent', value: number }>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<any>(null);
 
@@ -120,6 +121,7 @@ const Beds = () => {
     setCheckoutSession(bedData);
     setDiscountValue(0);
     setDiscountType('amount');
+    setComboItemDiscounts({});
   };
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
@@ -136,8 +138,21 @@ const Beds = () => {
         const sessions = bedData.sessions;
         
         const totalOriginalPrice = sessions.reduce((sum: number, sess: any) => sum + Number(sess.service_price || sess.services?.price || 0), 0);
-        const discount = discountType === 'percent' ? (totalOriginalPrice * discountValue) / 100 : discountValue;
-        const finalTotal = totalOriginalPrice - discount;
+        
+        // Tính tổng giảm giá từng món
+        const itemDiscountTotal = sessions.reduce((sum: number, sess: any) => {
+           const price = Number(sess.service_price || sess.services?.price || 0);
+           const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+           const dAmount = d.type === 'percent' ? (price * d.value) / 100 : d.value;
+           return sum + dAmount;
+        }, 0);
+
+        // Giảm giá tổng áp dụng trên số tiền còn lại sau khi đã trừ giảm giá từng món
+        const remainingTotalBeforeGlobalDisc = totalOriginalPrice - itemDiscountTotal;
+        const globalDiscount = discountType === 'percent' ? (remainingTotalBeforeGlobalDisc * discountValue) / 100 : discountValue;
+        
+        const totalDiscount = itemDiscountTotal + globalDiscount;
+        const finalTotal = totalOriginalPrice - totalDiscount;
         
         const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
         
@@ -148,24 +163,32 @@ const Beds = () => {
           customer_phone: comboGroup.customer_phone,
           created_by: profile?.id,
           total_amount: totalOriginalPrice,
-          discount_amount: discount,
+          discount_amount: totalDiscount,
           final_amount: finalTotal,
           status: 'paid',
           note: `Combo - ${sessions.length} dịch vụ`
         };
 
         const sessionsData = sessions.map((sess: any) => {
-          const price = Number(sess.service_price || sess.services?.price || 0);
-          const ratio = totalOriginalPrice > 0 ? price / totalOriginalPrice : 0;
-          const sessionDiscount = discount * ratio;
-          const sessionRevenue = price - sessionDiscount;
-          const comm = sess.services?.commission_type === 'percent' ? (price * sess.services.commission_value) / 100 : sess.services.commission_value;
+          const basePrice = Number(sess.service_price || sess.services?.price || 0);
+          
+          const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+          const itemDisc = d.type === 'percent' ? (basePrice * d.value) / 100 : d.value;
+          
+          const priceAfterItemDisc = basePrice - itemDisc;
+          const ratio = remainingTotalBeforeGlobalDisc > 0 ? priceAfterItemDisc / remainingTotalBeforeGlobalDisc : 0;
+          const sessionGlobalDisc = globalDiscount * ratio;
+          
+          const sessionDiscount = itemDisc + sessionGlobalDisc;
+          const sessionRevenue = basePrice - sessionDiscount;
+          
+          const comm = sess.services?.commission_type === 'percent' ? (basePrice * sess.services.commission_value) / 100 : sess.services.commission_value;
           
           return {
             session_id: sess.id,
             service_id: sess.service_id,
             staff_id: sess.staff_id,
-            original_price: price,
+            original_price: basePrice,
             revenue_amount: sessionRevenue,
             commission_amount: comm,
             note: `Combo: ${sess.services?.name}`
@@ -426,12 +449,42 @@ const Beds = () => {
                 {checkoutSession.comboGroup ? (
                   <>
                     <div style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.25rem' }}>Danh sách dịch vụ:</div>
-                    {checkoutSession.sessions.map((sess: any) => (
-                      <div key={sess.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', paddingLeft: '0.5rem', borderLeft: '2px solid var(--warning)', marginBottom: '0.25rem' }}>
-                        <span>{sess.services?.name} <span style={{fontSize:'0.75rem', color:'var(--text-light)'}}>({sess.staffs?.full_name})</span></span>
-                        <strong>{Number(sess.service_price || sess.services?.price || 0).toLocaleString()}đ</strong>
+                    {checkoutSession.sessions.map((sess: any) => {
+                      const basePrice = Number(sess.service_price || sess.services?.price || 0);
+                      const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+                      const dAmount = d.type === 'percent' ? (basePrice * d.value) / 100 : d.value;
+                      
+                      return (
+                      <div key={sess.id} style={{ paddingLeft: '0.5rem', borderLeft: '2px solid var(--warning)', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                          <span>{sess.services?.name} <span style={{fontSize:'0.75rem', color:'var(--text-light)'}}>({sess.staffs?.full_name})</span></span>
+                          <strong>{basePrice.toLocaleString()}đ</strong>
+                        </div>
+                        {hasPermission('sale.discount') && (
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <select 
+                              className="form-control" 
+                              style={{ width: '80px', padding: '0.2rem', fontSize: '0.75rem' }}
+                              value={d.type}
+                              onChange={(e) => setComboItemDiscounts(prev => ({...prev, [sess.id]: { ...d, type: e.target.value as 'amount'|'percent' }}))}
+                            >
+                              <option value="amount">VNĐ</option>
+                              <option value="percent">%</option>
+                            </select>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              style={{ width: '100px', padding: '0.2rem', fontSize: '0.75rem' }}
+                              value={d.value || ''}
+                              onChange={(e) => setComboItemDiscounts(prev => ({...prev, [sess.id]: { ...d, value: Number(e.target.value) }}))}
+                              min="0"
+                              placeholder="Giảm giá"
+                            />
+                            {dAmount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 'bold' }}>-{dAmount.toLocaleString()}đ</span>}
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    )})}
                   </>
                 ) : (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
@@ -472,8 +525,20 @@ const Beds = () => {
                 <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--success)' }}>
                   {checkoutSession.sessions[0]?.customer_package_id ? '1 Buổi' : (() => {
                     const price = checkoutSession.comboGroup ? checkoutSession.sessions.reduce((sum: number, sess: any) => sum + Number(sess.service_price || sess.services?.price || 0), 0) : Number(checkoutSession.sessions[0]?.service_price || checkoutSession.sessions[0]?.services?.price);
-                    const disc = discountType === 'percent' ? (price * discountValue) / 100 : discountValue;
-                    return (price - disc).toLocaleString() + 'đ';
+                    
+                    let itemDiscountTotal = 0;
+                    if (checkoutSession.comboGroup) {
+                      itemDiscountTotal = checkoutSession.sessions.reduce((sum: number, sess: any) => {
+                         const p = Number(sess.service_price || sess.services?.price || 0);
+                         const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+                         return sum + (d.type === 'percent' ? (p * d.value) / 100 : d.value);
+                      }, 0);
+                    }
+                    
+                    const remainingTotal = price - itemDiscountTotal;
+                    const globalDisc = discountType === 'percent' ? (remainingTotal * discountValue) / 100 : discountValue;
+                    
+                    return (remainingTotal - globalDisc).toLocaleString() + 'đ';
                   })()}
                 </span>
               </div>
