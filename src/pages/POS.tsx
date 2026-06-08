@@ -32,6 +32,7 @@ const POS = () => {
 
   // --- RETAIL STATE ---
   const [cart, setCart] = useState<any[]>([]);
+  const [retailSearchTerm, setRetailSearchTerm] = useState('');
   const [retailStaffId, setRetailStaffId] = useState('');
   const [customerName, setRetailCustomerName] = useState('');
   const [retailCustomerId, setRetailCustomerId] = useState('');
@@ -439,6 +440,19 @@ const POS = () => {
         <div className="no-print">
         {activeTab === 'retail' && (
           <div className="animate-fade">
+            <div className="premium-card mobile-stack" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+              <div style={{ position: 'relative', flex: 1, width: '100%' }}>
+                <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Tìm tên dịch vụ..." 
+                  style={{ paddingLeft: '2.75rem', width: '100%' }}
+                  value={retailSearchTerm}
+                  onChange={(e) => setRetailSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
             {services.length === 0 && !loading && (
               <div className="premium-card" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
                 <p style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Không tìm thấy dịch vụ nào</p>
@@ -446,7 +460,7 @@ const POS = () => {
               </div>
             )}
             <div className="grid grid-cols-2">
-              {services.map(s => (
+              {services.filter(s => s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => (
                 <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
@@ -586,42 +600,48 @@ const POS = () => {
                   <p style={{ margin: 0, fontSize: '0.875rem' }}>Chọn dịch vụ để bắt đầu tạo đơn hàng</p>
                 </div>
               ) : (
-                cart.map((item, idx) => (
-                  <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderBottom: '1px dashed var(--border)' }}>
-                    <div style={{ fontSize: '0.9rem' }}>{item.name}</div>
-                    <div style={{ fontWeight: '700' }}>{Number(item.price).toLocaleString()}đ</div>
-                    <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={16} /></button>
+                <>
+                  {cart.map((item, idx) => (
+                    <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderBottom: '1px dashed var(--border)' }}>
+                      <div style={{ fontSize: '0.9rem' }}>{item.name}</div>
+                      <div style={{ fontWeight: '700' }}>{Number(item.price).toLocaleString()}đ</div>
+                      <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={16} /></button>
+                    </div>
+                  ))}
+                  
+                  <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-main)', fontWeight: '700' }}>Thông tin khách & KTV</h4>
+                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailCustomerId} onChange={e => { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }}>
+                      <option value="">Khách vãng lai (Nhập tên)</option>
+                      {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
+                    </select>
+                    {!retailCustomerId && (
+                      <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
+                    )}
+                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
+                      <option value="">-- Kỹ thuật viên (Bắt buộc) --</option>
+                      {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                    </select>
+                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailBedId} onChange={e => setRetailBedId(e.target.value)}>
+                      <option value="">-- Chọn Chỗ (Trống) --</option>
+                      {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
                   </div>
-                ))
+                </>
               )}
             </div>
 
             {/* FIXED FOOTER FORM */}
             {cart.length > 0 && (
-              <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'white', paddingBottom: '16px' }}>
-                <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailCustomerId} onChange={e => { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }}>
-                  <option value="">Khách vãng lai (Nhập tên)</option>
-                  {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
-                </select>
-                {!retailCustomerId && (
-                  <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={customerName} onChange={e => setRetailCustomerName(e.target.value)} />
-                )}
-                <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
-                  <option value="">-- Kỹ thuật viên (Bắt buộc) --</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-                </select>
-                <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailBedId} onChange={e => setRetailBedId(e.target.value)}>
-                  <option value="">-- Chọn Chỗ (Trống) --</option>
-                  {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1.25rem', marginTop: '0.5rem', fontSize: '1.1rem' }}>
+              <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'white' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '1.25rem', fontSize: '1.1rem' }}>
                   <span>Tạm tính:</span>
                   <span style={{ color: 'var(--primary)' }}>
                     {cart.reduce((a, b) => a + Number(b.price), 0).toLocaleString()}đ
                   </span>
                 </div>
-                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px', position: 'sticky', bottom: 0 }}>
-                  {loading ? <Loader2 className="animate-spin" /> : 'BẮT ĐẦU DỊCH VỤ & XẾP CHỖ'}
+                <button onClick={handleRetailCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px' }}>
+                  {loading ? <Loader2 className="animate-spin" /> : 'XẾP CHỖ NGAY'}
                 </button>
               </div>
             )}
