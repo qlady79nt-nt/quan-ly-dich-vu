@@ -121,7 +121,23 @@ const Beds = () => {
     setCheckoutSession(bedData);
     setDiscountValue(0);
     setDiscountType('amount');
-    setComboItemDiscounts({});
+    
+    // Khởi tạo từ DB
+    const initialDiscounts: Record<string, any> = {};
+    if (bedData.comboGroup) {
+       bedData.sessions.forEach((s: any) => {
+         if (s.discount_value) {
+            initialDiscounts[s.id] = { type: s.discount_type || 'amount', value: Number(s.discount_value) };
+         }
+       });
+    } else if (bedData.sessions && bedData.sessions.length > 0) {
+       const s = bedData.sessions[0];
+       if (s.discount_value) {
+          setDiscountType(s.discount_type as any || 'amount');
+          setDiscountValue(Number(s.discount_value));
+       }
+    }
+    setComboItemDiscounts(initialDiscounts);
   };
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
@@ -191,7 +207,9 @@ const Beds = () => {
             original_price: basePrice,
             revenue_amount: sessionRevenue,
             commission_amount: comm,
-            note: `Combo: ${sess.services?.name}`
+            note: `Combo: ${sess.services?.name}`,
+            discount_type: d.type,
+            discount_value: d.value
           };
         });
 
@@ -284,7 +302,9 @@ const Beds = () => {
             status: 'paid',
             staff_id: sess.staff_id,
             note: `Dịch vụ: ${svc.name}`,
-            service_id: svc.id // pass for invoice_items creation inside RPC
+            service_id: svc.id, // pass for invoice_items creation inside RPC
+            item_discount_type: discountType,
+            item_discount_value: discountValue
           };
 
           const { data: rpcResult, error: rpcErr } = await supabase.rpc('sp_checkout', {

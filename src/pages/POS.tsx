@@ -153,6 +153,8 @@ const POS = () => {
       staff_id: retailStaffId,
       bed_id: retailBedId,
       service_price: item.price,
+      discount_type: item.discountType || 'amount',
+      discount_value: item.discountValue || 0,
       status: 'in_progress',
       is_retail: true,
       retail_customer_name: finalCustName,
@@ -236,6 +238,8 @@ const POS = () => {
         staff_id: item.staff_id,
         bed_id: comboBedId,
         service_price: item.price,
+        discount_type: item.discountType || 'amount',
+        discount_value: item.discountValue || 0,
         status: 'in_progress',
         is_retail: true,
         retail_customer_name: finalCustName,
@@ -732,15 +736,45 @@ const POS = () => {
                 </div>
               ) : (
                 <>
-                  {activeTab === 'retail' && cart.map((item, idx) => (
-                    <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderBottom: '1px dashed var(--border)' }}>
-                      <div style={{ fontSize: '0.9rem' }}>{item.name}</div>
-                      <div style={{ fontWeight: '700' }}>{Number(item.price).toLocaleString()}đ</div>
-                      <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={16} /></button>
+                  {activeTab === 'retail' && cart.map((item, idx) => {
+                    const dAmount = item.discountType === 'percent' ? (item.price * (item.discountValue || 0)) / 100 : (item.discountValue || 0);
+                    return (
+                    <div key={item.cartId} style={{ padding: '1rem 0', borderBottom: '1px dashed var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>{item.name}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(item.price).toLocaleString()}đ</div>
+                          <button onClick={() => setCart(cart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Giảm:</span>
+                        <select 
+                          className="form-control" 
+                          style={{ width: '80px', padding: '0.2rem', fontSize: '0.75rem' }}
+                          value={item.discountType || 'amount'}
+                          onChange={(e) => setCart(cart.map((c, i) => i === idx ? { ...c, discountType: e.target.value } : c))}
+                        >
+                          <option value="amount">VNĐ</option>
+                          <option value="percent">%</option>
+                        </select>
+                        <input 
+                          type="number" 
+                          className="form-control" 
+                          style={{ width: '100px', padding: '0.2rem', fontSize: '0.75rem' }}
+                          value={item.discountValue || ''}
+                          onChange={(e) => setCart(cart.map((c, i) => i === idx ? { ...c, discountValue: Number(e.target.value) } : c))}
+                          min="0"
+                          placeholder="0"
+                        />
+                        {dAmount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 'bold' }}>-{dAmount.toLocaleString()}đ</span>}
+                      </div>
                     </div>
-                  ))}
+                  )})}
 
-                  {activeTab === 'combo' && comboCart.map((item, idx) => (
+                  {activeTab === 'combo' && comboCart.map((item, idx) => {
+                    const dAmount = item.discountType === 'percent' ? (item.price * (item.discountValue || 0)) / 100 : (item.discountValue || 0);
+                    return (
                     <div key={item.cartId} style={{ padding: '1rem 0', borderBottom: '1px dashed var(--border)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>{item.name}</div>
@@ -749,6 +783,28 @@ const POS = () => {
                           <button onClick={() => setComboCart(comboCart.filter((_, i) => i !== idx))} style={{ color: 'var(--danger)', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={16} /></button>
                         </div>
                       </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Giảm:</span>
+                        <select 
+                          className="form-control" 
+                          style={{ width: '80px', padding: '0.2rem', fontSize: '0.75rem' }}
+                          value={item.discountType || 'amount'}
+                          onChange={(e) => setComboCart(comboCart.map((c, i) => i === idx ? { ...c, discountType: e.target.value } : c))}
+                        >
+                          <option value="amount">VNĐ</option>
+                          <option value="percent">%</option>
+                        </select>
+                        <input 
+                          type="number" 
+                          className="form-control" 
+                          style={{ width: '100px', padding: '0.2rem', fontSize: '0.75rem' }}
+                          value={item.discountValue || ''}
+                          onChange={(e) => setComboCart(comboCart.map((c, i) => i === idx ? { ...c, discountValue: Number(e.target.value) } : c))}
+                          min="0"
+                          placeholder="0"
+                        />
+                        {dAmount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 'bold' }}>-{dAmount.toLocaleString()}đ</span>}
+                      </div>
                       <div>
                         <select className="form-select" style={{ height: '36px', fontSize: '0.85rem' }} value={item.staff_id} onChange={e => updateComboCartStaff(item.cartId, e.target.value)}>
                           <option value="">-- KTV cho dịch vụ này --</option>
@@ -756,7 +812,7 @@ const POS = () => {
                         </select>
                       </div>
                     </div>
-                  ))}
+                  )})}
                   
                   <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
                     <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-main)', fontWeight: '700' }}>Thông tin khách & Chỗ</h4>

@@ -58,14 +58,18 @@ BEGIN
             service_id,
             unit_price,
             final_price,
-            price
+            price,
+            discount_type,
+            discount_value
         ) VALUES (
             v_invoice_id,
             'service',
             v_service_id,
             v_price,
+            p_revenue_amount,
             v_price,
-            v_price
+            p_invoice_data->>'item_discount_type',
+            (p_invoice_data->>'item_discount_value')::numeric
         ) RETURNING id INTO v_invoice_item_id;
 
         -- Insert revenue log (ledger)
@@ -108,7 +112,9 @@ BEGIN
     SET status = 'completed',
         end_time = now(),
         revenue_amount = p_revenue_amount,
-        commission_amount = p_commission_amount
+        commission_amount = p_commission_amount,
+        discount_type = p_invoice_data->>'item_discount_type',
+        discount_value = (p_invoice_data->>'item_discount_value')::numeric
     WHERE id = p_session_id;
 
     RETURN v_invoice_id;

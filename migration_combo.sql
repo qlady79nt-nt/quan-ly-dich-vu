@@ -13,8 +13,12 @@ CREATE TABLE IF NOT EXISTS combo_groups (
 -- Add columns to link sessions and invoices to combo groups
 ALTER TABLE service_sessions ADD COLUMN IF NOT EXISTS combo_group_id UUID REFERENCES combo_groups(id) ON DELETE SET NULL;
 ALTER TABLE service_sessions ADD COLUMN IF NOT EXISTS service_price NUMERIC;
+ALTER TABLE service_sessions ADD COLUMN IF NOT EXISTS discount_type TEXT DEFAULT 'amount';
+ALTER TABLE service_sessions ADD COLUMN IF NOT EXISTS discount_value NUMERIC DEFAULT 0;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS combo_group_id UUID REFERENCES combo_groups(id) ON DELETE SET NULL;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS note TEXT;
+ALTER TABLE invoice_items ADD COLUMN IF NOT EXISTS discount_type TEXT;
+ALTER TABLE invoice_items ADD COLUMN IF NOT EXISTS discount_value NUMERIC DEFAULT 0;
 
 -- Enable RLS on combo_groups
 ALTER TABLE combo_groups ENABLE ROW LEVEL SECURITY;
@@ -53,7 +57,7 @@ DROP FUNCTION IF EXISTS sp_checkout_combo(uuid, jsonb, jsonb);
 CREATE OR REPLACE FUNCTION sp_checkout_combo(
     p_combo_group_id uuid,
     p_invoice_data jsonb,
-    p_sessions_data jsonb -- Array of { session_id, service_id, staff_id, original_price, revenue_amount, commission_amount, note }
+    p_sessions_data jsonb -- Array of { session_id, service_id, staff_id, original_price, revenue_amount, commission_amount, note, discount_type, discount_value }
 ) RETURNS uuid AS $$
 DECLARE
     v_invoice_id uuid;
@@ -103,14 +107,18 @@ BEGIN
             service_id,
             unit_price,
             final_price,
-            price
+            price,
+            discount_type,
+            discount_value
         ) VALUES (
             v_invoice_id,
             'service',
             (v_session->>'service_id')::uuid,
             (v_session->>'original_price')::numeric,
+            (v_session->>'revenue_amount')::numeric,
             (v_session->>'original_price')::numeric,
-            (v_session->>'original_price')::numeric
+            v_session->>'discount_type',
+            (v_session->>'discount_value')::numeric
         ) RETURNING id INTO v_invoice_item_id;
 
         -- Insert revenue log
@@ -147,13 +155,15 @@ BEGIN
             v_invoice_item_id
         );
 
-        -- Update service session status
+        -- Update session status
         UPDATE service_sessions
         SET status = 'completed',
             end_time = now(),
             service_price = (v_session->>'original_price')::numeric,
             revenue_amount = (v_session->>'revenue_amount')::numeric,
-            commission_amount = (v_session->>'commission_amount')::numeric
+            commission_amount = (v_session->>'commission_amount')::numeric,
+            discount_type = v_session->>'discount_type',
+            discount_value = (v_session->>'discount_value')::numeric
         WHERE id = (v_session->>'session_id')::uuid;
     END LOOP;
 
