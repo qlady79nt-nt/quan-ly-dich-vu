@@ -212,9 +212,9 @@ const Beds = () => {
           customer_name: comboGroup.customer_name || 'Khách Combo',
           customer_phone: comboGroup.customer_phone,
           staff_name: 'Combo (Nhiều KTV)',
-          items: sessions.map((sess: any) => ({ name: sess.services?.name, price: Number(sess.services?.price || 0) })),
+          items: sessions.map((sess: any) => ({ name: sess.services?.name, price: Number(sess.service_price || sess.services?.price || 0) })),
           total_amount: totalOriginalPrice,
-          discount_amount: discount,
+          discount_amount: totalDiscount,
           final_amount: finalTotal,
           is_use_package: false
         });
