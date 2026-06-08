@@ -177,7 +177,7 @@ const Services = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /> Đang tải...</div>
       ) : (
-        <div className="kpi-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {filteredServices.map((s) => (
             <div key={s.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', opacity: s.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: s.status === 'inactive' ? 'rgba(0,0,0,0.05)' : 'rgba(109, 40, 217, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.status === 'inactive' ? 'var(--text-light)' : 'var(--primary)', flexShrink: 0 }}>
