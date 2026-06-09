@@ -124,7 +124,7 @@ const Invoices = () => {
               if (invStaffIds.length > 0) {
                 const mappedStaffs = invStaffIds.map(id => staffs.find(s => s.id === id)).filter(Boolean);
                 if (mappedStaffs.length > 0) {
-                  realStaffName = mappedStaffs.map(s => s.full_name).join(', ');
+                  realStaffName = mappedStaffs.map((s: any) => s.full_name).join(', ');
                 }
               }
             }
@@ -307,7 +307,7 @@ const Invoices = () => {
                 const { data: staffs } = await supabase.from('staffs').select('id, full_name').in('id', [...new Set(staffIds)]);
                 if (staffs && staffs.length > 0) {
                   const mappedStaffs = staffIds.map(id => staffs.find(s => s.id === id)).filter(Boolean);
-                  realStaffName = mappedStaffs.map(s => s.full_name).join(', ');
+                  realStaffName = mappedStaffs.map((s: any) => s.full_name).join(', ');
                 }
               }
             }
