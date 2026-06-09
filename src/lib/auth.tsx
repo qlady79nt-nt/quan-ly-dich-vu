@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { Navigate, useLocation } from 'react-router-dom';
@@ -51,6 +51,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const profileRef = useRef<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -98,14 +99,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const shopData = Array.isArray(prof.shops) ? prof.shops[0] : prof.shops;
       const planData = shopData?.plans ? (Array.isArray(shopData.plans) ? shopData.plans[0] : shopData.plans) : null;
       
-      setProfile({
+      const newProfile = {
         ...prof,
         shop: shopData ? {
           ...shopData,
           plans: planData
         } : undefined,
         permissions: perms?.map(p => p.permission) || []
-      });
+      };
+      
+      setProfile(newProfile);
+      profileRef.current = newProfile as Profile;
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
@@ -114,6 +118,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const checkAutoLogout = () => {
+      if (profileRef.current?.role === 'super_admin' || profileRef.current?.role === 'shop_admin') {
+        return false;
+      }
+
       const sessionDataStr = localStorage.getItem('daily_session');
       if (!sessionDataStr) return false;
       try {

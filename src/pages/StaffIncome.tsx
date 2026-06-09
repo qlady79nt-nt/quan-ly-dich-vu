@@ -13,6 +13,7 @@ const StaffIncome = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'input' | 'history'>('input');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -179,12 +180,32 @@ const StaffIncome = () => {
     return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + d.toLocaleDateString('vi-VN');
   };
 
-  return (
-    <div className="page-container animate-fade" style={{ padding: '1rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 className="page-title" style={{ marginBottom: '1.5rem', fontSize: '1.5rem', textAlign: 'center' }}>Thu Nhập KTV</h1>
+  const totalTip = incomes.reduce((sum, item) => sum + (Number(item.tip_amount) || 0), 0);
+  const totalTour = incomes.reduce((sum, item) => sum + (Number(item.tour_amount) || 0), 0);
+  const totalMeal = incomes.reduce((sum, item) => sum + (Number(item.meal_amount) || 0), 0);
+  const totalOvertime = incomes.reduce((sum, item) => sum + (Number(item.overtime_minutes) || 0), 0);
 
-      {/* Form Nhập Liệu */}
-      <div className="premium-card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+  return (
+    <div className="page-container animate-fade" style={{ padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
+      <h1 className="page-title" style={{ marginBottom: '1rem', fontSize: '1.5rem', textAlign: 'center' }}>Thu Nhập KTV</h1>
+
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <button 
+          onClick={() => setActiveTab('input')}
+          style={{ padding: '0.75rem 1rem', background: 'none', border: 'none', borderBottom: activeTab === 'input' ? '3px solid var(--primary)' : '3px solid transparent', color: activeTab === 'input' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+        >
+          Ghi nhận
+        </button>
+        <button 
+          onClick={() => { setActiveTab('history'); fetchIncomes(); }}
+          style={{ padding: '0.75rem 1rem', background: 'none', border: 'none', borderBottom: activeTab === 'history' ? '3px solid var(--primary)' : '3px solid transparent', color: activeTab === 'history' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+        >
+          Lịch sử
+        </button>
+      </div>
+
+      {activeTab === 'input' && (
+      <div className="premium-card animate-fade" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
           {editingId ? 'Cập Nhật Thu Nhập' : 'Ghi Nhận Mới'}
         </h3>
@@ -208,7 +229,7 @@ const StaffIncome = () => {
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div>
               <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <DollarSign size={16} /> Tiền Tip
@@ -236,7 +257,7 @@ const StaffIncome = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div>
               <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Clock size={16} /> Phút làm thêm
@@ -299,6 +320,32 @@ const StaffIncome = () => {
           </div>
         </form>
       </div>
+      )}
+
+      {activeTab === 'history' && (
+      <div className="animate-fade">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="premium-card" style={{ padding: '1rem', textAlign: 'center', background: 'rgba(59, 130, 246, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+            <DollarSign className="text-primary" size={20} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tổng Tip</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary)' }}>{formatMoney(totalTip)}</div>
+          </div>
+          <div className="premium-card" style={{ padding: '1rem', textAlign: 'center', background: 'rgba(16, 185, 129, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+            <DollarSign className="text-success" size={20} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tour Ngoài</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--success)' }}>{formatMoney(totalTour)}</div>
+          </div>
+          <div className="premium-card" style={{ padding: '1rem', textAlign: 'center', background: 'rgba(245, 158, 11, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+            <DollarSign className="text-warning" size={20} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tiền Ăn</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--warning)' }}>{formatMoney(totalMeal)}</div>
+          </div>
+          <div className="premium-card" style={{ padding: '1rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+            <Clock className="text-danger" size={20} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Làm Thêm</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--danger)' }}>{totalOvertime > 0 ? `${totalOvertime}p` : '0p'}</div>
+          </div>
+        </div>
 
       {/* Bộ Lọc */}
       <div style={{ marginBottom: '1.5rem' }}>
@@ -351,50 +398,106 @@ const StaffIncome = () => {
             Chưa có dữ liệu trong khoảng thời gian này
           </div>
         ) : (
-          <div className="premium-card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div className="table-responsive">
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '1rem' }}>Thời gian</th>
-                    <th style={{ padding: '1rem' }}>Nhân viên</th>
-                    <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền Tip</th>
-                    <th style={{ padding: '1rem', textAlign: 'right' }}>Tour ngoài</th>
-                    <th style={{ padding: '1rem', textAlign: 'center' }}>Làm thêm</th>
-                    <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền ăn</th>
-                    <th style={{ padding: '1rem' }}>Ghi chú</th>
-                    <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>Tổng nhận</th>
-                    {isShopAdmin && <th style={{ padding: '1rem', textAlign: 'right' }}>Thao tác</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {incomes.slice(0, displayLimit).map(item => {
-                    const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
-                    return (
-                      <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>
-                        <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</td>
-                        <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--primary)' }}>{item.staff_name}</td>
-                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</td>
-                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</td>
-                        <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</td>
-                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</td>
-                        <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.note}>{item.note || '-'}</td>
-                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</td>
-                        {isShopAdmin && (
-                          <td style={{ padding: '1rem', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                              <button onClick={() => handleEdit(item)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
-                              <button onClick={() => handleDelete(item.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xóa</button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <>
+            {/* Mobile View: Card List */}
+            <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {incomes.slice(0, displayLimit).map(item => {
+                const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
+                return (
+                  <div key={item.id} className="premium-card" style={{ padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary)' }}>{item.staff_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', textTransform: 'uppercase', fontWeight: 'bold' }}>Tổng nhận</div>
+                        <div style={{ fontWeight: '800', fontSize: '1.25rem', color: 'var(--success)' }}>{formatMoney(totalAmount)}</div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Tiền Tip:</span>
+                        <strong style={{ color: 'var(--text-main)' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Tour:</span>
+                        <strong style={{ color: 'var(--text-main)' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Tiền Ăn:</span>
+                        <strong style={{ color: 'var(--text-main)' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Tăng Ca:</span>
+                        <strong style={{ color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</strong>
+                      </div>
+                    </div>
+                    
+                    {item.note && (
+                      <div style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: 'var(--text-secondary)', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem', fontStyle: 'italic' }}>
+                        Ghi chú: {item.note}
+                      </div>
+                    )}
+                    
+                    {isShopAdmin && (
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem', borderTop: '1px dashed var(--border)', paddingTop: '1rem' }}>
+                        <button onClick={() => { handleEdit(item); setActiveTab('input'); }} className="btn" style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                        <button onClick={() => handleDelete(item.id)} className="btn" style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xóa</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            
+
+            {/* Desktop View: Table */}
+            <div className="premium-card desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
+              <div className="table-responsive">
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
+                      <th style={{ padding: '1rem' }}>Thời gian</th>
+                      <th style={{ padding: '1rem' }}>Nhân viên</th>
+                      <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền Tip</th>
+                      <th style={{ padding: '1rem', textAlign: 'right' }}>Tour ngoài</th>
+                      <th style={{ padding: '1rem', textAlign: 'center' }}>Làm thêm</th>
+                      <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền ăn</th>
+                      <th style={{ padding: '1rem' }}>Ghi chú</th>
+                      <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>Tổng nhận</th>
+                      {isShopAdmin && <th style={{ padding: '1rem', textAlign: 'right' }}>Thao tác</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {incomes.slice(0, displayLimit).map(item => {
+                      const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
+                      return (
+                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>
+                          <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</td>
+                          <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--primary)' }}>{item.staff_name}</td>
+                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</td>
+                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</td>
+                          <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</td>
+                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</td>
+                          <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.note}>{item.note || '-'}</td>
+                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</td>
+                          {isShopAdmin && (
+                            <td style={{ padding: '1rem', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                <button onClick={() => { handleEdit(item); setActiveTab('input'); }} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                                <button onClick={() => handleDelete(item.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xóa</button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             {incomes.length > displayLimit && (
               <div style={{ padding: '1rem', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
                 <button 
@@ -406,9 +509,11 @@ const StaffIncome = () => {
                 </button>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
+      </div>
+      )}
 
     </div>
   );
