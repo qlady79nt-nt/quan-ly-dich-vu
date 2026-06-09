@@ -27,6 +27,7 @@ const StaffIncome = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [filterStaffName, setFilterStaffName] = useState('');
+  const [displayLimit, setDisplayLimit] = useState(10);
 
   useEffect(() => {
     if (shopId) {
@@ -92,6 +93,7 @@ const StaffIncome = () => {
       console.error('Lỗi lấy dữ liệu thu nhập:', error);
     } else {
       setIncomes(data || []);
+      setDisplayLimit(10);
     }
     setLoading(false);
   };
@@ -298,56 +300,52 @@ const StaffIncome = () => {
             Chưa có dữ liệu trong khoảng thời gian này
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {incomes.map(item => {
-              const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
-              return (
-                <div key={item.id} className="premium-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--text-main)' }}>{item.staff_name}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>{formatDate(item.created_at)}</div>
-                  </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.9rem' }}>
-                    {Number(item.tip_amount) > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Tiền Tip:</span>
-                        <span style={{ fontWeight: '600' }}>{formatMoney(item.tip_amount)}</span>
-                      </div>
-                    )}
-                    {Number(item.tour_amount) > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Tour ngoài:</span>
-                        <span style={{ fontWeight: '600' }}>{formatMoney(item.tour_amount)}</span>
-                      </div>
-                    )}
-                    {Number(item.meal_amount) > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Tiền ăn:</span>
-                        <span style={{ fontWeight: '600' }}>{formatMoney(item.meal_amount)}</span>
-                      </div>
-                    )}
-                    {Number(item.overtime_minutes) > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Làm thêm:</span>
-                        <span style={{ fontWeight: '600', color: 'var(--warning)' }}>{item.overtime_minutes} phút</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {item.note && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.5rem', fontStyle: 'italic' }}>
-                      "{item.note}"
-                    </div>
-                  )}
-
-                  <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Tổng cộng:</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</span>
-                  </div>
-                </div>
-              )
-            })}
+          <div className="premium-card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="table-responsive">
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '1rem' }}>Thời gian</th>
+                    <th style={{ padding: '1rem' }}>Nhân viên</th>
+                    <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền Tip</th>
+                    <th style={{ padding: '1rem', textAlign: 'right' }}>Tour ngoài</th>
+                    <th style={{ padding: '1rem', textAlign: 'center' }}>Làm thêm</th>
+                    <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền ăn</th>
+                    <th style={{ padding: '1rem' }}>Ghi chú</th>
+                    <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>Tổng nhận</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incomes.slice(0, displayLimit).map(item => {
+                    const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
+                    return (
+                      <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>
+                        <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</td>
+                        <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--primary)' }}>{item.staff_name}</td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</td>
+                        <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</td>
+                        <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.note}>{item.note || '-'}</td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {incomes.length > displayLimit && (
+              <div style={{ padding: '1rem', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
+                <button 
+                  onClick={() => setDisplayLimit(prev => prev + 10)} 
+                  className="btn" 
+                  style={{ background: 'var(--bg-main)', color: 'var(--primary)', fontWeight: '600', padding: '0.5rem 1.5rem', borderRadius: '2rem' }}
+                >
+                  Xem thêm {Math.min(10, incomes.length - displayLimit)} hàng
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
