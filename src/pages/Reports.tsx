@@ -115,7 +115,7 @@ const Reports = () => {
       const commSessionIds = [...new Set(commLog.map(c => c.service_session_id).filter(Boolean))];
 
       let invIdsToFetch = [...new Set([
-        ...revLog.filter((r: any) => r.type === 'retail' || (r.type === 'package_sale' && !r.package_sale_id)).map((r: any) => r.invoice_id || r.reference_id).filter(Boolean)
+        ...revLog.filter((r: any) => r.type === 'retail' || r.type === 'combo' || (r.type === 'package_sale' && !r.package_sale_id)).map((r: any) => r.invoice_id || r.reference_id).filter(Boolean)
       ])];
       const psIds = [...new Set([
         ...revLog.filter((r: any) => r.type === 'package_sale' && r.package_sale_id).map((r: any) => r.package_sale_id).filter(Boolean),
@@ -123,7 +123,7 @@ const Reports = () => {
       ])];
       const ssIds = [...new Set([
         ...revLog.filter((r: any) => r.type === 'package_session').map((r: any) => r.service_session_id || r.reference_id).filter(Boolean),
-        ...revLog.filter((r: any) => r.type === 'retail').map((r: any) => r.service_session_id).filter(Boolean),
+        ...revLog.filter((r: any) => r.type === 'retail' || r.type === 'combo').map((r: any) => r.service_session_id).filter(Boolean),
         ...commSessionIds
       ])];
 
@@ -159,7 +159,7 @@ const Reports = () => {
       }
 
       // Calculations (dùng revLog gốc)
-      const retailRev = revLog.filter((r: any) => r.type === 'retail').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
+      const retailRev = revLog.filter((r: any) => r.type === 'retail' || r.type === 'combo').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
       const packageSessionRev = revLog.filter((r: any) => r.type === 'package_session').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
       const packageSaleCash = revLog.filter((r: any) => r.type === 'package_sale').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
 
@@ -204,7 +204,7 @@ const Reports = () => {
         let sessCode: string | null = null;
         let cardCode: string | null = null;
         
-        if (r.type === 'retail') {
+        if (r.type === 'retail' || r.type === 'combo') {
            invId = r.invoice_id || r.reference_id;
            const inv = relatedInvoices.find(i => i.id === invId);
            if (inv) {
@@ -329,7 +329,7 @@ const Reports = () => {
                ensureStaff(ps.seller_id);
                staffMap[ps.seller_id].revenueGenerated += Number(r.amount);
            }
-        } else if (r.type === 'retail') {
+        } else if (r.type === 'retail' || r.type === 'combo') {
            const ss = relatedSessions.find((s: any) => s.id === r.service_session_id);
            if (ss && ss.staff_id) {
                ensureStaff(ss.staff_id);
@@ -382,7 +382,7 @@ const Reports = () => {
         return itemList;
       };
 
-      if (log.type === 'retail') {
+      if (log.type === 'retail' || log.type === 'combo') {
         const idToLook = log.invoice_id || log.reference_id;
         const { data: inv } = await supabase.from('invoices').select('*').eq('id', idToLook).single();
         const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', idToLook);
@@ -422,7 +422,7 @@ const Reports = () => {
           }
         }
         setDetailModal({ type: 'deleted_record', data: log, title: `Chi tiết Bán liệu trình (Đã xoá)` });
-      } else if (log.type === 'package_session' || log.type === 'service_execution' || (!log.type && log.service_session_id) || log.type === 'retail') {
+      } else if (log.type === 'package_session' || log.type === 'service_execution' || (!log.type && log.service_session_id) || log.type === 'retail' || log.type === 'combo') {
         const idToLook = log.service_session_id || log.reference_id;
         
         if (!idToLook) {
@@ -605,13 +605,13 @@ const Reports = () => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length === 0 ? (
+                  {revenueData.filter(r => revenueTab === 'all' || (revenueTab === 'retail' ? ['retail', 'combo'].includes(r.type) : r.type === revenueTab)).length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)', background: 'var(--bg-main)', borderRadius: '0.75rem' }}>
                       Không có phát sinh doanh thu loại này.
                     </div>
                   ) : (
                     <>
-                      {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).slice(0, revenueDisplayCount).map((r, idx) => (
+                      {revenueData.filter(r => revenueTab === 'all' || (revenueTab === 'retail' ? ['retail', 'combo'].includes(r.type) : r.type === revenueTab)).slice(0, revenueDisplayCount).map((r, idx) => (
                         <div 
                           key={idx} 
                           onClick={() => openRevenueDetail(r)}
@@ -620,12 +620,12 @@ const Reports = () => {
                           onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: r.type === 'retail' ? 'rgba(59, 130, 246, 0.1)' : r.type === 'package_sale' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'retail' ? '#3b82f6' : r.type === 'package_sale' ? 'var(--secondary)' : '#10b981' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: r.type === 'retail' || r.type === 'combo' ? 'rgba(59, 130, 246, 0.1)' : r.type === 'package_sale' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'retail' || r.type === 'combo' ? '#3b82f6' : r.type === 'package_sale' ? 'var(--secondary)' : '#10b981' }}>
                               <FileText size={20} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-                                {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
+                                {r.type === 'retail' || r.type === 'combo' ? 'Thu dịch vụ lẻ / Combo' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
                                 
                                 {/* Mã hóa đơn cho cả 3 loại */}
                                 {r.mapped_invoice_code ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_code}</span> : ''}
@@ -654,7 +654,7 @@ const Reports = () => {
                         </div>
                       ))}
                       
-                      {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length > revenueDisplayCount && (
+                      {revenueData.filter(r => revenueTab === 'all' || (revenueTab === 'retail' ? ['retail', 'combo'].includes(r.type) : r.type === revenueTab)).length > revenueDisplayCount && (
                         <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                           <button 
                             onClick={() => setRevenueDisplayCount(prev => prev + 10)}
