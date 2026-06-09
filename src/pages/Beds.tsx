@@ -21,6 +21,11 @@ const Beds = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<any>(null);
 
+  // Multi-select State
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedBeds, setSelectedBeds] = useState<string[]>([]);
+  const [multiCheckoutSession, setMultiCheckoutSession] = useState<any[] | null>(null);
+
   useEffect(() => {
     if (shopId) {
       fetchBedsAndSessions();
@@ -137,6 +142,42 @@ const Beds = () => {
           setDiscountValue(Number(s.discount_value));
        }
     }
+    setComboItemDiscounts(initialDiscounts);
+  };
+
+  const toggleBedSelection = (bed: any) => {
+    if (bed.computed_status !== 'occupied') return;
+    
+    const hasPackage = bed.sessions.some((s: any) => s.customer_package_id);
+    if (hasPackage) {
+      alert(`Giường "${bed.name}" đang sử dụng liệu trình.\nChỉ các dịch vụ phát sinh doanh thu mới được gộp thanh toán.`);
+      return;
+    }
+    
+    setSelectedBeds(prev => prev.includes(bed.id) ? prev.filter(id => id !== bed.id) : [...prev, bed.id]);
+  };
+
+  const openMultiCheckout = () => {
+    const selectedBedDatas = beds.filter(b => selectedBeds.includes(b.id));
+    setMultiCheckoutSession(selectedBedDatas);
+    setDiscountValue(0);
+    setDiscountType('amount');
+    
+    const initialDiscounts: Record<string, any> = {};
+    selectedBedDatas.forEach(bed => {
+      if (bed.comboGroup) {
+         bed.sessions.forEach((s: any) => {
+           if (s.discount_value) {
+              initialDiscounts[s.id] = { type: s.discount_type || 'amount', value: Number(s.discount_value) };
+           }
+         });
+      } else if (bed.sessions && bed.sessions.length > 0) {
+         const s = bed.sessions[0];
+         if (s.discount_value) {
+            initialDiscounts[s.id] = { type: s.discount_type || 'amount', value: Number(s.discount_value) };
+         }
+      }
+    });
     setComboItemDiscounts(initialDiscounts);
   };
 
@@ -341,31 +382,162 @@ const Beds = () => {
     setIsProcessing(false);
   };
 
+  const handleMultiCheckoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!multiCheckoutSession || multiCheckoutSession.length === 0) return;
+    setIsProcessing(true);
+
+    try {
+      let allSessions: any[] = [];
+      multiCheckoutSession.forEach(bed => {
+         allSessions = [...allSessions, ...bed.sessions];
+      });
+
+      const totalOriginalPrice = allSessions.reduce((sum: number, sess: any) => sum + Number(sess.service_price || sess.services?.price || 0), 0);
+      
+      const itemDiscountTotal = allSessions.reduce((sum: number, sess: any) => {
+         const price = Number(sess.service_price || sess.services?.price || 0);
+         const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+         const dAmount = d.type === 'percent' ? (price * d.value) / 100 : d.value;
+         return sum + dAmount;
+      }, 0);
+
+      const remainingTotalBeforeGlobalDisc = totalOriginalPrice - itemDiscountTotal;
+      const globalDiscount = discountType === 'percent' ? (remainingTotalBeforeGlobalDisc * discountValue) / 100 : discountValue;
+      
+      const totalDiscount = itemDiscountTotal + globalDiscount;
+      const finalTotal = totalOriginalPrice - totalDiscount;
+
+      const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+      
+      const firstCustomerName = multiCheckoutSession[0].comboGroup?.customer_name || multiCheckoutSession[0].sessions[0]?.retail_customer_name || 'Khách gộp';
+      const firstCustomerPhone = multiCheckoutSession[0].comboGroup?.customer_phone || multiCheckoutSession[0].sessions[0]?.retail_customer_phone || '';
+
+      const invoiceData = {
+        shop_id: shopId,
+        invoice_code: invCode,
+        customer_name: firstCustomerName,
+        customer_phone: firstCustomerPhone,
+        created_by: profile?.id,
+        total_amount: totalOriginalPrice,
+        discount_amount: totalDiscount,
+        final_amount: finalTotal,
+        status: 'paid',
+        note: `Gộp thanh toán - ${multiCheckoutSession.length} giường (${allSessions.length} dịch vụ)`
+      };
+
+      const sessionsData = allSessions.map((sess: any) => {
+        const basePrice = Number(sess.service_price || sess.services?.price || 0);
+        const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+        const itemDisc = d.type === 'percent' ? (basePrice * d.value) / 100 : d.value;
+        
+        const priceAfterItemDisc = basePrice - itemDisc;
+        const ratio = remainingTotalBeforeGlobalDisc > 0 ? priceAfterItemDisc / remainingTotalBeforeGlobalDisc : 0;
+        const sessionGlobalDisc = globalDiscount * ratio;
+        
+        const sessionDiscount = itemDisc + sessionGlobalDisc;
+        const sessionRevenue = basePrice - sessionDiscount;
+        
+        const comm = sess.services?.commission_type === 'percent' ? (basePrice * sess.services.commission_value) / 100 : sess.services.commission_value;
+        
+        return {
+          session_id: sess.id,
+          service_id: sess.service_id,
+          staff_id: sess.staff_id,
+          original_price: basePrice,
+          revenue_amount: sessionRevenue,
+          commission_amount: comm,
+          note: `Gộp: ${sess.services?.name}`,
+          discount_type: d.type,
+          discount_value: d.value
+        };
+      });
+
+      const { data: rpcResult, error: rpcErr } = await supabase.rpc('sp_checkout_multi_retail', {
+        p_invoice_data: invoiceData,
+        p_sessions_data: sessionsData
+      });
+
+      if (rpcErr) throw rpcErr;
+
+      const { data: inv, error: invFetchErr } = await supabase.from('invoices').select('*').eq('id', rpcResult).single();
+      if (invFetchErr) throw invFetchErr;
+
+      setCompletedInvoice({
+        id: inv.id,
+        display_id: inv.invoice_code || '---',
+        customer_name: firstCustomerName,
+        customer_phone: firstCustomerPhone,
+        staff_name: [...new Set(allSessions.map((sess: any) => sess.staffs?.full_name).filter(Boolean))].join(', ') || 'Nhiều KTV',
+        items: allSessions.map((sess: any) => ({ name: sess.services?.name, price: Number(sess.service_price || sess.services?.price || 0) })),
+        total_amount: totalOriginalPrice,
+        discount_amount: totalDiscount,
+        final_amount: finalTotal,
+        is_use_package: false
+      });
+
+      setMultiCheckoutSession(null);
+      setSelectedBeds([]);
+      setIsMultiSelectMode(false);
+      fetchBedsAndSessions();
+    } catch (err: any) {
+      alert('Lỗi thanh toán gộp: ' + err.message);
+    }
+    setIsProcessing(false);
+  };
+
   const handlePrint = () => {
     window.print();
   };
 
   return (
     <>
-      <div className="page-container animate-fade no-print">
+      <div className="page-container animate-fade no-print" style={{ paddingBottom: isMultiSelectMode && selectedBeds.length > 0 ? '80px' : 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="page-title">Quản lý Chỗ & Điều phối</h1>
           <p className="page-subtitle">Theo dõi thời gian thực các dịch vụ đang diễn ra</p>
         </div>
-        {(profile?.role === 'shop_admin' || profile?.role === 'super_admin') && (
-          <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddBed}>
-            <Plus size={18} /> Thêm Chỗ
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button 
+            className={`btn ${isMultiSelectMode ? 'btn-primary' : 'btn'}`} 
+            style={{ border: !isMultiSelectMode ? '1px solid var(--border)' : 'none' }}
+            onClick={() => {
+              setIsMultiSelectMode(!isMultiSelectMode);
+              if (isMultiSelectMode) setSelectedBeds([]);
+            }}
+          >
+            {isMultiSelectMode ? 'Hủy gộp' : 'Gộp thanh toán'}
           </button>
-        )}
+          {(profile?.role === 'shop_admin' || profile?.role === 'super_admin') && (
+            <button className="btn btn-primary" disabled={isRestricted()} onClick={handleAddBed}>
+              <Plus size={18} /> Thêm Chỗ
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-          {beds.map((bed) => (
-            <div key={bed.id} className="premium-card" style={{ borderTop: `4px solid ${getStatusColor(bed.computed_status)}`, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
+          {beds.map((bed) => {
+            const isSelected = selectedBeds.includes(bed.id);
+            return (
+            <div key={bed.id} className="premium-card" 
+              style={{ 
+                borderTop: `4px solid ${getStatusColor(bed.computed_status)}`, 
+                border: isSelected ? '2px solid var(--primary)' : undefined,
+                display: 'flex', flexDirection: 'column', padding: '1rem',
+                cursor: isMultiSelectMode && bed.computed_status === 'occupied' ? 'pointer' : 'default',
+                opacity: isMultiSelectMode && bed.computed_status !== 'occupied' ? 0.5 : 1
+              }}
+              onClick={() => {
+                if (isMultiSelectMode) {
+                  toggleBedSelection(bed);
+                }
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: bed.sessions && bed.sessions.length > 0 ? '1rem' : '0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <div style={{ color: getStatusColor(bed.computed_status) }}>
@@ -432,15 +604,22 @@ const Beds = () => {
                   </div>
                   
                   <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={() => openCheckout(bed)} className={`btn ${isPackage ? 'btn' : 'btn-primary'}`} style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', width: '100%', background: isPackage ? 'var(--success)' : (isCombo ? 'var(--warning)' : 'var(--primary)'), color: 'white', border: 'none', minHeight: '36px' }}>
-                      {isPackage ? 'TRỪ BUỔI' : (isCombo ? 'THANH TOÁN COMBO' : 'TÍNH TIỀN')}
-                    </button>
+                    {!isMultiSelectMode && (
+                      <button onClick={(e) => { e.stopPropagation(); openCheckout(bed); }} className={`btn ${isPackage ? 'btn' : 'btn-primary'}`} style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', width: '100%', background: isPackage ? 'var(--success)' : (isCombo ? 'var(--warning)' : 'var(--primary)'), color: 'white', border: 'none', minHeight: '36px' }}>
+                        {isPackage ? 'TRỪ BUỔI' : (isCombo ? 'THANH TOÁN COMBO' : 'TÍNH TIỀN')}
+                      </button>
+                    )}
+                    {isMultiSelectMode && isSelected && (
+                       <div style={{ padding: '0.4rem', color: 'var(--primary)', fontWeight: 'bold', textAlign: 'center', width: '100%' }}>
+                         <CheckCircle2 size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.25rem' }} /> Đã chọn
+                       </div>
+                    )}
                   </div>
                 </div>
                 );
               })()}
             </div>
-          ))}
+          )})}
           {beds.length === 0 && (
             <div style={{ gridColumn: 'span 4', textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
               Chưa có dữ liệu chỗ. Vui lòng thêm chỗ để quản lý.
@@ -450,7 +629,136 @@ const Beds = () => {
       )}
       </div>
 
-      {/* Modal Thanh Toán */}
+      </div>
+
+      {/* Thanh sticky gộp thanh toán */}
+      {isMultiSelectMode && selectedBeds.length > 0 && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg-main)', borderTop: '1px solid var(--border)', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 999, boxShadow: '0 -4px 10px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontWeight: '800', fontSize: '1.1rem' }}>
+            Đã chọn: <span style={{ color: 'var(--primary)' }}>{selectedBeds.length} giường</span>
+          </div>
+          <button className="btn btn-primary" onClick={openMultiCheckout} style={{ height: '48px', padding: '0 1.5rem' }}>
+            Thanh toán gộp
+          </button>
+        </div>
+      )}
+
+      {/* Modal Thanh Toán Gộp */}
+      {multiCheckoutSession && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '400px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 className="text-success" /> Thanh toán gộp {multiCheckoutSession.length} giường</h3>
+              <button onClick={() => setMultiCheckoutSession(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
+            </div>
+            
+            <form onSubmit={handleMultiCheckoutSubmit}>
+              <div style={{ background: 'var(--bg-main)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
+                
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-light)', marginBottom: '0.5rem' }}>Chi tiết các dịch vụ:</div>
+                {multiCheckoutSession.map(bed => {
+                   return bed.sessions.map((sess: any) => {
+                      const basePrice = Number(sess.service_price || sess.services?.price || 0);
+                      const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+                      const dAmount = d.type === 'percent' ? (basePrice * d.value) / 100 : d.value;
+                      
+                      return (
+                      <div key={sess.id} style={{ paddingLeft: '0.5rem', borderLeft: `2px solid ${bed.comboGroup ? 'var(--warning)' : 'var(--primary)'}`, marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                          <span>{sess.services?.name} <span style={{fontSize:'0.75rem', color:'var(--text-light)'}}>({sess.staffs?.full_name})</span></span>
+                          <strong>{basePrice.toLocaleString()}đ</strong>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Từ giường: {bed.name}</div>
+                        {hasPermission('sale.discount') && (
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                            <select 
+                              className="form-control" 
+                              style={{ width: '80px', padding: '0.2rem', fontSize: '0.75rem' }}
+                              value={d.type}
+                              onChange={(e) => setComboItemDiscounts(prev => ({...prev, [sess.id]: { ...d, type: e.target.value as 'amount'|'percent' }}))}
+                            >
+                              <option value="amount">VNĐ</option>
+                              <option value="percent">%</option>
+                            </select>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              style={{ width: '100px', padding: '0.2rem', fontSize: '0.75rem' }}
+                              value={d.value || ''}
+                              onChange={(e) => setComboItemDiscounts(prev => ({...prev, [sess.id]: { ...d, value: Number(e.target.value) }}))}
+                              min="0"
+                              placeholder="Giảm giá"
+                            />
+                            {dAmount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 'bold' }}>-{dAmount.toLocaleString()}đ</span>}
+                          </div>
+                        )}
+                      </div>
+                    )});
+                })}
+                
+                <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: '700' }}>
+                  <span>Tổng cộng trước giảm giá:</span>
+                  <span>
+                    {(() => {
+                       let allSessions: any[] = [];
+                       multiCheckoutSession.forEach(bed => { allSessions = [...allSessions, ...bed.sessions]; });
+                       return allSessions.reduce((sum: number, sess: any) => sum + Number(sess.service_price || sess.services?.price || 0), 0).toLocaleString() + 'đ';
+                    })()}
+                  </span>
+                </div>
+              </div>
+
+              {hasPermission('sale.discount') && (
+                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Giảm giá toàn bộ (Voucher chung)</label>
+                    <input type="number" className="form-input" value={discountValue} onChange={e => setDiscountValue(Number(e.target.value))} />
+                  </div>
+                  <div style={{ width: '100px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Loại</label>
+                    <select className="form-select" value={discountType} onChange={e => setDiscountType(e.target.value as any)}>
+                      <option value="amount">VNĐ</option>
+                      <option value="percent">%</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '0.5rem' }}>
+                <span style={{ fontWeight: '700', color: 'var(--success)' }}>TỔNG PHẢI TRẢ:</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--success)' }}>
+                  {(() => {
+                    let allSessions: any[] = [];
+                    multiCheckoutSession.forEach(bed => { allSessions = [...allSessions, ...bed.sessions]; });
+                    const totalOriginalPrice = allSessions.reduce((sum: number, sess: any) => sum + Number(sess.service_price || sess.services?.price || 0), 0);
+                    
+                    const itemDiscountTotal = allSessions.reduce((sum: number, sess: any) => {
+                       const p = Number(sess.service_price || sess.services?.price || 0);
+                       const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+                       return sum + (d.type === 'percent' ? (p * d.value) / 100 : d.value);
+                    }, 0);
+                    
+                    const remainingTotal = totalOriginalPrice - itemDiscountTotal;
+                    const globalDisc = discountType === 'percent' ? (remainingTotal * discountValue) / 100 : discountValue;
+                    
+                    return (remainingTotal - globalDisc).toLocaleString() + 'đ';
+                  })()}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button type="button" onClick={() => setMultiCheckoutSession(null)} className="btn" style={{ flex: 1, background: 'var(--bg-main)' }}>Hủy</button>
+                <button type="submit" className="btn btn-primary" disabled={isProcessing} style={{ flex: 2, background: 'var(--primary)' }}>
+                  {isProcessing ? <Loader2 className="animate-spin" /> : 'XÁC NHẬN GỘP'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>, document.body
+      )}
+
+      {/* Modal Thanh Toán 1 Giường */}
       {checkoutSession && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '400px' }}>
