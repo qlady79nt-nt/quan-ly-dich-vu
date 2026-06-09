@@ -600,18 +600,19 @@ const Reports = () => {
                 <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
                   <button onClick={() => { setRevenueTab('all'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Tất cả</button>
                   <button onClick={() => { setRevenueTab('retail'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Dịch vụ lẻ</button>
+                  <button onClick={() => { setRevenueTab('combo'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'combo' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'combo' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Combo</button>
                   <button onClick={() => { setRevenueTab('package_sale'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Bán liệu trình</button>
                   <button onClick={() => { setRevenueTab('package_session'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Sử dụng liệu trình (Trừ buổi)</button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {revenueData.filter(r => revenueTab === 'all' || (revenueTab === 'retail' ? ['retail', 'combo'].includes(r.type) : r.type === revenueTab)).length === 0 ? (
+                  {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)', background: 'var(--bg-main)', borderRadius: '0.75rem' }}>
                       Không có phát sinh doanh thu loại này.
                     </div>
                   ) : (
                     <>
-                      {revenueData.filter(r => revenueTab === 'all' || (revenueTab === 'retail' ? ['retail', 'combo'].includes(r.type) : r.type === revenueTab)).slice(0, revenueDisplayCount).map((r, idx) => (
+                      {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).slice(0, revenueDisplayCount).map((r, idx) => (
                         <div 
                           key={idx} 
                           onClick={() => openRevenueDetail(r)}
@@ -625,7 +626,7 @@ const Reports = () => {
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-                                {r.type === 'retail' || r.type === 'combo' ? 'Thu dịch vụ lẻ / Combo' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
+                                {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'combo' ? 'Thu combo' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
                                 
                                 {/* Mã hóa đơn cho cả 3 loại */}
                                 {r.mapped_invoice_code ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_code}</span> : ''}
@@ -654,7 +655,7 @@ const Reports = () => {
                         </div>
                       ))}
                       
-                      {revenueData.filter(r => revenueTab === 'all' || (revenueTab === 'retail' ? ['retail', 'combo'].includes(r.type) : r.type === revenueTab)).length > revenueDisplayCount && (
+                      {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length > revenueDisplayCount && (
                         <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                           <button 
                             onClick={() => setRevenueDisplayCount(prev => prev + 10)}
