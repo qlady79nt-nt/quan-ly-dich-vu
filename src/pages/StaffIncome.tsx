@@ -6,11 +6,13 @@ import { Loader2, Plus, Calendar, Clock, DollarSign, FileText, User } from 'luci
 const StaffIncome = () => {
   const { profile } = useAuth();
   const shopId = profile?.shop_id;
+  const isShopAdmin = profile?.role === 'shop_admin' || profile?.role === 'super_admin';
 
   const [staffs, setStaffs] = useState<any[]>([]);
   const [incomes, setIncomes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -98,6 +100,38 @@ const StaffIncome = () => {
     setLoading(false);
   };
 
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({
+      staff_name: '', tip_amount: '', tour_amount: '', overtime_minutes: '', meal_amount: '', note: ''
+    });
+  };
+
+  const handleEdit = (item: any) => {
+    setEditingId(item.id);
+    setFormData({
+      staff_name: item.staff_name || '',
+      tip_amount: item.tip_amount?.toString() || '',
+      tour_amount: item.tour_amount?.toString() || '',
+      overtime_minutes: item.overtime_minutes?.toString() || '',
+      meal_amount: item.meal_amount?.toString() || '',
+      note: item.note || ''
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa bản ghi này?')) return;
+    setLoading(true);
+    const { error } = await supabase.from('staff_daily_income').delete().eq('id', id);
+    if (error) {
+      alert('Lỗi khi xóa: ' + error.message);
+    } else {
+      fetchIncomes();
+    }
+    setLoading(false);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopId) return alert('Lỗi: Không xác định được cửa hàng.');
@@ -114,21 +148,24 @@ const StaffIncome = () => {
       note: formData.note
     };
 
-    const { error } = await supabase.from('staff_daily_income').insert([payload]);
-    
-    if (error) {
-      alert('Lỗi khi lưu dữ liệu: ' + error.message);
+    if (editingId) {
+      const { error } = await supabase.from('staff_daily_income').update(payload).eq('id', editingId);
+      if (error) {
+        alert('Lỗi cập nhật: ' + error.message);
+      } else {
+        alert('Cập nhật thành công!');
+        resetForm();
+        fetchIncomes();
+      }
     } else {
-      alert('Đã lưu thành công!');
-      setFormData({
-        staff_name: '',
-        tip_amount: '',
-        tour_amount: '',
-        overtime_minutes: '',
-        meal_amount: '',
-        note: ''
-      });
-      fetchIncomes();
+      const { error } = await supabase.from('staff_daily_income').insert([payload]);
+      if (error) {
+        alert('Lỗi khi lưu dữ liệu: ' + error.message);
+      } else {
+        alert('Đã lưu thành công!');
+        resetForm();
+        fetchIncomes();
+      }
     }
     setSaving(false);
   };
@@ -148,7 +185,9 @@ const StaffIncome = () => {
 
       {/* Form Nhập Liệu */}
       <div className="premium-card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>Ghi Nhận Mới</h3>
+        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+          {editingId ? 'Cập Nhật Thu Nhập' : 'Ghi Nhận Mới'}
+        </h3>
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
           <div>
@@ -238,14 +277,26 @@ const StaffIncome = () => {
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
-            disabled={saving}
-            style={{ width: '100%', padding: '0.875rem', marginTop: '0.5rem', fontWeight: 'bold' }}
-          >
-            {saving ? <Loader2 className="animate-spin" size={20} /> : <><Plus size={20} /> Lưu Thu Nhập</>}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            {editingId && (
+              <button 
+                type="button" 
+                onClick={resetForm}
+                className="btn" 
+                style={{ flex: 1, padding: '0.875rem', fontWeight: 'bold', background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
+              >
+                Hủy
+              </button>
+            )}
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={saving}
+              style={{ flex: 2, padding: '0.875rem', fontWeight: 'bold' }}
+            >
+              {saving ? <Loader2 className="animate-spin" size={20} /> : <><Plus size={20} /> {editingId ? 'Lưu Thay Đổi' : 'Lưu Thu Nhập'}</>}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -313,6 +364,7 @@ const StaffIncome = () => {
                     <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền ăn</th>
                     <th style={{ padding: '1rem' }}>Ghi chú</th>
                     <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>Tổng nhận</th>
+                    {isShopAdmin && <th style={{ padding: '1rem', textAlign: 'right' }}>Thao tác</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -328,6 +380,14 @@ const StaffIncome = () => {
                         <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</td>
                         <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.note}>{item.note || '-'}</td>
                         <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</td>
+                        {isShopAdmin && (
+                          <td style={{ padding: '1rem', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                              <button onClick={() => handleEdit(item)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                              <button onClick={() => handleDelete(item.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xóa</button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

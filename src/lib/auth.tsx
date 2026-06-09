@@ -113,26 +113,95 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    const checkAutoLogout = () => {
+      const sessionDataStr = localStorage.getItem('daily_session');
+      if (!sessionDataStr) return false;
+      try {
+        const sessionData = JSON.parse(sessionDataStr);
+        const now = new Date();
+        const todayStr = now.toLocaleDateString('vi-VN');
+        
+        // Sang ngày mới -> Đăng xuất
+        if (sessionData.date !== todayStr) return true;
+        
+        // Đã đến 23h của cùng ngày -> Đăng xuất
+        if (now.getHours() >= 23 && sessionData.hour < 23) return true;
+      } catch (e) {
+        return true;
+      }
+      return false;
+    };
+
+    const handleSessionInit = async (sessionUser: any) => {
+      if (!sessionUser) {
+        localStorage.removeItem('daily_session');
+        setLoading(false);
+        return;
+      }
+
+      if (checkAutoLogout()) {
+        localStorage.removeItem('daily_session');
+        await supabase.auth.signOut();
+        alert('Hệ thống tự động đăng xuất lúc 23:00 hoặc khi qua ngày mới. Vui lòng đăng nhập lại!');
+        return;
+      }
+
+      // Initialize session if missing
+      if (!localStorage.getItem('daily_session')) {
+        const now = new Date();
+        localStorage.setItem('daily_session', JSON.stringify({
+          date: now.toLocaleDateString('vi-VN'),
+          hour: now.getHours()
+        }));
+      }
+      
+      fetchProfile(sessionUser.id).finally(() => setLoading(false));
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
+      handleSessionInit(session?.user ?? null);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      if (sessionUser) {
+        if (checkAutoLogout()) {
+          localStorage.removeItem('daily_session');
+          await supabase.auth.signOut();
+          return;
+        }
+
+        if (!localStorage.getItem('daily_session')) {
+          const now = new Date();
+          localStorage.setItem('daily_session', JSON.stringify({
+            date: now.toLocaleDateString('vi-VN'),
+            hour: now.getHours()
+          }));
+        }
+        fetchProfile(sessionUser.id);
       } else {
+        localStorage.removeItem('daily_session');
         setProfile(null);
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Kiểm tra định kỳ mỗi 1 phút để tự động đăng xuất
+    const interval = setInterval(async () => {
+      if (checkAutoLogout()) {
+        localStorage.removeItem('daily_session');
+        await supabase.auth.signOut();
+        alert('Hệ thống tự động đăng xuất lúc 23:00. Vui lòng đăng nhập lại!');
+        window.location.href = '/login';
+      }
+    }, 60000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const signOut = async () => {
