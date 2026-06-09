@@ -16,7 +16,8 @@ import {
   FileText,
   Menu,
   X,
-  MoreHorizontal
+  MoreHorizontal,
+  Coins
 } from 'lucide-react';
 import { AuthProvider, useAuth, ProtectedRoute } from './lib/auth';
 
@@ -36,6 +37,7 @@ import Customers from './pages/Customers';
 import Register from './pages/Register';
 import Landing from './pages/Landing';
 import AuditLogs from './pages/AuditLogs';
+import StaffIncome from './pages/StaffIncome';
 
 // --- LAYOUT COMPONENT ---
 const MainLayout = () => {
@@ -63,6 +65,7 @@ const MainLayout = () => {
       ...(profile?.role === 'shop_admin' ? [{ path: '/app/customers', label: 'Khách hàng', icon: UserCircle }] : []),
       ...(profile?.role === 'shop_admin' ? [{ path: '/app/packages', label: 'Liệu trình', icon: Package }] : []),
       { path: '/app/invoices', label: 'Hoá đơn', icon: FileText },
+      { path: '/app/staff-income', label: 'Thu nhập KTV', icon: Coins },
       { path: '/app/reports', label: 'Báo cáo', icon: BarChart3 },
     ];
   }
@@ -283,6 +286,7 @@ function App() {
             <Route path="invoices" element={<Invoices />} />
             <Route path="pos" element={<POS />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="staff-income" element={<StaffIncome />} />
             <Route path="shops" element={<ProtectedRoute allowedRoles={['super_admin']}><Shops /></ProtectedRoute>} />
             <Route path="shop-admins" element={<ProtectedRoute allowedRoles={['super_admin']}><ShopAdmins /></ProtectedRoute>} />
             <Route path="audit-logs" element={<ProtectedRoute allowedRoles={['super_admin']}><AuditLogs /></ProtectedRoute>} />
