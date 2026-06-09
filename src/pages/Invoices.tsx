@@ -240,13 +240,21 @@ const Invoices = () => {
           }
         }
       } else {
-        // Hóa đơn dịch vụ lẻ (Retail)
-        const { data: revLog } = await supabase.from('revenue_logs').select('service_session_id').eq('invoice_id', inv.id).eq('type', 'retail').single();
-        if (revLog && revLog.service_session_id) {
-          const { data: sess } = await supabase.from('service_sessions').select('staff_id').eq('id', revLog.service_session_id).single();
-          if (sess && sess.staff_id) {
-            const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', sess.staff_id).single();
-            if (stf) realStaffName = stf.full_name;
+        // Hóa đơn dịch vụ lẻ (Retail) hoặc Combo
+        const { data: revLogs } = await supabase.from('revenue_logs').select('service_session_id').eq('invoice_id', inv.id).eq('type', 'retail');
+        if (revLogs && revLogs.length > 0) {
+          const sessionIds = [...new Set(revLogs.map((r: any) => r.service_session_id).filter(Boolean))];
+          if (sessionIds.length > 0) {
+            const { data: sessions } = await supabase.from('service_sessions').select('staff_id').in('id', sessionIds);
+            if (sessions && sessions.length > 0) {
+              const staffIds = [...new Set(sessions.map((s: any) => s.staff_id).filter(Boolean))];
+              if (staffIds.length > 0) {
+                const { data: staffs } = await supabase.from('staffs').select('full_name').in('id', staffIds);
+                if (staffs && staffs.length > 0) {
+                  realStaffName = staffs.map((s: any) => s.full_name).join(', ');
+                }
+              }
+            }
           }
         }
       }
