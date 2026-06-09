@@ -631,7 +631,7 @@ const Beds = () => {
 
       {/* Thanh sticky gộp thanh toán */}
       {isMultiSelectMode && selectedBeds.length > 0 && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg-main)', borderTop: '1px solid var(--border)', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 999, boxShadow: '0 -4px 10px rgba(0,0,0,0.05)' }}>
+        <div className="multi-checkout-bar animate-fade">
           <div style={{ fontWeight: '800', fontSize: '1.1rem' }}>
             Đã chọn: <span style={{ color: 'var(--primary)' }}>{selectedBeds.length} giường</span>
           </div>
