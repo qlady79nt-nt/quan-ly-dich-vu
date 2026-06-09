@@ -87,7 +87,7 @@ const Invoices = () => {
           if (data) profs = data;
         }
 
-        const { data: revLogs } = await supabase.from('revenue_logs').select('invoice_id, service_session_id').in('invoice_id', invoiceIds).eq('type', 'retail');
+        const { data: revLogs } = await supabase.from('revenue_logs').select('invoice_id, service_session_id').in('invoice_id', invoiceIds).in('type', ['retail', 'combo']);
         const sessionIds = [...new Set((revLogs || []).map(r => r.service_session_id).filter(Boolean))];
         let sessionsList: any[] = [];
         if (sessionIds.length > 0) {
@@ -296,7 +296,7 @@ const Invoices = () => {
         }
       } else {
         // Hóa đơn dịch vụ lẻ (Retail) hoặc Combo
-        const { data: revLogs } = await supabase.from('revenue_logs').select('service_session_id').eq('invoice_id', inv.id).eq('type', 'retail');
+        const { data: revLogs } = await supabase.from('revenue_logs').select('service_session_id').eq('invoice_id', inv.id).in('type', ['retail', 'combo']);
         if (revLogs && revLogs.length > 0) {
           const sessionIds = [...new Set(revLogs.map((r: any) => r.service_session_id).filter(Boolean))];
           if (sessionIds.length > 0) {
