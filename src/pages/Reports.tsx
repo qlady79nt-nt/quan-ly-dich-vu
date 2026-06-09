@@ -103,7 +103,7 @@ const Reports = () => {
 
 
 
-      let retailItems: any[] = [];
+
       
       // Fetch related entities by IDs found in revLog và commLog
       let relatedInvoices: any[] = [];
@@ -148,8 +148,7 @@ const Reports = () => {
          const { data: invs } = await supabase.from('invoices').select('id, invoice_code, customer_id, customer_name').in('id', invIdsToFetch);
          if (invs) {
             relatedInvoices = invs;
-            const { data: items } = await supabase.from('invoice_items').select('*').in('invoice_id', invIdsToFetch).eq('type', 'service');
-            if (items) retailItems = items;
+            // NOTE: We don't need retailItems anymore since we rely on service_sessions
          }
       }
 
@@ -348,13 +347,23 @@ const Reports = () => {
       // Thống kê các giao dịch không có kỹ thuật viên/người bán (mồ côi)
       const missingTransactions: any[] = [];
       relatedPkgSales.forEach(ps => {
-        if (!ps.seller_id) missingTransactions.push({ id: ps.id, type: 'Bán gói', amount: ps.amount_paid, date: ps.created_at });
-      });
-      retailItems.forEach(ri => {
-        if (!ri.staff_id) missingTransactions.push({ id: ri.id, type: 'Dịch vụ lẻ', amount: ri.final_price || ri.price, date: relatedInvoices.find(i=>i.id === ri.invoice_id)?.created_at || new Date().toISOString() });
+        if (!ps.seller_id) {
+           const pInv = relatedInvoices.find((i: any)=>i.id === ps.invoice_id);
+           missingTransactions.push({ id: ps.id, type: 'Bán gói', amount: ps.amount_paid, date: ps.created_at, mapped_invoice_code: pInv?.invoice_code });
+        }
       });
       relatedSessions.forEach(ss => {
-        if (!ss.staff_id) missingTransactions.push({ id: ss.id, type: 'Trừ buổi', amount: ss.revenue_amount, date: ss.created_at });
+        if (!ss.staff_id) {
+           const revLog = mappedRevLogs.find((r: any) => r.mapped_session_id === ss.id);
+           missingTransactions.push({ 
+             id: ss.id, 
+             type: (ss.is_retail || !ss.customer_package_id) ? 'Dịch vụ lẻ' : 'Trừ buổi', 
+             amount: ss.revenue_amount, 
+             date: ss.created_at,
+             mapped_invoice_code: revLog?.mapped_invoice_code,
+             mapped_session_code: revLog?.mapped_session_code
+           });
+        }
       });
       setMissingStaffData(missingTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
 

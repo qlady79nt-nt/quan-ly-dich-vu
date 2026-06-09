@@ -484,7 +484,7 @@ h1, h2, h3, h4 {
 
 .checkout-bar {
   position: fixed;
-  bottom: 72px; /* Above bottom nav */
+  bottom: calc(72px + env(safe-area-inset-bottom)); /* Above bottom nav */
   left: 0;
   right: 0;
   background: white;
@@ -661,7 +661,7 @@ h1, h2, h3, h4 {
 
   .page-container {
     padding: 16px;
-    padding-bottom: 100px; /* Space for bottom nav */
+    padding-bottom: calc(100px + env(safe-area-inset-bottom)); /* Space for bottom nav */
   }
 
   .page-title {
@@ -723,7 +723,7 @@ h1, h2, h3, h4 {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 72px;
+    height: calc(72px + env(safe-area-inset-bottom));
     background: white;
     border-top: 1px solid var(--border);
     z-index: 50;
@@ -732,8 +732,8 @@ h1, h2, h3, h4 {
   
   .multi-checkout-bar {
     left: 0 !important;
-    bottom: 72px !important;
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: 1rem !important;
   }
   
   .modal-fullscreen-mobile {
