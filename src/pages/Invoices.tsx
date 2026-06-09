@@ -78,14 +78,69 @@ const Invoices = () => {
 
       let finalInvoices = invData || [];
       if (finalInvoices.length > 0) {
+        const invoiceIds = finalInvoices.map(i => i.id);
+        
         const creatorIds = [...new Set(finalInvoices.map(i => i.created_by).filter(Boolean))];
+        let profs: any[] = [];
         if (creatorIds.length > 0) {
-          const { data: profs } = await supabase.from('profiles').select('id, full_name').in('id', creatorIds);
-          finalInvoices = finalInvoices.map(i => ({
-            ...i,
-            profiles: profs?.find(p => p.id === i.created_by) || { full_name: 'Nhân viên' }
-          }));
+          const { data } = await supabase.from('profiles').select('id, full_name').in('id', creatorIds);
+          if (data) profs = data;
         }
+
+        const { data: revLogs } = await supabase.from('revenue_logs').select('invoice_id, service_session_id').in('invoice_id', invoiceIds).eq('type', 'retail');
+        const sessionIds = [...new Set((revLogs || []).map(r => r.service_session_id).filter(Boolean))];
+        let sessionsList: any[] = [];
+        if (sessionIds.length > 0) {
+          const { data } = await supabase.from('service_sessions').select('id, staff_id').in('id', sessionIds);
+          if (data) sessionsList = data;
+        }
+
+        const { data: pkgSales } = await supabase.from('package_sales').select('invoice_id, seller_id').in('invoice_id', invoiceIds);
+
+        const staffIds = [...new Set([
+          ...sessionsList.map(s => s.staff_id),
+          ...(pkgSales || []).map(p => p.seller_id)
+        ].filter(Boolean))];
+
+        let staffs: any[] = [];
+        if (staffIds.length > 0) {
+          const { data } = await supabase.from('staffs').select('id, full_name').in('id', staffIds);
+          if (data) staffs = data;
+        }
+
+        finalInvoices = finalInvoices.map(inv => {
+          let realStaffName = '';
+
+          const ps = (pkgSales || []).find(p => p.invoice_id === inv.id);
+          if (ps && ps.seller_id) {
+            const stf = staffs.find(s => s.id === ps.seller_id);
+            if (stf) realStaffName = stf.full_name;
+          } else {
+            const invRevLogs = (revLogs || []).filter(r => r.invoice_id === inv.id);
+            if (invRevLogs.length > 0) {
+              const invSessionIds = invRevLogs.map(r => r.service_session_id);
+              const invSessions = sessionsList.filter(s => invSessionIds.includes(s.id));
+              const invStaffIds = [...new Set(invSessions.map(s => s.staff_id).filter(Boolean))];
+              if (invStaffIds.length > 0) {
+                const invStaffs = staffs.filter(s => invStaffIds.includes(s.id));
+                if (invStaffs.length > 0) {
+                  realStaffName = invStaffs.map(s => s.full_name).join(', ');
+                }
+              }
+            }
+          }
+
+          const creator = profs.find(p => p.id === inv.created_by);
+          if (!realStaffName && creator) {
+             realStaffName = creator.full_name;
+          }
+
+          return {
+            ...inv,
+            real_staff_name: realStaffName || 'Hệ thống',
+            profiles: creator || { full_name: 'Hệ thống' }
+          };
+        });
       }
       setInvoices(finalInvoices);
 
@@ -617,7 +672,7 @@ const Invoices = () => {
                   <th style={{ padding: '1rem' }}>Mã Hoá Đơn</th>
                   <th>Khách hàng</th>
                   <th>Ngày bán</th>
-                  <th>Người tạo</th>
+                  <th>Nhân viên / KTV</th>
                   <th>Tổng tiền</th>
                   <th>Trạng thái</th>
                 </tr>
@@ -644,7 +699,7 @@ const Invoices = () => {
                     <td style={{ padding: '1rem', fontWeight: '600' }}>#{inv.invoice_code || '---'}</td>
                     <td>{inv.customer_name || 'Khách lẻ'}</td>
                     <td>{new Date(inv.created_at).toLocaleString()}</td>
-                    <td>{inv.profiles?.full_name || 'Hệ thống'}</td>
+                    <td>{inv.real_staff_name || 'Hệ thống'}</td>
                     <td className="financial-cell" style={{ fontWeight: '700', color: 'var(--primary)' }}>{Number(inv.final_amount).toLocaleString()}đ</td>
                     <td>
                       <span className={`badge ${inv.status === 'paid' ? 'badge-success' : inv.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
@@ -682,7 +737,7 @@ const Invoices = () => {
                     {Number(inv.final_amount).toLocaleString()}đ
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
-                    {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {inv.profiles?.full_name || 'HT'} • {inv.status === 'paid' ? 'Đã TT' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ TT'}
+                    {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {inv.real_staff_name || 'HT'} • {inv.status === 'paid' ? 'Đã TT' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ TT'}
                   </div>
                 </div>
               </div>
