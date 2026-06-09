@@ -26,6 +26,7 @@ const StaffIncome = () => {
   const [filterType, setFilterType] = useState('today');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [filterStaffName, setFilterStaffName] = useState('');
 
   useEffect(() => {
     if (shopId) {
@@ -37,7 +38,7 @@ const StaffIncome = () => {
     if (shopId) {
       fetchIncomes();
     }
-  }, [shopId, filterType, startDate, endDate]);
+  }, [shopId, filterType, startDate, endDate, filterStaffName]);
 
   const fetchStaffs = async () => {
     if (!shopId) return;
@@ -80,6 +81,10 @@ const StaffIncome = () => {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
       query = query.gte('created_at', start.toISOString()).lte('created_at', end.toISOString());
+    }
+
+    if (filterStaffName) {
+      query = query.eq('staff_name', filterStaffName);
     }
 
     const { data, error } = await query;
@@ -269,9 +274,22 @@ const StaffIncome = () => {
 
       {/* Danh sách Lịch sử dạng Mobile Card */}
       <div>
-        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={18} className="text-primary" /> Lịch sử thu nhập
-        </h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Calendar size={18} className="text-primary" /> Lịch sử thu nhập
+          </h3>
+          <select 
+            className="form-select" 
+            value={filterStaffName}
+            onChange={e => setFilterStaffName(e.target.value)}
+            style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', fontSize: '0.875rem', minWidth: '150px' }}
+          >
+            <option value="">Tất cả nhân viên</option>
+            {staffs.map(s => (
+              <option key={`filter-${s.id}`} value={s.full_name}>{s.full_name}</option>
+            ))}
+          </select>
+        </div>
         
         {loading ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}><Loader2 className="animate-spin text-primary mx-auto" /></div>
