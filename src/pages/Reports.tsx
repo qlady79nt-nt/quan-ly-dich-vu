@@ -35,7 +35,7 @@ const Reports = () => {
   const [missingStaffData, setMissingStaffData] = useState<any[]>([]);
   const isShopAdmin = profile?.role === 'shop_admin';
   const [view, setView] = useState<'revenue' | 'commission' | 'staff'>(isShopAdmin ? 'revenue' : 'staff');
-  const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'package_sale' | 'package_session'>('all');
+  const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'combo' | 'package_sale' | 'package_session'>('all');
   const [revenueDisplayCount, setRevenueDisplayCount] = useState(10);
   const [detailModal, setDetailModal] = useState<any>(null);
   
