@@ -388,13 +388,25 @@ const Reports = () => {
         const { data: items } = await supabase.from('invoice_items').select('*').eq('invoice_id', idToLook);
         
         let staffName = 'Thu ngân';
-        if (log.service_session_id) {
-          const { data: sess } = await supabase.from('service_sessions').select('staff_id').eq('id', log.service_session_id).single();
-          if (sess && sess.staff_id) {
-            const { data: stf } = await supabase.from('staffs').select('full_name').eq('id', sess.staff_id).single();
-            if (stf) staffName = stf.full_name;
+        const { data: allRevLogs } = await supabase.from('revenue_logs').select('service_session_id').eq('invoice_id', idToLook).in('type', ['retail', 'combo']);
+        if (allRevLogs && allRevLogs.length > 0) {
+          const sessionIds = [...new Set(allRevLogs.map((r: any) => r.service_session_id).filter(Boolean))];
+          if (sessionIds.length > 0) {
+            const { data: sessions } = await supabase.from('service_sessions').select('staff_id').in('id', sessionIds);
+            if (sessions && sessions.length > 0) {
+              const staffIds = sessions.map((s: any) => s.staff_id).filter(Boolean);
+              if (staffIds.length > 0) {
+                const { data: staffs } = await supabase.from('staffs').select('id, full_name').in('id', [...new Set(staffIds)]);
+                if (staffs && staffs.length > 0) {
+                  const mappedStaffs = staffIds.map(id => staffs.find(s => s.id === id)).filter(Boolean);
+                  staffName = mappedStaffs.map((s: any) => s.full_name).join(', ');
+                }
+              }
+            }
           }
-        } else if (inv?.created_by) {
+        }
+        
+        if (staffName === 'Thu ngân' && inv?.created_by) {
           const { data: staff } = await supabase.from('profiles').select('full_name').eq('id', inv.created_by).single();
           if (staff) staffName = staff.full_name;
         }
