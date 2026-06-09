@@ -120,11 +120,11 @@ const Invoices = () => {
             if (invRevLogs.length > 0) {
               const invSessionIds = invRevLogs.map(r => r.service_session_id);
               const invSessions = sessionsList.filter(s => invSessionIds.includes(s.id));
-              const invStaffIds = [...new Set(invSessions.map(s => s.staff_id).filter(Boolean))];
+              const invStaffIds = invSessions.map(s => s.staff_id).filter(Boolean);
               if (invStaffIds.length > 0) {
-                const invStaffs = staffs.filter(s => invStaffIds.includes(s.id));
-                if (invStaffs.length > 0) {
-                  realStaffName = invStaffs.map(s => s.full_name).join(', ');
+                const mappedStaffs = invStaffIds.map(id => staffs.find(s => s.id === id)).filter(Boolean);
+                if (mappedStaffs.length > 0) {
+                  realStaffName = mappedStaffs.map(s => s.full_name).join(', ');
                 }
               }
             }
@@ -302,11 +302,12 @@ const Invoices = () => {
           if (sessionIds.length > 0) {
             const { data: sessions } = await supabase.from('service_sessions').select('staff_id').in('id', sessionIds);
             if (sessions && sessions.length > 0) {
-              const staffIds = [...new Set(sessions.map((s: any) => s.staff_id).filter(Boolean))];
+              const staffIds = sessions.map((s: any) => s.staff_id).filter(Boolean);
               if (staffIds.length > 0) {
-                const { data: staffs } = await supabase.from('staffs').select('full_name').in('id', staffIds);
+                const { data: staffs } = await supabase.from('staffs').select('id, full_name').in('id', [...new Set(staffIds)]);
                 if (staffs && staffs.length > 0) {
-                  realStaffName = staffs.map((s: any) => s.full_name).join(', ');
+                  const mappedStaffs = staffIds.map(id => staffs.find(s => s.id === id)).filter(Boolean);
+                  realStaffName = mappedStaffs.map(s => s.full_name).join(', ');
                 }
               }
             }

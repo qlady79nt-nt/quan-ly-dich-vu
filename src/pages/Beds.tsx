@@ -229,7 +229,7 @@ const Beds = () => {
           display_id: inv.invoice_code || '---',
           customer_name: comboGroup.customer_name || 'Khách Combo',
           customer_phone: comboGroup.customer_phone,
-          staff_name: [...new Set(sessions.map((sess: any) => sess.staffs?.full_name).filter(Boolean))].join(', ') || 'Combo (Nhiều KTV)',
+          staff_name: sessions.map((sess: any) => sess.staffs?.full_name).filter(Boolean).join(', ') || 'Combo (Nhiều KTV)',
           items: sessions.map((sess: any) => ({ name: sess.services?.name, price: Number(sess.service_price || sess.services?.price || 0) })),
           total_amount: totalOriginalPrice,
           discount_amount: totalDiscount,
