@@ -1171,8 +1171,8 @@ const Reports = () => {
       , document.body)}
 
       {showReconciliation && createPortal(
-        <div className="modal-overlay" style={{ zIndex: 9999 }}>
-          <div className="modal-content animate-fade-up" style={{ maxWidth: '400px', width: '90%' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '1rem' }}>
+          <div className="modal-content animate-fade-up" style={{ maxWidth: '400px', width: '100%', background: 'var(--bg-main)', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
             {reconStep === 1 ? (
               <form onSubmit={handlePinSubmit}>
                 <h3 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Xác thực Quản lý</h3>
