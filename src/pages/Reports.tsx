@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   TrendingUp, 
   Users, 
@@ -44,6 +44,29 @@ const Reports = () => {
   const [reconStep, setReconStep] = useState(1);
   const [reconPin, setReconPin] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  
+  const [, setClickCount] = useState(0);
+  const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDotClick = () => {
+    setClickCount(prev => {
+      const newCount = prev + 1;
+      if (newCount >= 3) {
+        setShowReconciliation(true);
+        setReconStep(1);
+        setReconPin('');
+        return 0;
+      }
+      return newCount;
+    });
+
+    if (clickTimeout.current) {
+      clearTimeout(clickTimeout.current);
+    }
+    clickTimeout.current = setTimeout(() => {
+      setClickCount(0);
+    }, 500);
+  };
   
   const [stats, setStats] = useState({
     totalRevenue: 0,
@@ -562,11 +585,7 @@ const Reports = () => {
           <h1 className="page-title">Báo cáo Tổng hợp</h1>
           {isShopAdmin && (
             <div 
-              onClick={() => {
-                setShowReconciliation(true);
-                setReconStep(1);
-                setReconPin('');
-              }}
+              onClick={handleDotClick}
               style={{
                 position: 'absolute',
                 top: '4px',
