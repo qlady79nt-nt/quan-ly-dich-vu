@@ -13,6 +13,7 @@ import { useAuth } from '../lib/auth';
 import { TableSkeleton } from '../components/Skeleton';
 import { createPortal } from 'react-dom';
 import ReportsStaff from '../components/ReportsStaff';
+import Calculator from '../components/Calculator';
 
 const Reports = () => {
   const { hasPermission, profile, user } = useAuth();
@@ -45,6 +46,7 @@ const Reports = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [actualCash, setActualCash] = useState<number | ''>('');
   const [actualTransfer, setActualTransfer] = useState<number | ''>('');
+  const [activeCalcField, setActiveCalcField] = useState<'cash' | 'transfer' | null>(null);
   
   const [stats, setStats] = useState({
     totalRevenue: 0,
@@ -1230,26 +1232,24 @@ const Reports = () => {
 
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Tiền mặt thực tế</label>
-                  <input 
-                    type="number" 
-                    value={actualCash} 
-                    onChange={e => setActualCash(e.target.value ? Number(e.target.value) : '')} 
+                  <div 
+                    onClick={() => setActiveCalcField('cash')}
                     className="form-input" 
-                    style={{ width: '100%', fontWeight: 'bold' }} 
-                    placeholder="0"
-                  />
+                    style={{ width: '100%', fontWeight: 'bold', cursor: 'pointer', background: 'var(--bg-card)', minHeight: '42px', display: 'flex', alignItems: 'center' }} 
+                  >
+                    {actualCash === '' ? '0' : Number(actualCash).toLocaleString()}
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Chuyển khoản thực tế</label>
-                  <input 
-                    type="number" 
-                    value={actualTransfer} 
-                    onChange={e => setActualTransfer(e.target.value ? Number(e.target.value) : '')} 
+                  <div 
+                    onClick={() => setActiveCalcField('transfer')}
                     className="form-input" 
-                    style={{ width: '100%', fontWeight: 'bold' }} 
-                    placeholder="0"
-                  />
+                    style={{ width: '100%', fontWeight: 'bold', cursor: 'pointer', background: 'var(--bg-card)', minHeight: '42px', display: 'flex', alignItems: 'center' }} 
+                  >
+                    {actualTransfer === '' ? '0' : Number(actualTransfer).toLocaleString()}
+                  </div>
                 </div>
 
                 <div style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
@@ -1268,6 +1268,23 @@ const Reports = () => {
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                   <button type="button" className="btn btn-primary" onClick={() => setShowReconciliation(false)}>Đóng</button>
                 </div>
+
+                {activeCalcField === 'cash' && (
+                  <Calculator 
+                    initialValue={Number(actualCash) || 0} 
+                    onConfirm={(val) => { setActualCash(val); setActiveCalcField(null); }} 
+                    onClose={() => setActiveCalcField(null)} 
+                    title="Tính Tiền mặt thực tế" 
+                  />
+                )}
+                {activeCalcField === 'transfer' && (
+                  <Calculator 
+                    initialValue={Number(actualTransfer) || 0} 
+                    onConfirm={(val) => { setActualTransfer(val); setActiveCalcField(null); }} 
+                    onClose={() => setActiveCalcField(null)} 
+                    title="Tính Chuyển khoản thực tế" 
+                  />
+                )}
               </div>
             )}
           </div>
