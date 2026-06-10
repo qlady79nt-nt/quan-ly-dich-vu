@@ -15,7 +15,7 @@ import { createPortal } from 'react-dom';
 import ReportsStaff from '../components/ReportsStaff';
 
 const Reports = () => {
-  const { hasPermission, profile } = useAuth();
+  const { hasPermission, profile, user } = useAuth();
   const shopId = profile?.shop_id;
 
   const getLocalDateString = (d: Date) => {
@@ -42,6 +42,7 @@ const Reports = () => {
   const [showReconciliation, setShowReconciliation] = useState(false);
   const [reconStep, setReconStep] = useState(1);
   const [reconPin, setReconPin] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const [actualCash, setActualCash] = useState<number | ''>('');
   const [actualTransfer, setActualTransfer] = useState<number | ''>('');
   
@@ -530,12 +531,29 @@ const Reports = () => {
     </div>
   );
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (reconPin === '123456' || reconPin === '686868' || reconPin === '1234') {
-      setReconStep(2);
-    } else {
-      alert('Mã PIN không chính xác!');
+    if (!user?.email) {
+      alert('Không tìm thấy thông tin email. Vui lòng tải lại trang.');
+      return;
+    }
+    
+    setIsVerifying(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: reconPin
+      });
+      
+      if (error) {
+        alert('Mật khẩu không chính xác!');
+      } else {
+        setReconStep(2);
+      }
+    } catch (err: any) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -1177,20 +1195,22 @@ const Reports = () => {
               <form onSubmit={handlePinSubmit}>
                 <h3 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Xác thực Quản lý</h3>
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Nhập mã PIN</label>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Nhập mật khẩu quản lý</label>
                   <input
                     type="password"
                     autoFocus
                     value={reconPin}
                     onChange={e => setReconPin(e.target.value)}
                     className="form-input"
-                    placeholder="Nhập PIN..."
-                    style={{ width: '100%', textAlign: 'center', letterSpacing: '0.5rem', fontSize: '1.5rem' }}
+                    placeholder="Nhập mật khẩu..."
+                    style={{ width: '100%', fontSize: '1rem' }}
                   />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                   <button type="button" className="btn" onClick={() => setShowReconciliation(false)}>Huỷ</button>
-                  <button type="submit" className="btn btn-primary">Xác nhận</button>
+                  <button type="submit" className="btn btn-primary" disabled={isVerifying}>
+                    {isVerifying ? 'Đang kiểm tra...' : 'Xác nhận'}
+                  </button>
                 </div>
               </form>
             ) : (
