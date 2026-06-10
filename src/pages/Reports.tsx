@@ -39,6 +39,12 @@ const Reports = () => {
   const [revenueDisplayCount, setRevenueDisplayCount] = useState(10);
   const [detailModal, setDetailModal] = useState<any>(null);
   
+  const [showReconciliation, setShowReconciliation] = useState(false);
+  const [reconStep, setReconStep] = useState(1);
+  const [reconPin, setReconPin] = useState('');
+  const [actualCash, setActualCash] = useState<number | ''>('');
+  const [actualTransfer, setActualTransfer] = useState<number | ''>('');
+  
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalProfit: 0,
@@ -524,11 +530,47 @@ const Reports = () => {
     </div>
   );
 
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (reconPin === '123456' || reconPin === '686868' || reconPin === '1234') {
+      setReconStep(2);
+    } else {
+      alert('Mã PIN không chính xác!');
+    }
+  };
+
+  const totalActual = (Number(actualCash) || 0) + (Number(actualTransfer) || 0);
+  const diffRecon = totalActual - stats.totalCashFlow;
+
   return (
     <div className="page-container animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
+        <div style={{ position: 'relative', paddingRight: '1rem' }}>
           <h1 className="page-title">Báo cáo Tổng hợp</h1>
+          {isShopAdmin && (
+            <div 
+              onClick={() => {
+                setShowReconciliation(true);
+                setReconStep(1);
+                setReconPin('');
+                setActualCash('');
+                setActualTransfer('');
+              }}
+              style={{
+                position: 'absolute',
+                top: '4px',
+                right: 0,
+                width: '10px',
+                height: '10px',
+                background: 'var(--success)',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                boxShadow: '0 0 5px var(--success)',
+                opacity: 0.8
+              }}
+              title="Đối chiếu cuối ngày"
+            />
+          )}
           <p className="page-subtitle">Theo dõi dòng tiền, doanh thu và hiệu suất</p>
         </div>
         
