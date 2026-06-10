@@ -1169,6 +1169,91 @@ const Reports = () => {
           </div>
         </div>
       , document.body)}
+
+      {showReconciliation && createPortal(
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal-content animate-fade-up" style={{ maxWidth: '400px', width: '90%' }}>
+            {reconStep === 1 ? (
+              <form onSubmit={handlePinSubmit}>
+                <h3 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Xác thực Quản lý</h3>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Nhập mã PIN</label>
+                  <input
+                    type="password"
+                    autoFocus
+                    value={reconPin}
+                    onChange={e => setReconPin(e.target.value)}
+                    className="form-input"
+                    placeholder="Nhập PIN..."
+                    style={{ width: '100%', textAlign: 'center', letterSpacing: '0.5rem', fontSize: '1.5rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                  <button type="button" className="btn" onClick={() => setShowReconciliation(false)}>Huỷ</button>
+                  <button type="submit" className="btn btn-primary">Xác nhận</button>
+                </div>
+              </form>
+            ) : (
+              <div>
+                <h3 style={{ marginBottom: '1.5rem', textAlign: 'center', color: 'var(--primary)' }}>Đối chiếu cuối ngày</h3>
+                
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Doanh thu phần mềm hôm nay</label>
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={stats.totalCashFlow.toLocaleString() + 'đ'} 
+                    className="form-input" 
+                    style={{ width: '100%', background: 'var(--bg-main)', fontWeight: 'bold', color: 'var(--primary)' }} 
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Tiền mặt thực tế</label>
+                  <input 
+                    type="number" 
+                    value={actualCash} 
+                    onChange={e => setActualCash(e.target.value ? Number(e.target.value) : '')} 
+                    className="form-input" 
+                    style={{ width: '100%', fontWeight: 'bold' }} 
+                    placeholder="0"
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Chuyển khoản thực tế</label>
+                  <input 
+                    type="number" 
+                    value={actualTransfer} 
+                    onChange={e => setActualTransfer(e.target.value ? Number(e.target.value) : '')} 
+                    className="form-input" 
+                    style={{ width: '100%', fontWeight: 'bold' }} 
+                    placeholder="0"
+                  />
+                </div>
+
+                <div style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '1.1rem' }}>
+                    <span style={{ fontWeight: '600' }}>Tổng thực thu:</span>
+                    <span style={{ fontWeight: '800' }}>{totalActual.toLocaleString()}đ</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' }}>
+                    <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
+                    <span style={{ fontWeight: '800', color: diffRecon === 0 ? 'var(--success)' : diffRecon > 0 ? 'var(--warning)' : 'var(--danger)' }}>
+                      {diffRecon > 0 ? '+' : ''}{diffRecon.toLocaleString()}đ
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                  <button type="button" className="btn btn-primary" onClick={() => setShowReconciliation(false)}>Đóng</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
