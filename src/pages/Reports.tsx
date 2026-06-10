@@ -13,7 +13,7 @@ import { useAuth } from '../lib/auth';
 import { TableSkeleton } from '../components/Skeleton';
 import { createPortal } from 'react-dom';
 import ReportsStaff from '../components/ReportsStaff';
-import Calculator from '../components/Calculator';
+import ReconciliationModal from '../components/ReconciliationModal';
 
 const Reports = () => {
   const { hasPermission, profile, user } = useAuth();
@@ -44,9 +44,6 @@ const Reports = () => {
   const [reconStep, setReconStep] = useState(1);
   const [reconPin, setReconPin] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [actualCash, setActualCash] = useState<number | ''>('');
-  const [actualTransfer, setActualTransfer] = useState<number | ''>('');
-  const [activeCalcField, setActiveCalcField] = useState<'cash' | 'transfer' | null>(null);
   
   const [stats, setStats] = useState({
     totalRevenue: 0,
@@ -558,10 +555,6 @@ const Reports = () => {
       setIsVerifying(false);
     }
   };
-
-  const totalActual = (Number(actualCash) || 0) + (Number(actualTransfer) || 0);
-  const diffRecon = totalActual - stats.totalCashFlow;
-
   return (
     <div className="page-container animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -573,8 +566,6 @@ const Reports = () => {
                 setShowReconciliation(true);
                 setReconStep(1);
                 setReconPin('');
-                setActualCash('');
-                setActualTransfer('');
               }}
               style={{
                 position: 'absolute',
@@ -1191,104 +1182,41 @@ const Reports = () => {
       , document.body)}
 
       {showReconciliation && createPortal(
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '1rem' }}>
-          <div className="modal-content animate-fade-up" style={{ maxWidth: '400px', width: '100%', background: 'var(--bg-main)', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
-            {reconStep === 1 ? (
-              <form onSubmit={handlePinSubmit}>
-                <h3 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Xác thực Quản lý</h3>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Nhập mật khẩu quản lý</label>
-                  <input
-                    type="password"
-                    autoFocus
-                    value={reconPin}
-                    onChange={e => setReconPin(e.target.value)}
-                    className="form-input"
-                    placeholder="Nhập mật khẩu..."
-                    style={{ width: '100%', fontSize: '1rem' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                  <button type="button" className="btn" onClick={() => setShowReconciliation(false)}>Huỷ</button>
-                  <button type="submit" className="btn btn-primary" disabled={isVerifying}>
-                    {isVerifying ? 'Đang kiểm tra...' : 'Xác nhận'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div>
-                <h3 style={{ marginBottom: '1.5rem', textAlign: 'center', color: 'var(--primary)' }}>Đối chiếu cuối ngày</h3>
-                
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Doanh thu phần mềm hôm nay</label>
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value={stats.totalCashFlow.toLocaleString() + 'đ'} 
-                    className="form-input" 
-                    style={{ width: '100%', background: 'var(--bg-main)', fontWeight: 'bold', color: 'var(--primary)' }} 
-                  />
-                </div>
-
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Tiền mặt thực tế</label>
-                  <div 
-                    onClick={() => setActiveCalcField('cash')}
-                    className="form-input" 
-                    style={{ width: '100%', fontWeight: 'bold', cursor: 'pointer', background: 'var(--bg-card)', minHeight: '42px', display: 'flex', alignItems: 'center' }} 
-                  >
-                    {actualCash === '' ? '0' : Number(actualCash).toLocaleString()}
+        <>
+          {reconStep === 1 ? (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999, padding: '1rem' }}>
+              <div className="modal-content animate-fade-up" style={{ maxWidth: '400px', width: '100%', background: 'var(--bg-main)', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                <form onSubmit={handlePinSubmit}>
+                  <h3 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Xác thực Quản lý</h3>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Nhập mật khẩu quản lý</label>
+                    <input
+                      type="password"
+                      autoFocus
+                      value={reconPin}
+                      onChange={e => setReconPin(e.target.value)}
+                      className="form-input"
+                      placeholder="Nhập mật khẩu..."
+                      style={{ width: '100%', fontSize: '1rem' }}
+                    />
                   </div>
-                </div>
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Chuyển khoản thực tế</label>
-                  <div 
-                    onClick={() => setActiveCalcField('transfer')}
-                    className="form-input" 
-                    style={{ width: '100%', fontWeight: 'bold', cursor: 'pointer', background: 'var(--bg-card)', minHeight: '42px', display: 'flex', alignItems: 'center' }} 
-                  >
-                    {actualTransfer === '' ? '0' : Number(actualTransfer).toLocaleString()}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    <button type="button" className="btn" onClick={() => setShowReconciliation(false)}>Huỷ</button>
+                    <button type="submit" className="btn btn-primary" disabled={isVerifying}>
+                      {isVerifying ? 'Đang kiểm tra...' : 'Xác nhận'}
+                    </button>
                   </div>
-                </div>
-
-                <div style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '1.1rem' }}>
-                    <span style={{ fontWeight: '600' }}>Tổng thực thu:</span>
-                    <span style={{ fontWeight: '800' }}>{totalActual.toLocaleString()}đ</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' }}>
-                    <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
-                    <span style={{ fontWeight: '800', color: diffRecon === 0 ? 'var(--success)' : diffRecon > 0 ? 'var(--warning)' : 'var(--danger)' }}>
-                      {diffRecon > 0 ? '+' : ''}{diffRecon.toLocaleString()}đ
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setShowReconciliation(false)}>Đóng</button>
-                </div>
-
-                {activeCalcField === 'cash' && (
-                  <Calculator 
-                    initialValue={Number(actualCash) || 0} 
-                    onConfirm={(val) => { setActualCash(val); setActiveCalcField(null); }} 
-                    onClose={() => setActiveCalcField(null)} 
-                    title="Tính Tiền mặt thực tế" 
-                  />
-                )}
-                {activeCalcField === 'transfer' && (
-                  <Calculator 
-                    initialValue={Number(actualTransfer) || 0} 
-                    onConfirm={(val) => { setActualTransfer(val); setActiveCalcField(null); }} 
-                    onClose={() => setActiveCalcField(null)} 
-                    title="Tính Chuyển khoản thực tế" 
-                  />
-                )}
+                </form>
               </div>
-            )}
-          </div>
-        </div>,
+            </div>
+          ) : (
+            <ReconciliationModal 
+              shopId={shopId || ''} 
+              userId={user?.id || ''} 
+              onClose={() => { setShowReconciliation(false); setReconStep(1); setReconPin(''); }} 
+            />
+          )}
+        </>,
         document.body
       )}
     </div>
