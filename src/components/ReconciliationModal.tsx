@@ -52,21 +52,19 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
 
   const fetchSoftwareRevenue = async (dateStr: string) => {
     try {
-      // Local date to ISO range
-      const startObj = new Date(dateStr);
-      startObj.setHours(0, 0, 0, 0);
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const startObj = new Date(y, m - 1, d, 0, 0, 0);
+      const endObj = new Date(y, m - 1, d, 23, 59, 59, 999);
       const start = startObj.toISOString();
-
-      const endObj = new Date(dateStr);
-      endObj.setHours(23, 59, 59, 999);
       const end = endObj.toISOString();
 
       const { data: revLog } = await supabase
         .from('revenue_logs')
         .select('amount, type')
         .eq('shop_id', shopId)
-        .gte('created_at', start)
-        .lte('created_at', end);
+        .gte('recorded_at', start)
+        .lte('recorded_at', end)
+        .neq('status', 'cancelled');
 
       if (revLog) {
         const retailRev = revLog.filter((r: any) => r.type === 'retail' || r.type === 'combo').reduce((acc: number, r: any) => acc + Number(r.amount), 0);
