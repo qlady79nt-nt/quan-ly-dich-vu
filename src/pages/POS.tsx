@@ -23,6 +23,8 @@ const POS = () => {
 
   const [activeTab, setActiveTab] = useState<'retail' | 'sell_package' | 'use_package' | 'combo'>('retail');
   const [services, setServices] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [packages, setPackages] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [customersList, setCustomersList] = useState<any[]>([]);
@@ -99,13 +101,14 @@ const POS = () => {
   const fetchData = async () => {
     console.log('fetchData execution started...');
     setLoading(true);
-    const [svc, pkg, stf, custs, bds, activeSessionsRes] = await Promise.all([
+    const [svc, pkg, stf, custs, bds, activeSessionsRes, grps] = await Promise.all([
       supabase.from('services').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('staffs').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('customers').select('*').eq('shop_id', shopId).is('deleted_at', null),
       supabase.from('beds').select('*').eq('shop_id', shopId).order('name'),
-      supabase.from('service_sessions').select('bed_id').eq('shop_id', shopId).eq('status', 'in_progress')
+      supabase.from('service_sessions').select('bed_id').eq('shop_id', shopId).eq('status', 'in_progress'),
+      supabase.from('service_groups').select('*').eq('shop_id', shopId).order('sort_order', { ascending: true })
     ]);
     
     console.log('SERVICES DEBUG:', {
@@ -115,6 +118,7 @@ const POS = () => {
     });
 
     setServices(svc.data || []);
+    setGroups(grps.data || []);
     setPackages(pkg.data || []);
     setStaff(stf.data || []);
     setCustomersList(custs.data || []);
@@ -541,6 +545,18 @@ const POS = () => {
         {activeTab === 'retail' && (
           <div className="animate-fade">
             <div className="premium-card mobile-stack" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+              {groups.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '0.5rem', flexWrap: 'nowrap' }} className="hide-scrollbar">
+                  <button onClick={() => setActiveGroupId(null)} className="btn" style={{ whiteSpace: 'nowrap', padding: '0.25rem 0.75rem', borderRadius: '20px', background: activeGroupId === null ? 'var(--primary)' : 'var(--bg-main)', color: activeGroupId === null ? 'white' : 'inherit', border: activeGroupId === null ? 'none' : '1px solid var(--border)' }}>
+                    Tất cả
+                  </button>
+                  {groups.map(g => (
+                    <button key={g.id} onClick={() => setActiveGroupId(g.id)} className="btn" style={{ whiteSpace: 'nowrap', padding: '0.25rem 0.75rem', borderRadius: '20px', background: activeGroupId === g.id ? 'var(--primary)' : 'var(--bg-main)', color: activeGroupId === g.id ? 'white' : 'inherit', border: activeGroupId === g.id ? 'none' : '1px solid var(--border)' }}>
+                      {g.name}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div style={{ position: 'relative', flex: 1, width: '100%' }}>
                 <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
                 <input 
@@ -560,7 +576,7 @@ const POS = () => {
               </div>
             )}
             <div className="grid grid-cols-2">
-              {services.filter(s => s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => (
+              {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => (
                 <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
@@ -576,6 +592,18 @@ const POS = () => {
         {activeTab === 'combo' && (
           <div className="animate-fade">
             <div className="premium-card mobile-stack" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+              {groups.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '0.5rem', flexWrap: 'nowrap' }} className="hide-scrollbar">
+                  <button onClick={() => setActiveGroupId(null)} className="btn" style={{ whiteSpace: 'nowrap', padding: '0.25rem 0.75rem', borderRadius: '20px', background: activeGroupId === null ? 'var(--warning)' : 'var(--bg-main)', color: activeGroupId === null ? 'white' : 'inherit', border: activeGroupId === null ? 'none' : '1px solid var(--border)' }}>
+                    Tất cả
+                  </button>
+                  {groups.map(g => (
+                    <button key={g.id} onClick={() => setActiveGroupId(g.id)} className="btn" style={{ whiteSpace: 'nowrap', padding: '0.25rem 0.75rem', borderRadius: '20px', background: activeGroupId === g.id ? 'var(--warning)' : 'var(--bg-main)', color: activeGroupId === g.id ? 'white' : 'inherit', border: activeGroupId === g.id ? 'none' : '1px solid var(--border)' }}>
+                      {g.name}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div style={{ position: 'relative', flex: 1, width: '100%' }}>
                 <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
                 <input 
@@ -595,7 +623,7 @@ const POS = () => {
               </div>
             )}
             <div className="grid grid-cols-2">
-              {services.filter(s => s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => (
+              {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => (
                 <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px dashed var(--warning)' }}>
                   <div>
                     <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
