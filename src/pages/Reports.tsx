@@ -65,7 +65,7 @@ const Reports = () => {
     }
     clickTimeout.current = setTimeout(() => {
       setClickCount(0);
-    }, 500);
+    }, 1500); // Tăng thời gian chờ lên 1.5s để dễ bấm trên điện thoại
   };
   
   const [stats, setStats] = useState({
@@ -588,18 +588,23 @@ const Reports = () => {
               onClick={handleDotClick}
               style={{
                 position: 'absolute',
-                top: '4px',
-                right: 0,
-                width: '10px',
-                height: '10px',
-                background: 'var(--success)',
-                borderRadius: '50%',
+                top: '-6px',
+                right: '-10px',
+                padding: '10px', // Tăng vùng bấm (touch target)
                 cursor: 'pointer',
-                boxShadow: '0 0 5px var(--success)',
-                opacity: 0.8
+                zIndex: 10
               }}
               title="Đối chiếu cuối ngày"
-            />
+            >
+              <div style={{
+                width: '12px',
+                height: '12px',
+                background: 'var(--success)',
+                borderRadius: '50%',
+                boxShadow: '0 0 5px var(--success)',
+                opacity: 0.8
+              }} />
+            </div>
           )}
           <p className="page-subtitle">Theo dõi dòng tiền, doanh thu và hiệu suất</p>
         </div>
