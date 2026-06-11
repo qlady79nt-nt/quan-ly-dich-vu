@@ -824,7 +824,7 @@ const Reports = () => {
                             {s.logs.map((log: any, idx: number) => (
                               <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '0.75rem 0.5rem' }}>{new Date(log.created_at).toLocaleString()}</td>
-                                <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>{log.note || 'Thực hiện dịch vụ'}</td>
+                                <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>{log.note || 'Thực hiện Lt'}</td>
                                 <td style={{ padding: '0.75rem 0.5rem' }}>
                                   <button 
                                     onClick={() => openRevenueDetail(log)}
@@ -853,7 +853,7 @@ const Reports = () => {
                           {s.logs.map((log: any, idx: number) => (
                             <div key={idx} className="invoice-card-compact" style={{ padding: '0.75rem 1rem', cursor: 'default' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
-                                <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.95rem' }}>{log.note || 'Thực hiện dịch vụ'}</div>
+                                <div style={{ fontWeight: '600', color: 'var(--text-main)', fontSize: '0.95rem' }}>{log.note || 'Thực hiện Lt'}</div>
                                 <span className={`badge ${log.type === 'package_sale' || log.type === 'retail' ? 'badge-primary' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
                                   {log.type === 'package_sale' || log.type === 'retail' ? 'Bán hàng' : 'Thực hiện'}
                                 </span>
@@ -1171,7 +1171,7 @@ const Reports = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Nội dung:</span>
-                    <span style={{ fontWeight: '600' }}>{detailModal.data.note || 'Thực hiện dịch vụ'}</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.note || 'Thực hiện Lt'}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày ghi nhận:</span>
