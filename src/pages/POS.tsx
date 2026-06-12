@@ -10,7 +10,10 @@ import {
   Calendar,
   Printer,
   CheckCircle2,
-  ShoppingCart
+  ShoppingCart,
+  Folder,
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -25,6 +28,7 @@ const POS = () => {
   const [services, setServices] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [posViewMode, setPosViewMode] = useState<'all' | 'groups'>('all');
   const [packages, setPackages] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [customersList, setCustomersList] = useState<any[]>([]);
@@ -544,95 +548,147 @@ const POS = () => {
         <div className="no-print">
         {activeTab === 'retail' && (
           <div className="animate-fade">
+            {!activeGroupId && (
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+                <button className={`btn ${posViewMode === 'all' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setPosViewMode('all')}>Tất cả</button>
+                <button className={`btn ${posViewMode === 'groups' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setPosViewMode('groups')}>Nhóm</button>
+              </div>
+            )}
+
+            {activeGroupId && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <button className="btn btn-secondary" onClick={() => setActiveGroupId(null)}><ArrowLeft size={18} /> Quay lại</button>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, textTransform: 'uppercase', color: 'var(--text-main)' }}>
+                  {groups.find(g => g.id === activeGroupId)?.name}
+                </h2>
+              </div>
+            )}
+
             <div className="premium-card mobile-stack" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
-              {groups.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '0.5rem', flexWrap: 'nowrap' }} className="hide-scrollbar">
-                  <button onClick={() => setActiveGroupId(null)} className="btn" style={{ whiteSpace: 'nowrap', padding: '0.25rem 0.75rem', borderRadius: '20px', background: activeGroupId === null ? 'var(--primary)' : 'var(--bg-main)', color: activeGroupId === null ? 'white' : 'inherit', border: activeGroupId === null ? 'none' : '1px solid var(--border)' }}>
-                    Tất cả
-                  </button>
-                  {groups.map(g => (
-                    <button key={g.id} onClick={() => setActiveGroupId(g.id)} className="btn" style={{ whiteSpace: 'nowrap', padding: '0.25rem 0.75rem', borderRadius: '20px', background: activeGroupId === g.id ? 'var(--primary)' : 'var(--bg-main)', color: activeGroupId === g.id ? 'white' : 'inherit', border: activeGroupId === g.id ? 'none' : '1px solid var(--border)' }}>
-                      {g.name}
-                    </button>
-                  ))}
-                </div>
-              )}
               <div style={{ position: 'relative', flex: 1, width: '100%' }}>
                 <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
                 <input 
                   type="text" 
                   className="form-input" 
-                  placeholder="Tìm tên dịch vụ..." 
+                  placeholder={posViewMode === 'groups' && !activeGroupId ? "Tìm nhóm..." : "Tìm tên dịch vụ..."} 
                   style={{ paddingLeft: '2.75rem', width: '100%' }}
                   value={retailSearchTerm}
                   onChange={(e) => setRetailSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            {services.length === 0 && !loading && (
-              <div className="premium-card" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                <p style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Không tìm thấy dịch vụ nào</p>
-                <p style={{ fontSize: '0.875rem' }}>Vui lòng kiểm tra lại cấu hình Database (RLS / shop_id).</p>
-              </div>
-            )}
-            <div className="grid grid-cols-2">
-              {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => (
-                <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
-                    <div style={{ color: 'var(--primary)', fontWeight: '700' }}>{Number(s.price).toLocaleString()}đ</div>
+
+            {posViewMode === 'groups' && !activeGroupId ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {groups.filter(g => g.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(g => (
+                  <div key={g.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => setActiveGroupId(g.id)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                        <Folder size={24} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700' }}>{g.name}</h4>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-light)' }}>{services.filter(s => s.service_group_id === g.id).length} dịch vụ</div>
+                      </div>
+                    </div>
+                    <ChevronRight size={20} color="var(--text-light)" />
                   </div>
-                  <Plus size={20} color="var(--text-light)" />
+                ))}
+              </div>
+            ) : (
+              <>
+                {services.length === 0 && !loading && (
+                  <div className="premium-card" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                    <p style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Không tìm thấy dịch vụ nào</p>
+                    <p style={{ fontSize: '0.875rem' }}>Vui lòng kiểm tra lại cấu hình Database (RLS / shop_id).</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2">
+                  {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => (
+                    <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
+                        <div style={{ color: 'var(--primary)', fontWeight: '700' }}>{Number(s.price).toLocaleString()}đ</div>
+                      </div>
+                      <Plus size={20} color="var(--text-light)" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         )}
 
         {activeTab === 'combo' && (
           <div className="animate-fade">
+            {!activeGroupId && (
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+                <button className={`btn ${posViewMode === 'all' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setPosViewMode('all')}>Tất cả</button>
+                <button className={`btn ${posViewMode === 'groups' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setPosViewMode('groups')}>Nhóm</button>
+              </div>
+            )}
+
+            {activeGroupId && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <button className="btn btn-secondary" onClick={() => setActiveGroupId(null)}><ArrowLeft size={18} /> Quay lại</button>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, textTransform: 'uppercase', color: 'var(--text-main)' }}>
+                  {groups.find(g => g.id === activeGroupId)?.name}
+                </h2>
+              </div>
+            )}
+
             <div className="premium-card mobile-stack" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
-              {groups.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '0.5rem', flexWrap: 'nowrap' }} className="hide-scrollbar">
-                  <button onClick={() => setActiveGroupId(null)} className="btn" style={{ whiteSpace: 'nowrap', padding: '0.25rem 0.75rem', borderRadius: '20px', background: activeGroupId === null ? 'var(--warning)' : 'var(--bg-main)', color: activeGroupId === null ? 'white' : 'inherit', border: activeGroupId === null ? 'none' : '1px solid var(--border)' }}>
-                    Tất cả
-                  </button>
-                  {groups.map(g => (
-                    <button key={g.id} onClick={() => setActiveGroupId(g.id)} className="btn" style={{ whiteSpace: 'nowrap', padding: '0.25rem 0.75rem', borderRadius: '20px', background: activeGroupId === g.id ? 'var(--warning)' : 'var(--bg-main)', color: activeGroupId === g.id ? 'white' : 'inherit', border: activeGroupId === g.id ? 'none' : '1px solid var(--border)' }}>
-                      {g.name}
-                    </button>
-                  ))}
-                </div>
-              )}
               <div style={{ position: 'relative', flex: 1, width: '100%' }}>
                 <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
                 <input 
                   type="text" 
                   className="form-input" 
-                  placeholder="Tìm tên dịch vụ cho Combo..." 
+                  placeholder={posViewMode === 'groups' && !activeGroupId ? "Tìm nhóm..." : "Tìm tên dịch vụ cho Combo..."} 
                   style={{ paddingLeft: '2.75rem', width: '100%' }}
                   value={comboSearchTerm}
                   onChange={(e) => setComboSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-            {services.length === 0 && !loading && (
-              <div className="premium-card" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
-                <p style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Không tìm thấy dịch vụ nào</p>
-                <p style={{ fontSize: '0.875rem' }}>Vui lòng kiểm tra lại cấu hình Database.</p>
-              </div>
-            )}
-            <div className="grid grid-cols-2">
-              {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => (
-                <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px dashed var(--warning)' }}>
-                  <div>
-                    <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
-                    <div style={{ color: 'var(--primary)', fontWeight: '700' }}>{Number(s.price).toLocaleString()}đ</div>
+
+            {posViewMode === 'groups' && !activeGroupId ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {groups.filter(g => g.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(g => (
+                  <div key={g.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', border: '1px dashed var(--warning)' }} onClick={() => setActiveGroupId(g.id)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--warning)' }}>
+                        <Folder size={24} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700' }}>{g.name}</h4>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-light)' }}>{services.filter(s => s.service_group_id === g.id).length} dịch vụ</div>
+                      </div>
+                    </div>
+                    <ChevronRight size={20} color="var(--text-light)" />
                   </div>
-                  <Plus size={20} color="var(--warning)" />
+                ))}
+              </div>
+            ) : (
+              <>
+                {services.length === 0 && !loading && (
+                  <div className="premium-card" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
+                    <p style={{ fontWeight: '600', marginBottom: '0.5rem' }}>Không tìm thấy dịch vụ nào</p>
+                    <p style={{ fontSize: '0.875rem' }}>Vui lòng kiểm tra lại cấu hình Database.</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2">
+                  {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => (
+                    <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px dashed var(--warning)' }}>
+                      <div>
+                        <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
+                        <div style={{ color: 'var(--primary)', fontWeight: '700' }}>{Number(s.price).toLocaleString()}đ</div>
+                      </div>
+                      <Plus size={20} color="var(--warning)" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         )}
 
