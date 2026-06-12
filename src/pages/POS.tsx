@@ -603,14 +603,14 @@ const POS = () => {
                     <p style={{ fontSize: '0.875rem' }}>Vui lòng kiểm tra lại cấu hình Database (RLS / shop_id).</p>
                   </div>
                 )}
-                <div className="grid grid-cols-2">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: isMobile ? '0.75rem' : '1.5rem' }}>
                   {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => (
-                    <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
-                        <div style={{ color: 'var(--primary)', fontWeight: '700' }}>{Number(s.price).toLocaleString()}đ</div>
+                    <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMobile ? '0.75rem' : undefined }}>
+                      <div style={{ overflow: 'hidden' }}>
+                        <h4 style={{ fontSize: isMobile ? '0.875rem' : '1rem', marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</h4>
+                        <div style={{ color: 'var(--primary)', fontWeight: '700', fontSize: isMobile ? '0.875rem' : '1rem' }}>{Number(s.price).toLocaleString()}đ</div>
                       </div>
-                      <Plus size={20} color="var(--text-light)" />
+                      <Plus size={isMobile ? 18 : 20} color="var(--text-light)" style={{ flexShrink: 0 }} />
                     </div>
                   ))}
                 </div>
@@ -676,14 +676,14 @@ const POS = () => {
                     <p style={{ fontSize: '0.875rem' }}>Vui lòng kiểm tra lại cấu hình Database.</p>
                   </div>
                 )}
-                <div className="grid grid-cols-2">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: isMobile ? '0.75rem' : '1.5rem' }}>
                   {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => (
-                    <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px dashed var(--warning)' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{s.name}</h4>
-                        <div style={{ color: 'var(--primary)', fontWeight: '700' }}>{Number(s.price).toLocaleString()}đ</div>
+                    <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px dashed var(--warning)', padding: isMobile ? '0.75rem' : undefined }}>
+                      <div style={{ overflow: 'hidden' }}>
+                        <h4 style={{ fontSize: isMobile ? '0.875rem' : '1rem', marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</h4>
+                        <div style={{ color: 'var(--primary)', fontWeight: '700', fontSize: isMobile ? '0.875rem' : '1rem' }}>{Number(s.price).toLocaleString()}đ</div>
                       </div>
-                      <Plus size={20} color="var(--warning)" />
+                      <Plus size={isMobile ? 18 : 20} color="var(--warning)" style={{ flexShrink: 0 }} />
                     </div>
                   ))}
                 </div>
