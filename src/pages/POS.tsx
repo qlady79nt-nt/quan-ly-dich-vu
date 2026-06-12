@@ -529,7 +529,7 @@ const POS = () => {
 
   return (
     <div className="page-container animate-fade">
-      <div className="no-print mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+      <div className="no-print mobile-tabs" style={{ marginBottom: '1rem' }}>
         <button onClick={() => setActiveTab('retail')} className="btn mobile-tab" style={{ background: activeTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'retail' ? 'white' : 'inherit' }}>
           <Zap size={18} /> Bán lẻ
         </button>
@@ -543,6 +543,8 @@ const POS = () => {
           <Calendar size={18} /> Dùng liệu trình
         </button>
       </div>
+
+      <div className="no-print" style={{ height: '2px', background: '#3b82f6', marginBottom: '1.5rem', borderRadius: '2px' }}></div>
 
       <div className="pos-grid">
         <div className="no-print">
