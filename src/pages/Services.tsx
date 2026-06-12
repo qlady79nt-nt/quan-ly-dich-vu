@@ -130,8 +130,8 @@ const Services = () => {
   };
 
   const handleHardDeleteGroup = async (id: string) => {
-    if (profile?.role !== 'super_admin') return;
-    if (!window.confirm('XÓA VĨNH VIỄN nhóm này?')) return;
+    if (profile?.role !== 'super_admin' && profile?.role !== 'shop_admin') return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa nhóm này?')) return;
     setLoading(true);
     const { error } = await supabase.from('service_groups').delete().eq('id', id);
     if (!error) fetchData();
@@ -262,7 +262,7 @@ const Services = () => {
                     {profile?.role === 'shop_admin' && (
                       <button onClick={(e) => { e.stopPropagation(); setEditingGroupId(g.id); setGroupFormData({ name: g.name, sort_order: g.sort_order }); setIsGroupModalOpen(true); }} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={16} /></button>
                     )}
-                    {profile?.role === 'super_admin' && (
+                    {(profile?.role === 'super_admin' || profile?.role === 'shop_admin') && (
                       <button onClick={(e) => { e.stopPropagation(); handleHardDeleteGroup(g.id); }} className="btn" style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)' }}><Trash2 size={16} /></button>
                     )}
                     <ChevronRight size={20} color="var(--text-light)" />
