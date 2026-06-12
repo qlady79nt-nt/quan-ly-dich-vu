@@ -148,9 +148,16 @@ const Services = () => {
   };
 
   const renderServicesList = (serviceList: any[]) => {
-    return serviceList.map(s => (
-      <div key={s.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', opacity: s.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s', marginBottom: '1rem' }}>
-        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: s.status === 'inactive' ? 'rgba(0,0,0,0.05)' : 'rgba(109, 40, 217, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.status === 'inactive' ? 'var(--text-light)' : 'var(--primary)', flexShrink: 0 }}>
+    return serviceList.map(s => {
+      const isInactive = s.status === 'inactive';
+      const isGrouped = !!s.service_group_id;
+      
+      const iconBg = isInactive ? 'rgba(0,0,0,0.05)' : (isGrouped ? 'rgba(109, 40, 217, 0.08)' : 'rgba(234, 88, 12, 0.08)');
+      const iconColor = isInactive ? 'var(--text-light)' : (isGrouped ? 'var(--primary)' : '#ea580c'); // #ea580c is an orange color
+      
+      return (
+      <div key={s.id} className="premium-card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', opacity: isInactive ? 0.6 : 1, transition: 'opacity 0.2s', marginBottom: '1rem' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor, flexShrink: 0 }}>
           <Scissors size={28} />
         </div>
         <div style={{ flex: 1 }}>
@@ -185,7 +192,8 @@ const Services = () => {
           )}
         </div>
       </div>
-    ));
+      );
+    });
   };
 
   const filteredAllServices = services.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
