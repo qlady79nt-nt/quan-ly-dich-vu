@@ -81,7 +81,7 @@ const Packages = () => {
     setLoading(true);
     let query = supabase.from('customer_packages')
       .select('*')
-      .neq('status', 'cancelled')
+      .eq('status', 'active')
       .order('created_at', { ascending: false });
 
     if (profile?.role !== 'super_admin') {
