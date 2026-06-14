@@ -149,21 +149,48 @@ const StaffIncome = () => {
       note: formData.note
     };
 
-    if (editingId) {
-      const { error } = await supabase.from('staff_daily_income').update(payload).eq('id', editingId);
-      if (error) {
-        alert('Lỗi cập nhật: ' + error.message);
-      } else {
-        alert('Cập nhật thành công!');
-        resetForm();
-        fetchIncomes();
+    if (!editingId) {
+      // Kiểm tra xem nhân viên đã có bản ghi trong ngày hôm nay chưa
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      
+      const { data: existing, error: checkErr } = await supabase
+        .from('staff_daily_income')
+        .select('id')
+        .eq('shop_id', shopId)
+        .eq('staff_name', formData.staff_name)
+        .gte('created_at', startOfDay)
+        .limit(1);
+        
+      if (checkErr) {
+        setSaving(false);
+        return alert('Lỗi kiểm tra dữ liệu: ' + checkErr.message);
       }
-    } else {
+      
+      if (existing && existing.length > 0) {
+        setSaving(false);
+        return alert(`Nhân viên ${formData.staff_name} đã được ghi nhận thu nhập trong hôm nay!\nNếu sai sót, vui lòng báo cho Quản Lý để chỉnh sửa.`);
+      }
+
       const { error } = await supabase.from('staff_daily_income').insert([payload]);
       if (error) {
         alert('Lỗi khi lưu dữ liệu: ' + error.message);
       } else {
         alert('Đã lưu thành công!');
+        resetForm();
+        fetchIncomes();
+      }
+    } else {
+      if (!isShopAdmin) {
+        setSaving(false);
+        return alert('Chỉ có Quản Lý (Shop Admin) mới được phép chỉnh sửa thu nhập đã ghi nhận trong ngày!');
+      }
+      
+      const { error } = await supabase.from('staff_daily_income').update(payload).eq('id', editingId);
+      if (error) {
+        alert('Lỗi cập nhật: ' + error.message);
+      } else {
+        alert('Cập nhật thành công!');
         resetForm();
         fetchIncomes();
       }
