@@ -398,7 +398,7 @@ const Packages = () => {
                     const cardMatch = cp.card_code ? cp.card_code.toLowerCase().includes(s) : false;
                     return nameMatch || phoneMatch || cardMatch;
                   }).map(cp => (
-                    <tr key={cp.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
+                    <tr key={cp.id} onClick={() => handleViewCustomerDetail(cp)} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer' }} className="hover-row">
                       <td style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: '600' }}>{cp.customer_name || 'Khách lẻ'}</div>
                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>SĐT: {cp.customer_phone}</div>
