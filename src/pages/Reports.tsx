@@ -34,8 +34,11 @@ const Reports = () => {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [staffData, setStaffData] = useState<any[]>([]);
   const [missingStaffData, setMissingStaffData] = useState<any[]>([]);
-  const isShopAdmin = profile?.role === 'shop_admin';
-  const [view, setView] = useState<'revenue' | 'commission' | 'staff'>(isShopAdmin ? 'revenue' : 'staff');
+  const isShopAdmin = profile?.role === 'shop_admin' || profile?.role === 'super_admin';
+  const isStaff = profile?.role === 'staff';
+  
+  // Mặc định luôn là revenue, Staff cũng xem revenue (KPI ảo/thật) nhưng bị ẩn các tab chuyển
+  const [view, setView] = useState<'revenue' | 'commission' | 'staff'>('revenue');
   const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'combo' | 'package_sale' | 'package_session'>('all');
   const [revenueDisplayCount, setRevenueDisplayCount] = useState(10);
   const [detailModal, setDetailModal] = useState<any>(null);
@@ -87,7 +90,8 @@ const Reports = () => {
     setLoading(true);
     try {
       // Check Permissions before fetching
-      const canViewRevenue = hasPermission('report.revenue.view');
+      // Nhân viên staff được phép xem view revenue (KPI ảo)
+      const canViewRevenue = hasPermission('report.revenue.view') || isStaff;
       const canViewCommissions = hasPermission('report.commission.view');
 
       let revLog: any[] = [];
@@ -99,6 +103,60 @@ const Reports = () => {
       const endObj = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       const start = startObj.toISOString();
       const end = endObj.toISOString();
+
+      let useFakeRevenue = false;
+      if (isStaff) {
+        const sDate = new Date(startObj);
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+        sDate.setHours(0, 0, 0, 0);
+        
+        // Nếu sDate cũ hơn (today - 2 ngày), tức là chứa ngày cũ hơn 3 ngày
+        const diffTime = todayDate.getTime() - sDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays > 2) {
+           useFakeRevenue = true;
+        }
+      }
+
+      if (useFakeRevenue) {
+        // Sinh fake revenue bằng RPC
+        const currentM = new Date(startObj.getFullYear(), startObj.getMonth(), 1);
+        while (currentM <= endObj) {
+           const yyyy = currentM.getFullYear();
+           const mm = String(currentM.getMonth() + 1).padStart(2, '0');
+           await supabase.rpc('sp_generate_fake_revenue_month', { 
+             p_shop_id: shopId, 
+             p_target_date: `${yyyy}-${mm}-01` 
+           });
+           currentM.setMonth(currentM.getMonth() + 1);
+        }
+
+        const { data: fakeData } = await supabase.from('staff_fake_revenue')
+           .select('fake_amount')
+           .eq('shop_id', shopId)
+           .gte('revenue_date', start.split('T')[0])
+           .lte('revenue_date', end.split('T')[0]);
+           
+        const fakeTotal = fakeData?.reduce((acc: number, row: any) => acc + Number(row.fake_amount), 0) || 0;
+
+        setStats({
+          totalRevenue: fakeTotal,
+          totalProfit: fakeTotal, 
+          totalComm: 0,
+          totalCashFlow: fakeTotal,
+          retailRev: fakeTotal,
+          packageSaleCash: 0,
+          totalUnrealizedValue: 0,
+          totalUnrealizedSessions: 0
+        });
+        
+        setRevenueData([]);
+        setStaffData([]);
+        setMissingStaffData([]);
+        setLoading(false);
+        return; // Dừng, không fetch dữ liệu thật
+      }
 
       if (canViewRevenue) {
         const { data, error } = await supabase.from('revenue_logs').select('*').eq('shop_id', shopId).gte('recorded_at', start).lte('recorded_at', end).neq('status', 'cancelled').order('recorded_at', { ascending: false });
@@ -609,26 +667,19 @@ const Reports = () => {
           <p className="page-subtitle">Theo dõi dòng tiền, doanh thu và hiệu suất</p>
         </div>
         
-        {isShopAdmin && (
-          <div className="mobile-stack" style={{ alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)', flex: 1 }}>
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Từ:</span>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500', width: '100%' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)', flex: 1 }}>
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Đến:</span>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500', width: '100%' }} />
-            </div>
-            <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
-              <Search size={16} /> Tìm kiếm
-            </button>
+        <div className="mobile-stack" style={{ alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)', flex: 1 }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Từ:</span>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500', width: '100%' }} />
           </div>
-        )}
-        {!isShopAdmin && (
-          <div style={{ background: 'var(--bg-main)', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-            Hôm nay: {new Date().toLocaleDateString('vi-VN')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--border)', flex: 1 }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Đến:</span>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontWeight: '500', width: '100%' }} />
           </div>
-        )}
+          <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+            <Search size={16} /> Tìm kiếm
+          </button>
+        </div>
       </div>
 
       {isShopAdmin && (
@@ -647,7 +698,7 @@ const Reports = () => {
       
       {view === 'revenue' && (
         <>
-          {hasPermission('report.revenue.view') ? (
+          {(hasPermission('report.revenue.view') || isStaff) ? (
             <>
               <div className="kpi-grid" style={{ marginBottom: '2rem' }}>
                 <div className="premium-card" style={{ borderLeft: '4px solid var(--secondary)', display: 'flex', flexDirection: 'column' }}>
@@ -689,85 +740,87 @@ const Reports = () => {
                 </div>
               </div>
 
-              <div className="premium-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={20} /> Nhật ký Doanh thu</h3>
-                </div>
+              {!isStaff && (
+                <div className="premium-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={20} /> Nhật ký Doanh thu</h3>
+                  </div>
 
-                {/* Sub-tabs cho Doanh thu */}
-                <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
-                  <button onClick={() => { setRevenueTab('all'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Tất cả</button>
-                  <button onClick={() => { setRevenueTab('retail'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Dịch vụ lẻ</button>
-                  <button onClick={() => { setRevenueTab('combo'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'combo' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'combo' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Combo</button>
-                  <button onClick={() => { setRevenueTab('package_sale'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Bán liệu trình</button>
-                  <button onClick={() => { setRevenueTab('package_session'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Sử dụng liệu trình (Trừ buổi)</button>
-                </div>
+                  {/* Sub-tabs cho Doanh thu */}
+                  <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+                    <button onClick={() => { setRevenueTab('all'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Tất cả</button>
+                    <button onClick={() => { setRevenueTab('retail'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Dịch vụ lẻ</button>
+                    <button onClick={() => { setRevenueTab('combo'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'combo' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'combo' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Combo</button>
+                    <button onClick={() => { setRevenueTab('package_sale'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Bán liệu trình</button>
+                    <button onClick={() => { setRevenueTab('package_session'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Sử dụng liệu trình (Trừ buổi)</button>
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)', background: 'var(--bg-main)', borderRadius: '0.75rem' }}>
-                      Không có phát sinh doanh thu loại này.
-                    </div>
-                  ) : (
-                    <>
-                      {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).slice(0, revenueDisplayCount).map((r, idx) => (
-                        <div 
-                          key={idx} 
-                          onClick={() => openRevenueDetail(r)}
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '0.75rem', background: 'var(--bg-main)' }}
-                          onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                          onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: r.type === 'retail' || r.type === 'combo' ? 'rgba(59, 130, 246, 0.1)' : r.type === 'package_sale' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'retail' || r.type === 'combo' ? '#3b82f6' : r.type === 'package_sale' ? 'var(--secondary)' : '#10b981' }}>
-                              <FileText size={20} />
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-                                {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'combo' ? 'Thu combo' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
-                                
-                                {/* Mã hóa đơn cho cả 3 loại */}
-                                {r.mapped_invoice_code ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_code}</span> : ''}
-                                
-                                {/* Mã thẻ liệu trình cho Bán liệu trình và Trừ buổi */}
-                                {r.card_code && (r.type === 'package_sale' || r.type === 'package_session') ? <span style={{ color: 'var(--warning)', marginLeft: '0.25rem' }}>Thẻ: {r.card_code}</span> : ''}
-                                
-                                {/* Mã phiếu trừ buổi riêng cho Sử dụng liệu trình */}
-                                {r.type === 'package_session' && r.mapped_session_code ? <span style={{ color: 'var(--success)', marginLeft: '0.25rem' }}>Phiếu: #{r.mapped_session_code}</span> : ''}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)', background: 'var(--bg-main)', borderRadius: '0.75rem' }}>
+                        Không có phát sinh doanh thu loại này.
+                      </div>
+                    ) : (
+                      <>
+                        {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).slice(0, revenueDisplayCount).map((r, idx) => (
+                          <div 
+                            key={idx} 
+                            onClick={() => openRevenueDetail(r)}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '0.75rem', background: 'var(--bg-main)' }}
+                            onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: r.type === 'retail' || r.type === 'combo' ? 'rgba(59, 130, 246, 0.1)' : r.type === 'package_sale' ? 'rgba(212, 175, 55, 0.1)' : 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: r.type === 'retail' || r.type === 'combo' ? '#3b82f6' : r.type === 'package_sale' ? 'var(--secondary)' : '#10b981' }}>
+                                <FileText size={20} />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
+                                  {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'combo' ? 'Thu combo' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
+                                  
+                                  {/* Mã hóa đơn cho cả 3 loại */}
+                                  {r.mapped_invoice_code ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_code}</span> : ''}
+                                  
+                                  {/* Mã thẻ liệu trình cho Bán liệu trình và Trừ buổi */}
+                                  {r.card_code && (r.type === 'package_sale' || r.type === 'package_session') ? <span style={{ color: 'var(--warning)', marginLeft: '0.25rem' }}>Thẻ: {r.card_code}</span> : ''}
+                                  
+                                  {/* Mã phiếu trừ buổi riêng cho Sử dụng liệu trình */}
+                                  {r.type === 'package_session' && r.mapped_session_code ? <span style={{ color: 'var(--success)', marginLeft: '0.25rem' }}>Phiếu: #{r.mapped_session_code}</span> : ''}
 
-                                {/* Hiển thị chỗ/giường */}
-                                {r.bed_name ? <span style={{ color: 'var(--secondary)', marginLeft: '0.5rem', background: 'rgba(109, 40, 217, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>{r.bed_name}</span> : ''}
-                              </span>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{r.customer_name}</span>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--border)' }}>•</span>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(r.recorded_at).toLocaleString('vi-VN')}</span>
+                                  {/* Hiển thị chỗ/giường */}
+                                  {r.bed_name ? <span style={{ color: 'var(--secondary)', marginLeft: '0.5rem', background: 'rgba(109, 40, 217, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>{r.bed_name}</span> : ''}
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{r.customer_name}</span>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--border)' }}>•</span>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(r.recorded_at).toLocaleString('vi-VN')}</span>
+                                </div>
                               </div>
                             </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <strong style={{ fontSize: '1.1rem', color: r.type === 'package_session' ? 'var(--primary)' : 'var(--success)' }}>
+                                +{Number(r.amount).toLocaleString()}đ
+                              </strong>
+                            </div>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <strong style={{ fontSize: '1.1rem', color: r.type === 'package_session' ? 'var(--primary)' : 'var(--success)' }}>
-                              +{Number(r.amount).toLocaleString()}đ
-                            </strong>
+                        ))}
+                        
+                        {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length > revenueDisplayCount && (
+                          <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                            <button 
+                              onClick={() => setRevenueDisplayCount(prev => prev + 10)}
+                              className="btn" 
+                              style={{ background: 'var(--bg-main)', color: 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '2rem', padding: '0.5rem 2rem', fontWeight: '600', fontSize: '0.875rem' }}
+                            >
+                              Xem thêm
+                            </button>
                           </div>
-                        </div>
-                      ))}
-                      
-                      {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length > revenueDisplayCount && (
-                        <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-                          <button 
-                            onClick={() => setRevenueDisplayCount(prev => prev + 10)}
-                            className="btn" 
-                            style={{ background: 'var(--bg-main)', color: 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '2rem', padding: '0.5rem 2rem', fontWeight: '600', fontSize: '0.875rem' }}
-                          >
-                            Xem thêm
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           ) : (
             <div className="premium-card" style={{ textAlign: 'center', padding: '5rem' }}>
