@@ -17,6 +17,8 @@ const Packages = () => {
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditCustomerPackageModalOpen, setIsEditCustomerPackageModalOpen] = useState(false);
+  const [editCustomerPackageData, setEditCustomerPackageData] = useState({ total_sessions: 0 });
 
   // Bottom sheet states
   const [selectedCustomerPackage, setSelectedCustomerPackage] = useState<any | null>(null);
@@ -231,6 +233,31 @@ const Packages = () => {
       commission_sale_value: pkg.commission_sale_value || 0
     });
     setIsModalOpen(true);
+  };
+
+  const handleSaveCustomerPackageEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ!');
+    if (!selectedCustomerPackage) return;
+    
+    if (editCustomerPackageData.total_sessions < selectedCustomerPackage.used_sessions) {
+      return alert('Tổng số buổi không thể nhỏ hơn số buổi đã sử dụng!');
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from('customer_packages')
+      .update({ total_sessions: editCustomerPackageData.total_sessions })
+      .eq('id', selectedCustomerPackage.id);
+
+    if (!error) {
+      setIsEditCustomerPackageModalOpen(false);
+      setSelectedCustomerPackage({ ...selectedCustomerPackage, total_sessions: editCustomerPackageData.total_sessions });
+      fetchCustomerPackages();
+    } else {
+      alert('Lỗi cập nhật: ' + error.message);
+    }
+    setSaving(false);
   };
 
   return (
@@ -655,12 +682,46 @@ const Packages = () => {
                 className="btn" 
                 style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', background: '#f3f4f6', color: 'var(--text-main)', border: 'none' }}
                 onClick={() => {
-                  alert('Tính năng chỉnh sửa đang phát triển!');
+                  setEditCustomerPackageData({ total_sessions: selectedCustomerPackage.total_sessions });
+                  setIsEditCustomerPackageModalOpen(true);
                 }}
               >
                 Chỉnh sửa
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* EDIT CUSTOMER PACKAGE MODAL */}
+      {isEditCustomerPackageModalOpen && createPortal(
+        <div className="fullscreen-sheet-mobile-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div className="premium-card animate-fade" style={{ width: '100%', maxWidth: '400px', padding: '1.5rem', margin: '1rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0' }}>Sửa số buổi liệu trình</h3>
+            <form onSubmit={handleSaveCustomerPackageEdit}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Tổng số buổi</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  required 
+                  min={selectedCustomerPackage?.used_sessions || 1}
+                  value={editCustomerPackageData.total_sessions} 
+                  onChange={(e) => setEditCustomerPackageData({ total_sessions: Number(e.target.value) })} 
+                  style={{ height: '48px', borderRadius: '14px', fontSize: '16px', width: '100%' }} 
+                />
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>
+                  Đã sử dụng: {selectedCustomerPackage?.used_sessions} buổi
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" onClick={() => setIsEditCustomerPackageModalOpen(false)} className="btn" style={{ flex: 1, background: '#f3f4f6', color: 'var(--text-main)', border: 'none', height: '48px' }}>Hủy</button>
+                <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, height: '48px' }}>
+                  {saving ? <Loader2 className="animate-spin" /> : 'Lưu thay đổi'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body
