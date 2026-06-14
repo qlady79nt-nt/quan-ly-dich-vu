@@ -21,6 +21,7 @@ interface ShopExpense {
   quantity: number;
   unit_price: number;
   total_amount: number;
+  is_recurring: boolean;
 }
 
 interface Props {
@@ -56,6 +57,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
   const [expenseName, setExpenseName] = useState('');
   const [expenseQty, setExpenseQty] = useState<number | ''>(1);
   const [expensePrice, setExpensePrice] = useState<number | ''>('');
+  const [expenseIsRecurring, setExpenseIsRecurring] = useState(false);
   const [expensesList, setExpensesList] = useState<ShopExpense[]>([]);
   const [isSavingExpense, setIsSavingExpense] = useState(false);
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);
@@ -216,6 +218,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
       quantity: qty,
       unit_price: price,
       total_amount: total,
+      is_recurring: expenseIsRecurring,
       created_by: userId
     };
     
@@ -233,6 +236,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
       setExpenseName('');
       setExpenseQty(1);
       setExpensePrice('');
+      setExpenseIsRecurring(false);
       setEditingExpenseId(null);
       fetchExpenses();
     } catch (err: any) {
@@ -259,6 +263,66 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
     setExpenseName(exp.expense_name);
     setExpenseQty(exp.quantity);
     setExpensePrice(exp.unit_price);
+    setExpenseIsRecurring(exp.is_recurring || false);
+  };
+
+  const syncRecurringExpenses = async () => {
+    setIsLoadingExpenses(true);
+    try {
+      const currentMonthStart = new Date(fromDate);
+      currentMonthStart.setDate(1);
+      
+      const prevMonthStart = new Date(currentMonthStart);
+      prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
+      const prevMonthEnd = new Date(currentMonthStart);
+      prevMonthEnd.setDate(0);
+      
+      const prevStartStr = prevMonthStart.toISOString().split('T')[0];
+      const prevEndStr = prevMonthEnd.toISOString().split('T')[0];
+
+      const { data: prevRecurrings, error: err1 } = await supabase
+        .from('shop_expenses')
+        .select('*')
+        .eq('shop_id', shopId)
+        .eq('is_recurring', true)
+        .gte('expense_date', prevStartStr)
+        .lte('expense_date', prevEndStr);
+        
+      if (err1) throw err1;
+      
+      if (!prevRecurrings || prevRecurrings.length === 0) {
+        alert('Không tìm thấy khoản chi cố định nào trong tháng trước!');
+        return;
+      }
+
+      const currentNames = expensesList.map(e => e.expense_name.toLowerCase());
+      
+      const toInsert = prevRecurrings.filter(p => !currentNames.includes(p.expense_name.toLowerCase())).map(p => ({
+        shop_id: shopId,
+        expense_date: fromDate,
+        expense_name: p.expense_name,
+        quantity: p.quantity,
+        unit_price: p.unit_price,
+        total_amount: p.total_amount,
+        is_recurring: true,
+        created_by: userId
+      }));
+
+      if (toInsert.length === 0) {
+        alert('Tất cả các khoản chi cố định từ tháng trước đã có mặt trong tháng này rồi!');
+        return;
+      }
+
+      const { error: err2 } = await supabase.from('shop_expenses').insert(toInsert);
+      if (err2) throw err2;
+      
+      alert(`Đã tự động đồng bộ ${toInsert.length} khoản chi cố định từ tháng trước!`);
+      fetchExpenses();
+    } catch (err: any) {
+      alert('Lỗi đồng bộ: ' + err.message);
+    } finally {
+      setIsLoadingExpenses(false);
+    }
   };
 
   const totalActual = (Number(actualCash) || 0) + (Number(actualTransfer) || 0);
@@ -504,6 +568,19 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                       </span>
                     </div>
 
+                    <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input 
+                        type="checkbox" 
+                        id="isRecurring"
+                        checked={expenseIsRecurring}
+                        onChange={e => setExpenseIsRecurring(e.target.checked)}
+                        style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                      />
+                      <label htmlFor="isRecurring" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 'bold' }}>
+                        Đây là khoản chi cố định hàng tháng (Mặt bằng, Internet...)
+                      </label>
+                    </div>
+
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                       {editingExpenseId && (
                         <button type="button" className="btn" onClick={() => {
@@ -511,6 +588,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                           setExpenseName('');
                           setExpenseQty(1);
                           setExpensePrice('');
+                          setExpenseIsRecurring(false);
                         }}>Huỷ</button>
                       )}
                       <button type="submit" className="btn btn-primary" disabled={isSavingExpense}>
@@ -523,13 +601,22 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                 {/* Expenses List */}
                 <div style={{ flex: '2 1 500px' }}>
                   <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', background: 'var(--bg-card)', padding: '1rem', borderRadius: '1rem' }}>
-                    <div>
+                    <div style={{ flex: 1, minWidth: '150px' }}>
                       <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Từ ngày</label>
-                      <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="form-input" />
+                      <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="form-input" style={{ width: '100%' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: '150px' }}>
+                      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Đến ngày</label>
+                      <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="form-input" style={{ width: '100%' }} />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Đến ngày</label>
-                      <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="form-input" />
+                      <button 
+                        onClick={syncRecurringExpenses} 
+                        className="btn" 
+                        style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '0.75rem 1.5rem', fontWeight: 'bold' }}
+                      >
+                        Đồng bộ chi phí cố định tháng trước
+                      </button>
                     </div>
                   </div>
 
@@ -545,7 +632,8 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                         <div key={exp.id} style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                           <div style={{ flex: 1, minWidth: '200px' }}>
                             <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                              {new Date(exp.expense_date).toLocaleDateString('vi-VN')}
+                              {new Date(exp.expense_date).toLocaleDateString('vi-VN')} 
+                              {exp.is_recurring && <span style={{ marginLeft: '0.5rem', color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
                             </div>
                             <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.25rem' }}>{exp.expense_name}</div>
                             <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
