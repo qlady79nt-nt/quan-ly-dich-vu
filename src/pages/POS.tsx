@@ -610,7 +610,10 @@ const POS = () => {
                     <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: isMobile ? '0.5rem' : undefined, borderRadius: isMobile ? '12px' : undefined, minWidth: 0 }}>
                       <div style={{ overflow: 'hidden', minWidth: 0, flex: 1, paddingRight: '0.25rem' }}>
                         <h4 style={{ fontSize: isMobile ? '0.8rem' : '1rem', marginBottom: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</h4>
-                        <div style={{ color: 'var(--primary)', fontWeight: '700', fontSize: isMobile ? '0.85rem' : '1rem' }}>{Number(s.price).toLocaleString()}đ</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ color: 'var(--primary)', fontWeight: '700', fontSize: isMobile ? '0.85rem' : '1rem' }}>{Number(s.price).toLocaleString()}đ</span>
+                          {s.duration_minutes ? <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>• {s.duration_minutes} phút</span> : null}
+                        </div>
                       </div>
                       <div style={{ width: isMobile ? '24px' : 'auto', height: isMobile ? '24px' : 'auto', borderRadius: '50%', background: isMobile ? 'var(--bg-main)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Plus size={isMobile ? 14 : 20} color={isMobile ? "var(--primary)" : "var(--text-light)"} />
@@ -685,7 +688,10 @@ const POS = () => {
                     <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px dashed var(--warning)', padding: isMobile ? '0.5rem' : undefined, borderRadius: isMobile ? '12px' : undefined, minWidth: 0 }}>
                       <div style={{ overflow: 'hidden', minWidth: 0, flex: 1, paddingRight: '0.25rem' }}>
                         <h4 style={{ fontSize: isMobile ? '0.8rem' : '1rem', marginBottom: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</h4>
-                        <div style={{ color: 'var(--primary)', fontWeight: '700', fontSize: isMobile ? '0.85rem' : '1rem' }}>{Number(s.price).toLocaleString()}đ</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ color: 'var(--primary)', fontWeight: '700', fontSize: isMobile ? '0.85rem' : '1rem' }}>{Number(s.price).toLocaleString()}đ</span>
+                          {s.duration_minutes ? <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>• {s.duration_minutes} phút</span> : null}
+                        </div>
                       </div>
                       <div style={{ width: isMobile ? '24px' : 'auto', height: isMobile ? '24px' : 'auto', borderRadius: '50%', background: isMobile ? 'rgba(245, 158, 11, 0.1)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Plus size={isMobile ? 14 : 20} color="var(--warning)" />
