@@ -452,7 +452,10 @@ const Packages = () => {
                     </div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{cp.customer_phone || '---'}</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      <div>{cp.customer_phone || '---'}</div>
+                      <div style={{ fontWeight: '600', color: 'var(--text-main)', marginTop: '0.25rem' }}>Thẻ: {cp.card_code || '---'}</div>
+                    </div>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', color: cp.status === 'active' ? 'var(--success)' : 'var(--text-secondary)', fontWeight: '600' }}>
                        <span style={{ fontSize: '10px' }}>●</span> {cp.status === 'active' ? 'Đang dùng' : 'Đã xong'}
                     </span>
@@ -525,7 +528,7 @@ const Packages = () => {
                   <div style={{ gridColumn: 'span 2' }} className="mobile-form-grid">
                     <div>
                       <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá gốc (đ)</label>
-                      <input type="number" className="form-input" required value={formData.original_price} onChange={(e) => setFormData({...formData, original_price: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px', width: '100%' }} />
+                      <input type="number" className="form-input" required value={formData.original_price || ''} onChange={(e) => setFormData({...formData, original_price: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px', width: '100%' }} />
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }} className="mobile-form-grid">
                       <div>
@@ -538,7 +541,7 @@ const Packages = () => {
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá trị</label>
-                        <input type="number" className="form-input" disabled={formData.discount_type === 'none'} value={formData.discount_value} onChange={(e) => setFormData({...formData, discount_value: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }} />
+                        <input type="number" className="form-input" disabled={formData.discount_type === 'none'} value={formData.discount_value || ''} onChange={(e) => setFormData({...formData, discount_value: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }} />
                       </div>
                     </div>
                   </div>
@@ -561,7 +564,7 @@ const Packages = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá trị HH</label>
-                    <input type="number" className="form-input" value={formData.commission_sale_value} onChange={(e) => setFormData({...formData, commission_sale_value: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }} />
+                    <input type="number" className="form-input" value={formData.commission_sale_value || ''} onChange={(e) => setFormData({...formData, commission_sale_value: Number(e.target.value)})} style={{ height: '48px', borderRadius: '14px', fontSize: '16px' }} />
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>
                       {formData.commission_sale_type === 'percent' ? 'Ví dụ: 10 = 10% giá bán gói' : 'Ví dụ: 50000 = 50.000đ'}
                     </div>

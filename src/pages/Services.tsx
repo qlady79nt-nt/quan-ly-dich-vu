@@ -335,11 +335,11 @@ const Services = () => {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá dịch vụ (đ)</label>
-                  <input type="number" className="form-input" required value={formData.price} onChange={(e) => setFormData({...formData, price: Number(e.target.value)})} />
+                  <input type="number" className="form-input" required value={formData.price || ''} onChange={(e) => setFormData({...formData, price: Number(e.target.value)})} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Thời gian (phút)</label>
-                  <input type="number" className="form-input" required value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: Number(e.target.value)})} />
+                  <input type="number" className="form-input" required value={formData.duration_minutes || ''} onChange={(e) => setFormData({...formData, duration_minutes: Number(e.target.value)})} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Loại hoa hồng</label>
@@ -351,7 +351,7 @@ const Services = () => {
                 <div>
                   <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: '600' }}>Giá trị hoa hồng</label>
                   <div style={{ position: 'relative' }}>
-                    <input type="number" className="form-input" required value={formData.commission_value} onChange={(e) => setFormData({...formData, commission_value: Number(e.target.value)})} />
+                    <input type="number" className="form-input" required value={formData.commission_value || ''} onChange={(e) => setFormData({...formData, commission_value: Number(e.target.value)})} />
                     <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }}>
                       {formData.commission_type === 'percent' ? <Percent size={14} /> : <DollarSign size={14} />}
                     </div>
