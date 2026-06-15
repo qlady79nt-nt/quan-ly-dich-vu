@@ -357,7 +357,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
             Lịch sử đối chiếu
           </button>
           
-          <div style={{ width: '4px', height: '2rem', background: 'var(--text-secondary)', margin: '0 0.5rem', borderRadius: '2px', opacity: 0.5 }}></div>
+          <div style={{ minWidth: '4px', width: '4px', height: '2rem', background: 'var(--text-secondary)', margin: '0 1rem', borderRadius: '2px', opacity: 0.5, flexShrink: 0 }}></div>
 
           <button 
             style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'expenses' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'expenses' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
