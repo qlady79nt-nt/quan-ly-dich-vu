@@ -31,7 +31,7 @@ interface Props {
 }
 
 const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'expenses'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'expenses' | 'expenses_history'>('form');
   
   // Form State
   const [reconDate, setReconDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -343,7 +343,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
         </div>
 
         {/* TABS */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', overflowX: 'auto', alignItems: 'center' }}>
           <button 
             style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'form' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'form' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
             onClick={() => setActiveTab('form')}
@@ -354,13 +354,22 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
             style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'history' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'history' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
             onClick={() => { setActiveTab('history'); setEditingId(null); }}
           >
-            Lịch sử
+            Lịch sử đối chiếu
           </button>
+          
+          <div style={{ width: '4px', height: '2rem', background: 'var(--text-secondary)', margin: '0 0.5rem', borderRadius: '2px', opacity: 0.5 }}></div>
+
           <button 
             style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'expenses' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'expenses' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
             onClick={() => setActiveTab('expenses')}
           >
             Nhập chi hàng hoá
+          </button>
+          <button 
+            style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'expenses_history' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'expenses_history' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+            onClick={() => { setActiveTab('expenses_history'); setEditingExpenseId(null); }}
+          >
+            Lịch sử chi
           </button>
         </div>
 
@@ -554,183 +563,165 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                           </div>
 
                           {record.note && (
-                            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                              <strong>Ghi chú:</strong> {record.note}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '0.5rem', fontSize: '0.875rem', color:           {/* EXPENSES VIEW */}
+          {activeTab === 'expenses' && (
+            <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+              <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--primary)' }}>
+                  {editingExpenseId ? 'Cập nhật khoản chi' : 'Nhập khoản chi mới'}
+                </h3>
+                <form onSubmit={handleSaveExpense}>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Ngày chi</label>
+                    <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="form-input" style={{ width: '100%' }} />
                   </div>
-                </>
-              )}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Tên khoản chi (hàng hóa, dịch vụ...)</label>
+                    <input type="text" value={expenseName} onChange={e => setExpenseName(e.target.value)} placeholder="Ví dụ: Tiền điện, Nhập sữa rửa mặt..." className="form-input" style={{ width: '100%' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Số lượng</label>
+                      <input type="number" min="1" step="0.1" value={expenseQty} onChange={e => setExpenseQty(e.target.value === '' ? '' : Number(e.target.value))} className="form-input" style={{ width: '100%' }} />
+                    </div>
+                    <div style={{ flex: 2 }}>
+                      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Đơn giá (đ)</label>
+                      <input type="number" min="0" value={expensePrice} onChange={e => setExpensePrice(e.target.value === '' ? '' : Number(e.target.value))} className="form-input" style={{ width: '100%' }} />
+                    </div>
+                  </div>
+                  
+                  <div style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.5rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '600' }}>Tổng cộng:</span>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--danger)' }}>
+                      {((Number(expenseQty) || 0) * (Number(expensePrice) || 0)).toLocaleString()}đ
+                    </span>
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input 
+                      type="checkbox" 
+                      id="isRecurring"
+                      checked={expenseIsRecurring}
+                      onChange={e => setExpenseIsRecurring(e.target.checked)}
+                      style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="isRecurring" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 'bold' }}>
+                      Đây là khoản chi cố định hàng tháng (Mặt bằng, Internet...)
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    {editingExpenseId && (
+                      <button type="button" className="btn" onClick={() => {
+                        setEditingExpenseId(null);
+                        setExpenseName('');
+                        setExpenseQty(1);
+                        setExpensePrice('');
+                        setExpenseIsRecurring(false);
+                      }}>Huỷ</button>
+                    )}
+                    <button type="submit" className="btn btn-primary" disabled={isSavingExpense}>
+                      {isSavingExpense ? 'Đang lưu...' : 'Lưu khoản chi'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 
-          {/* EXPENSES VIEW */}
-          {activeTab === 'expenses' && (
+          {/* EXPENSES HISTORY VIEW */}
+          {activeTab === 'expenses_history' && (
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
-                
-                {/* Form Input */}
-                <div style={{ flex: '1 1 350px', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', alignSelf: 'flex-start' }}>
-                  <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--primary)' }}>
-                    {editingExpenseId ? 'Cập nhật khoản chi' : 'Nhập khoản chi mới'}
-                  </h3>
-                  <form onSubmit={handleSaveExpense}>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Ngày chi</label>
-                      <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="form-input" style={{ width: '100%' }} />
-                    </div>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Tên khoản chi (hàng hóa, dịch vụ...)</label>
-                      <input type="text" value={expenseName} onChange={e => setExpenseName(e.target.value)} placeholder="Ví dụ: Tiền điện, Nhập sữa rửa mặt..." className="form-input" style={{ width: '100%' }} />
-                    </div>
-                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Số lượng</label>
-                        <input type="number" min="1" step="0.1" value={expenseQty} onChange={e => setExpenseQty(e.target.value === '' ? '' : Number(e.target.value))} className="form-input" style={{ width: '100%' }} />
-                      </div>
-                      <div style={{ flex: 2 }}>
-                        <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Đơn giá (đ)</label>
-                        <input type="number" min="0" value={expensePrice} onChange={e => setExpensePrice(e.target.value === '' ? '' : Number(e.target.value))} className="form-input" style={{ width: '100%' }} />
-                      </div>
-                    </div>
-                    
-                    <div style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '0.5rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: '600' }}>Tổng cộng:</span>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--danger)' }}>
-                        {((Number(expenseQty) || 0) * (Number(expensePrice) || 0)).toLocaleString()}đ
-                      </span>
-                    </div>
-
-                    <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input 
-                        type="checkbox" 
-                        id="isRecurring"
-                        checked={expenseIsRecurring}
-                        onChange={e => setExpenseIsRecurring(e.target.checked)}
-                        style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
-                      />
-                      <label htmlFor="isRecurring" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 'bold' }}>
-                        Đây là khoản chi cố định hàng tháng (Mặt bằng, Internet...)
-                      </label>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                      {editingExpenseId && (
-                        <button type="button" className="btn" onClick={() => {
-                          setEditingExpenseId(null);
-                          setExpenseName('');
-                          setExpenseQty(1);
-                          setExpensePrice('');
-                          setExpenseIsRecurring(false);
-                        }}>Huỷ</button>
-                      )}
-                      <button type="submit" className="btn btn-primary" disabled={isSavingExpense}>
-                        {isSavingExpense ? 'Đang lưu...' : 'Lưu khoản chi'}
-                      </button>
-                    </div>
-                  </form>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1, minWidth: '150px' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Từ ngày</label>
+                  <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="form-input" style={{ width: '100%' }} />
                 </div>
+                <div style={{ flex: 1, minWidth: '150px' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Đến ngày</label>
+                  <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="form-input" style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <button 
+                    onClick={syncRecurringExpenses} 
+                    className="btn" 
+                    style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '0.75rem 1.5rem', fontWeight: 'bold' }}
+                  >
+                    Đồng bộ chi phí cố định tháng trước
+                  </button>
+                </div>
+              </div>
 
-                {/* Expenses List */}
-                <div style={{ flex: '2 1 500px' }}>
-                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', background: 'var(--bg-card)', padding: '1rem', borderRadius: '1rem' }}>
-                    <div style={{ flex: 1, minWidth: '150px' }}>
-                      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Từ ngày</label>
-                      <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="form-input" style={{ width: '100%' }} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: '150px' }}>
-                      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Đến ngày</label>
-                      <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="form-input" style={{ width: '100%' }} />
-                    </div>
-                    <div>
-                      <button 
-                        onClick={syncRecurringExpenses} 
-                        className="btn" 
-                        style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '0.75rem 1.5rem', fontWeight: 'bold' }}
-                      >
-                        Đồng bộ chi phí cố định tháng trước
-                      </button>
-                    </div>
-                  </div>
-
-                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'var(--primary)' }}>Lịch sử chi tiêu</h3>
-                  {isLoadingExpenses ? (
-                    <div style={{ textAlign: 'center', padding: '2rem' }}>Đang tải danh sách...</div>
-                  ) : expensesList.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--bg-card)', borderRadius: '1rem', color: 'var(--text-secondary)' }}>
-                      Chưa có dữ liệu chi tiêu trong khoảng thời gian này
-                    </div>
-                  ) : (
-                    <>
-                      <div className="desktop-only" style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px', textAlign: 'left' }}>
-                          <thead>
-                            <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
-                              <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày chi</th>
-                              <th style={{ padding: '1rem', fontWeight: 'bold' }}>Tên khoản chi</th>
-                              <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>SL × Đơn giá</th>
-                              <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng cộng</th>
-                              <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {expensesList.map((exp, index) => (
-                              <tr key={exp.id} style={{ borderBottom: index === expensesList.length - 1 ? 'none' : '1px solid var(--border)' }}>
-                                <td style={{ padding: '1rem' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
-                                    <span style={{ fontWeight: '500' }}>{new Date(exp.expense_date).toLocaleDateString('vi-VN')}</span>
-                                    {exp.is_recurring && <span style={{ color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
-                                  </div>
-                                </td>
-                                <td style={{ padding: '1rem', fontWeight: 'bold' }}>{exp.expense_name}</td>
-                                <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--text-secondary)' }}>{exp.quantity} × {exp.unit_price.toLocaleString()}đ</td>
-                                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--danger)' }}>- {exp.total_amount.toLocaleString()}đ</td>
-                                <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                    <button onClick={() => handleEditExpense(exp)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
-                                    <button onClick={() => handleDeleteExpense(exp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xoá</button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {expensesList.map(exp => (
-                          <div key={exp.id} style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', border: '1px solid var(--border)' }}>
-                            <div style={{ flex: 1, minWidth: '200px' }}>
-                              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                                {new Date(exp.expense_date).toLocaleDateString('vi-VN')} 
-                                {exp.is_recurring && <span style={{ marginLeft: '0.5rem', color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
+              {isLoadingExpenses ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>Đang tải danh sách...</div>
+              ) : expensesList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                  Chưa có dữ liệu chi tiêu trong khoảng thời gian này
+                </div>
+              ) : (
+                <>
+                  <div className="desktop-only" style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
+                          <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày chi</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold' }}>Tên khoản chi</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>SL × Đơn giá</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng cộng</th>
+                          <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {expensesList.map((exp, index) => (
+                          <tr key={exp.id} style={{ borderBottom: index === expensesList.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                            <td style={{ padding: '1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                <span style={{ fontWeight: '500' }}>{new Date(exp.expense_date).toLocaleDateString('vi-VN')}</span>
+                                {exp.is_recurring && <span style={{ color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
                               </div>
-                              <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.25rem' }}>{exp.expense_name}</div>
-                              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                SL: {exp.quantity} × {exp.unit_price.toLocaleString()}đ
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
-                              <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--danger)' }}>
-                                - {exp.total_amount.toLocaleString()}đ
-                              </div>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            </td>
+                            <td style={{ padding: '1rem', fontWeight: 'bold' }}>{exp.expense_name}</td>
+                            <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--text-secondary)' }}>{exp.quantity} × {exp.unit_price.toLocaleString()}đ</td>
+                            <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--danger)' }}>- {exp.total_amount.toLocaleString()}đ</td>
+                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                 <button onClick={() => handleEditExpense(exp)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
                                 <button onClick={() => handleDeleteExpense(exp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xoá</button>
                               </div>
-                            </div>
-                          </div>
+                            </td>
+                          </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {expensesList.map(exp => (
+                      <div key={exp.id} style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', border: '1px solid var(--border)' }}>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                            {new Date(exp.expense_date).toLocaleDateString('vi-VN')} 
+                            {exp.is_recurring && <span style={{ marginLeft: '0.5rem', color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
+                          </div>
+                          <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.25rem' }}>{exp.expense_name}</div>
+                          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                            SL: {exp.quantity} × {exp.unit_price.toLocaleString()}đ
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+                          <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--danger)' }}>
+                            - {exp.total_amount.toLocaleString()}đ
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={() => handleEditExpense(exp)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                            <button onClick={() => handleDeleteExpense(exp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xoá</button>
+                          </div>
+                        </div>
                       </div>
-                    </>
-                  )}
-                </div>
-
-              </div>
-            </div>
+                    ))}
+                  </div>
+                </>
+              )}
           )}
         </div>
       </div>
