@@ -475,59 +475,42 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
               ) : history.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>Không có dữ liệu đối chiếu</div>
               ) : (
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-                  gap: '1.5rem' 
-                }}>
-                  {history.map(record => {
-                    const totalAct = record.actual_cash + record.actual_transfer;
-                    return (
-                      <div key={record.id} style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', border: '1px solid var(--border)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-                          <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</span>
-                          <button onClick={() => handleEdit(record)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Edit size={16} /> Sửa
-                          </button>
-                        </div>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>DT phần mềm:</span>
-                          <span style={{ fontWeight: '600' }}>{record.software_revenue.toLocaleString()}đ</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Tiền mặt:</span>
-                          <span>{record.actual_cash.toLocaleString()}đ</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Chuyển khoản:</span>
-                          <span>{record.actual_transfer.toLocaleString()}đ</span>
-                        </div>
-                        
-                        <div style={{ borderTop: '1px dashed var(--border)', margin: '1rem 0' }}></div>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                          <span style={{ fontWeight: '600' }}>Tổng thực thu:</span>
-                          <span style={{ fontWeight: 'bold' }}>{totalAct.toLocaleString()}đ</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
-                          <span style={{ 
-                            fontWeight: 'bold', 
-                            color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)' 
-                          }}>
-                            {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
-                          </span>
-                        </div>
-
-                        {record.note && (
-                          <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                            <strong>Ghi chú:</strong> {record.note}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
+                <div style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
+                        <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày</th>
+                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>DT phần mềm</th>
+                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tiền mặt</th>
+                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chuyển khoản</th>
+                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu</th>
+                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch</th>
+                        <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ghi chú</th>
+                        <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.map((record, index) => {
+                        const totalAct = record.actual_cash + record.actual_transfer;
+                        return (
+                          <tr key={record.id} style={{ borderBottom: index === history.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                            <td style={{ padding: '1rem', fontWeight: 'bold' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</td>
+                            <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{record.software_revenue.toLocaleString()}đ</td>
+                            <td style={{ padding: '1rem', textAlign: 'right' }}>{record.actual_cash.toLocaleString()}đ</td>
+                            <td style={{ padding: '1rem', textAlign: 'right' }}>{record.actual_transfer.toLocaleString()}đ</td>
+                            <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{totalAct.toLocaleString()}đ</td>
+                            <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)' }}>
+                              {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
+                            </td>
+                            <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '200px' }}>{record.note || '-'}</td>
+                            <td style={{ padding: '1rem', textAlign: 'center' }}>
+                              <button onClick={() => handleEdit(record)} className="btn" style={{ background: 'transparent', color: 'var(--primary)', padding: '0.25rem 0.5rem', border: '1px solid var(--primary)', fontSize: '0.875rem' }}>Sửa</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
