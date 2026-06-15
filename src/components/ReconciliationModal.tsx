@@ -68,7 +68,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
       fetchSoftwareRevenue(reconDate);
     } else if (activeTab === 'history') {
       fetchHistory();
-    } else if (activeTab === 'expenses') {
+    } else if (activeTab === 'expenses' || activeTab === 'expenses_history') {
       fetchExpenses();
     }
   }, [activeTab, reconDate, fromDate, toDate]);
