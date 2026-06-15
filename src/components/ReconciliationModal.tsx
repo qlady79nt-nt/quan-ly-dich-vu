@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
-import { X, Edit } from 'lucide-react';
+import { X } from 'lucide-react';
 import Calculator from './Calculator';
 
 interface ReconciliationRecord {
