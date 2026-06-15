@@ -673,6 +673,13 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                 </div>
               ) : (
                 <>
+                  <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', marginBottom: '1.5rem', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Tổng chi trong kỳ:</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--danger)' }}>
+                      {expensesList.reduce((sum, exp) => sum + exp.total_amount, 0).toLocaleString()}đ
+                    </span>
+                  </div>
+
                   <div className="desktop-only" style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px', textAlign: 'left' }}>
                       <thead>
