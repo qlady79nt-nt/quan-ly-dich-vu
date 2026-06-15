@@ -475,43 +475,94 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
               ) : history.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>Không có dữ liệu đối chiếu</div>
               ) : (
-                <div style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
-                        <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày</th>
-                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>DT phần mềm</th>
-                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tiền mặt</th>
-                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chuyển khoản</th>
-                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu</th>
-                        <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch</th>
-                        <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ghi chú</th>
-                        <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((record, index) => {
-                        const totalAct = record.actual_cash + record.actual_transfer;
-                        return (
-                          <tr key={record.id} style={{ borderBottom: index === history.length - 1 ? 'none' : '1px solid var(--border)' }}>
-                            <td style={{ padding: '1rem', fontWeight: 'bold' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</td>
-                            <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{record.software_revenue.toLocaleString()}đ</td>
-                            <td style={{ padding: '1rem', textAlign: 'right' }}>{record.actual_cash.toLocaleString()}đ</td>
-                            <td style={{ padding: '1rem', textAlign: 'right' }}>{record.actual_transfer.toLocaleString()}đ</td>
-                            <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{totalAct.toLocaleString()}đ</td>
-                            <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)' }}>
+                <>
+                  <div className="desktop-only" style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
+                          <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>DT phần mềm</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tiền mặt</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chuyển khoản</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ghi chú</th>
+                          <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {history.map((record, index) => {
+                          const totalAct = record.actual_cash + record.actual_transfer;
+                          return (
+                            <tr key={record.id} style={{ borderBottom: index === history.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                              <td style={{ padding: '1rem', fontWeight: 'bold' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</td>
+                              <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{record.software_revenue.toLocaleString()}đ</td>
+                              <td style={{ padding: '1rem', textAlign: 'right' }}>{record.actual_cash.toLocaleString()}đ</td>
+                              <td style={{ padding: '1rem', textAlign: 'right' }}>{record.actual_transfer.toLocaleString()}đ</td>
+                              <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{totalAct.toLocaleString()}đ</td>
+                              <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)' }}>
+                                {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
+                              </td>
+                              <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '200px' }}>{record.note || '-'}</td>
+                              <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                <button onClick={() => handleEdit(record)} className="btn" style={{ background: 'transparent', color: 'var(--primary)', padding: '0.25rem 0.5rem', border: '1px solid var(--primary)', fontSize: '0.875rem' }}>Sửa</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {history.map(record => {
+                      const totalAct = record.actual_cash + record.actual_transfer;
+                      return (
+                        <div key={record.id} style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', border: '1px solid var(--border)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+                            <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</span>
+                            <button onClick={() => handleEdit(record)} className="btn" style={{ background: 'transparent', color: 'var(--primary)', padding: '0.25rem 0.5rem', border: '1px solid var(--primary)', fontSize: '0.875rem' }}>Sửa</button>
+                          </div>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>DT phần mềm:</span>
+                            <span style={{ fontWeight: '600' }}>{record.software_revenue.toLocaleString()}đ</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Tiền mặt:</span>
+                            <span>{record.actual_cash.toLocaleString()}đ</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Chuyển khoản:</span>
+                            <span>{record.actual_transfer.toLocaleString()}đ</span>
+                          </div>
+                          
+                          <div style={{ borderTop: '1px dashed var(--border)', margin: '0.75rem 0' }}></div>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <span style={{ fontWeight: '600' }}>Tổng thực thu:</span>
+                            <span style={{ fontWeight: 'bold' }}>{totalAct.toLocaleString()}đ</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
+                            <span style={{ 
+                              fontWeight: 'bold', 
+                              color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)' 
+                            }}>
                               {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
-                            </td>
-                            <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '200px' }}>{record.note || '-'}</td>
-                            <td style={{ padding: '1rem', textAlign: 'center' }}>
-                              <button onClick={() => handleEdit(record)} className="btn" style={{ background: 'transparent', color: 'var(--primary)', padding: '0.25rem 0.5rem', border: '1px solid var(--primary)', fontSize: '0.875rem' }}>Sửa</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            </span>
+                          </div>
+
+                          {record.note && (
+                            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                              <strong>Ghi chú:</strong> {record.note}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -613,40 +664,68 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                       Chưa có dữ liệu chi tiêu trong khoảng thời gian này
                     </div>
                   ) : (
-                    <div style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px', textAlign: 'left' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
-                            <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày chi</th>
-                            <th style={{ padding: '1rem', fontWeight: 'bold' }}>Tên khoản chi</th>
-                            <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>SL × Đơn giá</th>
-                            <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng cộng</th>
-                            <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {expensesList.map((exp, index) => (
-                            <tr key={exp.id} style={{ borderBottom: index === expensesList.length - 1 ? 'none' : '1px solid var(--border)' }}>
-                              <td style={{ padding: '1rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
-                                  <span style={{ fontWeight: '500' }}>{new Date(exp.expense_date).toLocaleDateString('vi-VN')}</span>
-                                  {exp.is_recurring && <span style={{ color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
-                                </div>
-                              </td>
-                              <td style={{ padding: '1rem', fontWeight: 'bold' }}>{exp.expense_name}</td>
-                              <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--text-secondary)' }}>{exp.quantity} × {exp.unit_price.toLocaleString()}đ</td>
-                              <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--danger)' }}>- {exp.total_amount.toLocaleString()}đ</td>
-                              <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                  <button onClick={() => handleEditExpense(exp)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
-                                  <button onClick={() => handleDeleteExpense(exp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xoá</button>
-                                </div>
-                              </td>
+                    <>
+                      <div className="desktop-only" style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px', textAlign: 'left' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
+                              <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày chi</th>
+                              <th style={{ padding: '1rem', fontWeight: 'bold' }}>Tên khoản chi</th>
+                              <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>SL × Đơn giá</th>
+                              <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng cộng</th>
+                              <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {expensesList.map((exp, index) => (
+                              <tr key={exp.id} style={{ borderBottom: index === expensesList.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                                <td style={{ padding: '1rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                    <span style={{ fontWeight: '500' }}>{new Date(exp.expense_date).toLocaleDateString('vi-VN')}</span>
+                                    {exp.is_recurring && <span style={{ color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
+                                  </div>
+                                </td>
+                                <td style={{ padding: '1rem', fontWeight: 'bold' }}>{exp.expense_name}</td>
+                                <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--text-secondary)' }}>{exp.quantity} × {exp.unit_price.toLocaleString()}đ</td>
+                                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--danger)' }}>- {exp.total_amount.toLocaleString()}đ</td>
+                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                    <button onClick={() => handleEditExpense(exp)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                                    <button onClick={() => handleDeleteExpense(exp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xoá</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {expensesList.map(exp => (
+                          <div key={exp.id} style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', border: '1px solid var(--border)' }}>
+                            <div style={{ flex: 1, minWidth: '200px' }}>
+                              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                                {new Date(exp.expense_date).toLocaleDateString('vi-VN')} 
+                                {exp.is_recurring && <span style={{ marginLeft: '0.5rem', color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
+                              </div>
+                              <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.25rem' }}>{exp.expense_name}</div>
+                              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                SL: {exp.quantity} × {exp.unit_price.toLocaleString()}đ
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--danger)' }}>
+                                - {exp.total_amount.toLocaleString()}đ
+                              </div>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button onClick={() => handleEditExpense(exp)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                                <button onClick={() => handleDeleteExpense(exp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xoá</button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
 
