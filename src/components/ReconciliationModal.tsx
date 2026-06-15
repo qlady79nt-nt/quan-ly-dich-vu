@@ -144,21 +144,23 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (actualCash === '' || actualTransfer === '') {
-      alert('Vui lòng nhập tiền mặt và chuyển khoản!');
+    if (actualCash === '' && actualTransfer === '') {
+      alert('Vui lòng nhập ít nhất tiền mặt hoặc chuyển khoản!');
       return;
     }
 
     setIsSaving(true);
-    const totalActual = Number(actualCash) + Number(actualTransfer);
+    const cashVal = Number(actualCash) || 0;
+    const transferVal = Number(actualTransfer) || 0;
+    const totalActual = cashVal + transferVal;
     const difference = totalActual - softwareRevenue;
 
     const payload = {
       shop_id: shopId,
       reconciliation_date: reconDate,
       software_revenue: softwareRevenue,
-      actual_cash: Number(actualCash),
-      actual_transfer: Number(actualTransfer),
+      actual_cash: cashVal,
+      actual_transfer: transferVal,
       difference,
       note,
       created_by: userId,

@@ -77,9 +77,6 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ invoice, confi
         </div>
       )}
 
-      <div className="receipt-footer">
-        <p>{config.footer_message || 'Cảm ơn quý khách! Hẹn gặp lại.'}</p>
-      </div>
     </div>
   );
 };
