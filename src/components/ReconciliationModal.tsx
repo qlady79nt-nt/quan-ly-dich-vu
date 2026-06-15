@@ -563,7 +563,20 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                           </div>
 
                           {record.note && (
-                            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '0.5rem', fontSize: '0.875rem', color:           {/* EXPENSES VIEW */}
+                            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                              <strong>Ghi chú:</strong> {record.note}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* EXPENSES VIEW */}
           {activeTab === 'expenses' && (
             <div style={{ maxWidth: '600px', margin: '0 auto' }}>
               <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
@@ -722,6 +735,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                   </div>
                 </>
               )}
+            </div>
           )}
         </div>
       </div>
