@@ -463,8 +463,14 @@ const Invoices = () => {
     try {
       const invId = detailModal.data.id;
       
-      await supabase.from('invoices').update({ created_at: dateToSave }).eq('id', invId);
-      await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).eq('invoice_id', invId);
+      const { error: e1 } = await supabase.from('invoices').update({ created_at: dateToSave }).eq('id', invId);
+      if (e1) throw new Error("invoices: " + e1.message);
+
+      const { error: e2 } = await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).eq('invoice_id', invId);
+      if (e2) throw new Error("revenue_logs: " + e2.message);
+
+      const { error: e3 } = await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).eq('reference_id', invId); // Legacy
+      if (e3) throw new Error("revenue_logs legacy: " + e3.message);
       
       const { data: ps } = await supabase.from('package_sales').select('*').eq('invoice_id', invId);
       if (ps && ps.length > 0) {
@@ -476,6 +482,15 @@ const Invoices = () => {
          const cpIds = ps.map((p: any) => p.customer_package_id).filter(Boolean);
          if (cpIds.length > 0) {
            await supabase.from('customer_packages').update({ created_at: dateToSave }).in('id', cpIds);
+           
+           // Catch all sessions derived from these packages (e.g. used immediately)
+           const { data: sessions } = await supabase.from('service_sessions').select('id').in('customer_package_id', cpIds);
+           if (sessions && sessions.length > 0) {
+               const sIds = sessions.map((s: any) => s.id);
+               await supabase.from('service_sessions').update({ created_at: dateToSave }).in('id', sIds);
+               await supabase.from('commission_logs').update({ created_at: dateToSave }).in('service_session_id', sIds);
+               await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).in('service_session_id', sIds);
+           }
          }
       }
 
@@ -490,7 +505,6 @@ const Invoices = () => {
          const sessionIds = revLogs.map((r: any) => r.service_session_id).filter(Boolean);
          if (sessionIds.length > 0) {
            await supabase.from('service_sessions').update({ created_at: dateToSave }).in('id', sessionIds);
-           // Update commission_logs related to these sessions
            await supabase.from('commission_logs').update({ created_at: dateToSave }).in('service_session_id', sessionIds);
          }
       }
