@@ -736,8 +736,23 @@ const Invoices = () => {
       {loading ? (
         <TableSkeleton />
       ) : view === 'retail' ? (
-        <div className="premium-card">
-          <div className="desktop-only table-responsive">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="premium-card" style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, rgba(109,40,217,0.1) 0%, rgba(109,40,217,0.02) 100%)', borderLeft: '4px solid var(--primary)' }}>
+            <div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Tổng tiền hoá đơn {searchTerm ? '(kết quả tìm kiếm)' : '(theo bộ lọc)'}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.25rem' }}>
+                {filteredInvoices.filter(i => i.status !== 'cancelled').reduce((sum, i) => sum + Number(i.final_amount || 0), 0).toLocaleString()}đ
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Số lượng: <strong style={{ color: 'var(--text-primary)' }}>{filteredInvoices.filter(i => i.status !== 'cancelled').length}</strong> hợp lệ</div>
+              {filteredInvoices.some(i => i.status === 'cancelled') && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--danger)', marginTop: '0.25rem' }}>{filteredInvoices.filter(i => i.status === 'cancelled').length} đã huỷ</div>
+              )}
+            </div>
+          </div>
+          <div className="premium-card">
+            <div className="desktop-only table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
@@ -828,6 +843,7 @@ const Invoices = () => {
               <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có dữ liệu hoá đơn</div>
             )}
           </div>
+        </div>
         </div>
       ) : (
         <div className="premium-card">
