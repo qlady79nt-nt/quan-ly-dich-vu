@@ -466,10 +466,10 @@ const Invoices = () => {
       const { error: e1 } = await supabase.from('invoices').update({ created_at: dateToSave }).eq('id', invId);
       if (e1) throw new Error("invoices: " + e1.message);
 
-      const { error: e2 } = await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).eq('invoice_id', invId);
+      const { error: e2 } = await supabase.from('revenue_logs').update({ recorded_at: dateToSave }).eq('invoice_id', invId);
       if (e2) throw new Error("revenue_logs: " + e2.message);
 
-      const { error: e3 } = await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).eq('reference_id', invId); // Legacy
+      const { error: e3 } = await supabase.from('revenue_logs').update({ recorded_at: dateToSave }).eq('reference_id', invId); // Legacy
       if (e3) throw new Error("revenue_logs legacy: " + e3.message);
       
       const { data: ps } = await supabase.from('package_sales').select('*').eq('invoice_id', invId);
@@ -477,7 +477,7 @@ const Invoices = () => {
          const psIds = ps.map((p: any) => p.id);
          await supabase.from('package_sales').update({ created_at: dateToSave }).in('id', psIds);
          await supabase.from('commission_logs').update({ created_at: dateToSave }).in('package_sale_id', psIds);
-         await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).in('package_sale_id', psIds);
+         await supabase.from('revenue_logs').update({ recorded_at: dateToSave }).in('package_sale_id', psIds);
          
          const cpIds = ps.map((p: any) => p.customer_package_id).filter(Boolean);
          if (cpIds.length > 0) {
@@ -489,7 +489,7 @@ const Invoices = () => {
                const sIds = sessions.map((s: any) => s.id);
                await supabase.from('service_sessions').update({ created_at: dateToSave }).in('id', sIds);
                await supabase.from('commission_logs').update({ created_at: dateToSave }).in('service_session_id', sIds);
-               await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).in('service_session_id', sIds);
+               await supabase.from('revenue_logs').update({ recorded_at: dateToSave }).in('service_session_id', sIds);
            }
          }
       }
