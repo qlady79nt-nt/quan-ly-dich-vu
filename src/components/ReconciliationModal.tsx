@@ -593,6 +593,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                             <span style={{ fontWeight: '600' }}>Tổng thực thu:</span>
                             <span style={{ fontWeight: 'bold' }}>{totalAct.toLocaleString()}đ</span>
                           </div>
+                          <div style={{ borderTop: '1px dashed var(--border)', margin: '0.75rem 0' }}></div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                             <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
                             <span style={{ 
