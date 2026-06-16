@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import '../receipt.css';
 
 // Interface cho cấu hình in ấn (Có thể lấy từ bảng `shops` hoặc `print_configs` sau này)
@@ -24,7 +25,7 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ invoice, confi
   // Cấu hình kích thước giấy
   const paperWidth = config.paper_size === '58mm' ? '220px' : '300px';
 
-  return (
+  return createPortal(
     <div className="print-only receipt-container" style={{ '--receipt-width': paperWidth } as any}>
       <div className="receipt-header">
         {config.logo_url && <img src={config.logo_url} alt="Logo" style={{ maxWidth: '80px', marginBottom: '10px' }} />}
@@ -77,6 +78,7 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ invoice, confi
         </div>
       )}
 
-    </div>
+    </div>,
+    document.body
   );
 };
