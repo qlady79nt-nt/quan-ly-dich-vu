@@ -24,6 +24,8 @@ const Invoices = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [newDate, setNewDate] = useState('');
 
   useEffect(() => {
     if (shopId) fetchData();
@@ -454,6 +456,71 @@ const Invoices = () => {
     setIsCancelling(false);
   };
 
+  const handleUpdateDate = async () => {
+    if (!newDate) return;
+    const dateToSave = new Date(newDate).toISOString();
+    setLoading(true);
+    try {
+      const invId = detailModal.data.id;
+      
+      await supabase.from('invoices').update({ created_at: dateToSave }).eq('id', invId);
+      await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).eq('invoice_id', invId);
+      
+      const { data: ps } = await supabase.from('package_sales').select('*').eq('invoice_id', invId);
+      if (ps && ps.length > 0) {
+         const psIds = ps.map((p: any) => p.id);
+         await supabase.from('package_sales').update({ created_at: dateToSave }).in('id', psIds);
+         await supabase.from('commission_logs').update({ created_at: dateToSave }).in('package_sale_id', psIds);
+         await supabase.from('revenue_logs').update({ recorded_at: dateToSave, created_at: dateToSave }).in('package_sale_id', psIds);
+         
+         const cpIds = ps.map((p: any) => p.customer_package_id).filter(Boolean);
+         if (cpIds.length > 0) {
+           await supabase.from('customer_packages').update({ created_at: dateToSave }).in('id', cpIds);
+         }
+      }
+
+      const { data: items } = await supabase.from('invoice_items').select('id').eq('invoice_id', invId);
+      if (items && items.length > 0) {
+         const itemIds = items.map((i: any) => i.id);
+         await supabase.from('commission_logs').update({ created_at: dateToSave }).in('invoice_item_id', itemIds);
+      }
+
+      const { data: revLogs } = await supabase.from('revenue_logs').select('service_session_id').eq('invoice_id', invId);
+      if (revLogs && revLogs.length > 0) {
+         const sessionIds = revLogs.map((r: any) => r.service_session_id).filter(Boolean);
+         if (sessionIds.length > 0) {
+           await supabase.from('service_sessions').update({ created_at: dateToSave }).in('id', sessionIds);
+           // Update commission_logs related to these sessions
+           await supabase.from('commission_logs').update({ created_at: dateToSave }).in('service_session_id', sessionIds);
+         }
+      }
+
+      await supabase.from('audit_logs').insert([{
+        shop_id: shopId,
+        actor_id: profile?.id,
+        action_type: 'UPDATE_INVOICE',
+        entity_type: 'INVOICE',
+        entity_id: invId,
+        description: `Đổi ngày hóa đơn #${detailModal.data.invoice_code || '---'} thành ${new Date(dateToSave).toLocaleString()}`
+      }]);
+
+      alert('Đã cập nhật ngày thành công!');
+      setIsEditingDate(false);
+      
+      setDetailModal({
+         ...detailModal,
+         data: {
+           ...detailModal.data,
+           created_at: dateToSave
+         }
+      });
+      fetchData();
+    } catch (e: any) {
+      alert('Lỗi: ' + e.message);
+    }
+    setLoading(false);
+  };
+
   const handleViewSession = async (sess: any) => {
     setLoading(true);
     let invoiceCode = '';
@@ -855,9 +922,28 @@ const Invoices = () => {
                     <span style={{ color: 'var(--text-secondary)' }}>Nhân viên / KTV:</span>
                     <span style={{ fontWeight: '600' }}>{detailModal.data.real_staff_name}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Ngày tạo:</span>
-                    <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
+                    {isEditingDate ? (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input type="datetime-local" className="form-input" value={newDate} onChange={e => setNewDate(e.target.value)} style={{ padding: '0.25rem', fontSize: '0.875rem' }} />
+                        <button onClick={handleUpdateDate} className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}>Lưu</button>
+                        <button onClick={() => setIsEditingDate(false)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}>Hủy</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span>{new Date(detailModal.data.created_at).toLocaleString()}</span>
+                        {profile?.role === 'shop_admin' && detailModal.data.status !== 'cancelled' && (
+                          <button onClick={() => { 
+                            setIsEditingDate(true); 
+                            const d = new Date(detailModal.data.created_at);
+                            const tzOffset = d.getTimezoneOffset() * 60000;
+                            const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+                            setNewDate(localISOTime); 
+                          }} className="btn" style={{ background: 'transparent', padding: '0.2rem 0.4rem', color: 'var(--primary)', border: '1px solid var(--primary)', fontSize: '0.75rem' }}>Đổi ngày</button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {detailModal.data.status === 'cancelled' && (
