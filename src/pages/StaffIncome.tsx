@@ -430,8 +430,9 @@ const StaffIncome = () => {
             <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {incomes.slice(0, displayLimit).map(item => {
                 const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
+                const isEvenDay = new Date(item.created_at).getDate() % 2 === 0;
                 return (
-                  <div key={item.id} className="premium-card" style={{ padding: '1rem' }}>
+                  <div key={item.id} className="premium-card" style={{ padding: '1rem', background: isEvenDay ? 'var(--bg-main)' : 'var(--bg-card)', borderColor: isEvenDay ? 'transparent' : 'var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
                       <div>
                         <div style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary)' }}>{item.staff_name}</div>
@@ -499,8 +500,9 @@ const StaffIncome = () => {
                   <tbody>
                     {incomes.slice(0, displayLimit).map(item => {
                       const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
+                      const isEvenDay = new Date(item.created_at).getDate() % 2 === 0;
                       return (
-                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem' }}>
+                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem', background: isEvenDay ? 'var(--bg-main)' : 'transparent' }}>
                           <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</td>
                           <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--primary)' }}>{item.staff_name}</td>
                           <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</td>
