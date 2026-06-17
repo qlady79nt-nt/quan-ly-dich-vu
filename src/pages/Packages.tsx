@@ -128,10 +128,12 @@ const Packages = () => {
     setLoadingHistory(true);
     
     // Fetch session history for this package
-    const { data } = await supabase.from('service_sessions')
-      .select('id, created_at, notes, profiles(name)')
+    const { data, error } = await supabase.from('service_sessions')
+      .select('id, created_at, notes, staffs(full_name)')
       .eq('customer_package_id', cp.id)
       .order('created_at', { ascending: false });
+      
+    if (error) console.error("Error fetching session history:", error);
       
     if (data) {
       setCustomerPackageHistory(data);
@@ -643,7 +645,7 @@ const Packages = () => {
                             <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-main)' }}>{new Date(history.created_at).toLocaleDateString('vi-VN')} • Trừ 1 buổi</div>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            <span>NV: {history.profiles?.name || '---'}</span>
+                            <span>NV: {history.staffs?.full_name || history.profiles?.full_name || '---'}</span>
                             <span>{new Date(history.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                           {history.notes && (
