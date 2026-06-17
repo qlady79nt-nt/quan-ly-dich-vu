@@ -38,6 +38,11 @@ const Invoices = () => {
       todayStart.setHours(0, 0, 0, 0);
 
       const applyDateFilter = (query: any) => {
+        // Bỏ qua lọc thời gian nếu người dùng đang nhập từ khóa tìm kiếm
+        if (searchTerm && searchTerm.trim().length >= 2) {
+          return query.limit(1000);
+        }
+
         const effectiveFilter = profile?.role === 'shop_admin' ? dateFilter : 'today';
 
         if (effectiveFilter === 'today') {
@@ -669,10 +674,15 @@ const Invoices = () => {
             <input 
               type="text" 
               className="form-input" 
-              placeholder="Tìm kiếm..." 
+              placeholder="Tìm theo mã HĐ, SĐT khách..." 
               style={{ paddingLeft: '2.75rem', width: '100%', border: 'none', background: 'transparent', height: '44px' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  fetchData();
+                }
+              }}
             />
           </div>
         </div>
