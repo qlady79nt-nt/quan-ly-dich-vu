@@ -18,6 +18,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
+import { getPrintSettings, ShopPrintSettings } from '../lib/printSettings';
 import '../receipt.css';
 
 const POS = () => {
@@ -44,6 +45,7 @@ const POS = () => {
   const [retailCustomerId, setRetailCustomerId] = useState('');
   const [retailBedId, setRetailBedId] = useState('');
   const [bedsList, setBedsList] = useState<any[]>([]);
+  const [printSettings, setPrintSettings] = useState<ShopPrintSettings | undefined>(undefined);
 
   // --- SELL PACKAGE STATE ---
   const generateCardCode = () => {
@@ -105,6 +107,7 @@ const POS = () => {
   const fetchData = async () => {
     console.log('fetchData execution started...');
     setLoading(true);
+    
     const [svc, pkg, stf, custs, bds, activeSessionsRes, grps] = await Promise.all([
       supabase.from('services').select('*').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
       supabase.from('packages').select('*, services(name)').eq('shop_id', shopId).is('deleted_at', null).eq('status', 'active'),
@@ -114,6 +117,9 @@ const POS = () => {
       supabase.from('service_sessions').select('bed_id').eq('shop_id', shopId).eq('status', 'in_progress'),
       supabase.from('service_groups').select('*').eq('shop_id', shopId).order('sort_order', { ascending: true })
     ]);
+    
+    const settings = await getPrintSettings(shopId);
+    setPrintSettings(settings);
     
     console.log('SERVICES DEBUG:', {
       shopId,
@@ -989,6 +995,7 @@ const POS = () => {
           paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
           footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
         }}
+        printSettings={printSettings}
       />
 
       {/* Modal Preview Hóa Đơn */}

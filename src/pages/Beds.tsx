@@ -4,6 +4,7 @@ import { Plus, Loader2, BedDouble, CheckCircle2, Clock, X, Printer } from 'lucid
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
+import { getPrintSettings, ShopPrintSettings } from '../lib/printSettings';
 import '../receipt.css';
 
 const Beds = () => {
@@ -11,6 +12,7 @@ const Beds = () => {
   const shopId = profile?.shop_id;
   const [beds, setBeds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [printSettings, setPrintSettings] = useState<ShopPrintSettings | undefined>(undefined);
   const [now, setNow] = useState(new Date());
 
   // Checkout State
@@ -56,6 +58,9 @@ const Beds = () => {
       supabase.from('staffs').select('*').eq('shop_id', shopId),
       supabase.from('combo_groups').select('*').eq('shop_id', shopId).eq('status', 'in_progress')
     ]);
+    
+    const settings = await getPrintSettings(shopId);
+    setPrintSettings(settings);
     
     if (bRes.error) console.error('Beds fetch error:', bRes.error);
     if (sRes.error) console.error('Sessions fetch error:', sRes.error);
@@ -900,10 +905,11 @@ const Beds = () => {
       <ReceiptTemplate 
         invoice={completedInvoice} 
         config={{
-          shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
-          paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
+          shop_name: 'SPA & POS',
+          paper_size: '80mm',
           footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
         }} 
+        printSettings={printSettings}
       />
     </>
   );

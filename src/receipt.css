@@ -10,8 +10,17 @@
 
 /* Ẩn giao diện in trên màn hình Web mặc định */
 @media screen {
-  .print-only {
+  .print-only:not(.inline-receipt) {
     display: none;
+  }
+  
+  .inline-receipt {
+    display: block;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+    margin: 0 auto;
+    overflow: hidden;
   }
 }
 
@@ -106,7 +115,9 @@
   /* 3. Lôi hóa đơn ra hiển thị - Hóa đơn này đang nằm trực tiếp dưới document.body do createPortal */
   .print-only { 
     display: block !important; 
-    position: static !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
     width: var(--receipt-width);
     margin: 0;
   }
@@ -114,7 +125,11 @@
   /* 4. Ép nền màu trắng chuẩn giấy in */
   body { 
     background: white !important; 
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  html, body {
+    height: auto !important;
   }
 }

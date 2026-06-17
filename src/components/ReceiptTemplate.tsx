@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import '../receipt.css';
+import { ShopPrintSettings } from '../lib/printSettings';
 
 // Interface cho cấu hình in ấn (Có thể lấy từ bảng `shops` hoặc `print_configs` sau này)
 export interface PrintConfig {
@@ -17,16 +18,49 @@ export interface PrintConfig {
 interface ReceiptTemplateProps {
   invoice: any;
   config: PrintConfig;
+  printSettings?: ShopPrintSettings;
+  debugMode?: boolean;
+  renderInline?: boolean; // Nếu true, không dùng createPortal
+  containerRef?: React.Ref<HTMLDivElement>;
 }
 
-export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ invoice, config }) => {
+export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ 
+  invoice, 
+  config, 
+  printSettings, 
+  debugMode,
+  renderInline,
+  containerRef
+}) => {
   if (!invoice) return null;
 
-  // Cấu hình kích thước giấy
-  const paperWidth = config.paper_size === '58mm' ? '220px' : '300px';
+  // Cấu hình kích thước giấy ưu tiên từ printSettings, nếu không có lấy từ config tĩnh
+  const paperSize = printSettings?.paper_size || config.paper_size || '58mm';
+  const paperWidth = paperSize === '58mm' ? '220px' : '300px';
 
-  return createPortal(
-    <div className="print-only receipt-container" style={{ '--receipt-width': paperWidth } as any}>
+  const customStyles: any = {
+    '--receipt-width': paperWidth,
+  };
+
+  if (printSettings) {
+    customStyles.top = `${printSettings.top_offset || 0}px`;
+    customStyles.left = `${printSettings.left_offset || 0}px`;
+    if (printSettings.scale_percent && printSettings.scale_percent !== 100) {
+      customStyles.transform = `scale(${printSettings.scale_percent / 100})`;
+      customStyles.transformOrigin = 'top left';
+    }
+  }
+
+  if (debugMode) {
+    customStyles.border = '2px dashed red';
+  }
+
+  const content = (
+    <div 
+      className={`print-only receipt-container ${renderInline ? 'inline-receipt' : ''}`} 
+      style={customStyles}
+      ref={containerRef}
+    >
       <div className="receipt-header">
         {config.logo_url && <img src={config.logo_url} alt="Logo" style={{ maxWidth: '80px', marginBottom: '10px' }} />}
         <h2>{config.shop_name}</h2>
@@ -45,7 +79,7 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ invoice, confi
         {invoice.customer_phone && <p>SĐT: {invoice.customer_phone}</p>}
         {invoice.card_code && <p>Mã thẻ: {invoice.card_code}</p>}
         <p>Nhân viên: {invoice.staff_name}</p>
-        <p>Ngày: {new Date(invoice.created_at || Date.now()).toLocaleString()}</p>
+        <p>Ngày: {new Date(invoice.created_at || Date.now()).toLocaleString('vi-VN')}</p>
       </div>
 
       <div className="receipt-section">
@@ -78,7 +112,12 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ invoice, confi
         </div>
       )}
 
-    </div>,
-    document.body
+    </div>
   );
+
+  if (renderInline) {
+    return content;
+  }
+
+  return createPortal(content, document.body);
 };
