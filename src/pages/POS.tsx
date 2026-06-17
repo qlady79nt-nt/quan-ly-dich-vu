@@ -18,7 +18,8 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
-import { getPrintSettings, ShopPrintSettings } from '../lib/printSettings';
+import { getPrintSettings } from '../lib/printSettings';
+import type { ShopPrintSettings } from '../lib/printSettings';
 import '../receipt.css';
 
 const POS = () => {
@@ -118,7 +119,7 @@ const POS = () => {
       supabase.from('service_groups').select('*').eq('shop_id', shopId).order('sort_order', { ascending: true })
     ]);
     
-    const settings = await getPrintSettings(shopId);
+    const settings = await getPrintSettings(shopId || '');
     setPrintSettings(settings);
     
     console.log('SERVICES DEBUG:', {

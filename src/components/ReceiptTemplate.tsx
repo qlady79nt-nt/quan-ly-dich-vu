@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import '../receipt.css';
-import { ShopPrintSettings } from '../lib/printSettings';
+import type { ShopPrintSettings } from '../lib/printSettings';
 
 // Interface cho cấu hình in ấn (Có thể lấy từ bảng `shops` hoặc `print_configs` sau này)
 export interface PrintConfig {

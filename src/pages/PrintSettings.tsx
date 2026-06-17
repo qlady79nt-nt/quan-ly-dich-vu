@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Save, RefreshCw, Printer, Search, Settings2 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { ShopPrintSettings, getPrintSettings, updatePrintSettings, DEFAULT_PRINT_SETTINGS } from '../lib/printSettings';
+import { getPrintSettings, updatePrintSettings, DEFAULT_PRINT_SETTINGS } from '../lib/printSettings';
+import type { ShopPrintSettings } from '../lib/printSettings';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
 
 export default function PrintSettings() {

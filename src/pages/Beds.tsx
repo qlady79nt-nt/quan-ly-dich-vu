@@ -4,7 +4,8 @@ import { Plus, Loader2, BedDouble, CheckCircle2, Clock, X, Printer } from 'lucid
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
-import { getPrintSettings, ShopPrintSettings } from '../lib/printSettings';
+import { getPrintSettings } from '../lib/printSettings';
+import type { ShopPrintSettings } from '../lib/printSettings';
 import '../receipt.css';
 
 const Beds = () => {
@@ -59,7 +60,7 @@ const Beds = () => {
       supabase.from('combo_groups').select('*').eq('shop_id', shopId).eq('status', 'in_progress')
     ]);
     
-    const settings = await getPrintSettings(shopId);
+    const settings = await getPrintSettings(shopId || '');
     setPrintSettings(settings);
     
     if (bRes.error) console.error('Beds fetch error:', bRes.error);

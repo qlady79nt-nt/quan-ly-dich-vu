@@ -55,7 +55,8 @@ const MainLayout = () => {
       { path: '/app/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
       { path: '/app/shops', label: 'Quản lý Cửa hàng', icon: LayoutGrid },
       { path: '/app/shop-admins', label: 'Quản lý Shop Admin', icon: Users },
-      { path: '/app/audit-logs', label: 'Nhật ký Hệ thống', icon: ShieldAlert }
+      { path: '/app/audit-logs', label: 'Nhật ký Hệ thống', icon: ShieldAlert },
+      { path: '/app/print-settings', label: 'Cài đặt máy in', icon: Settings2 }
     ];
   } else {
     menuItems = [
@@ -69,7 +70,7 @@ const MainLayout = () => {
       { path: '/app/invoices', label: 'Hoá đơn', icon: FileText },
       { path: '/app/staff-income', label: 'Thu nhập KTV', icon: Coins },
       { path: '/app/reports', label: 'Báo cáo', icon: BarChart3 },
-      ...(profile?.role === 'shop_admin' || profile?.role === 'super_admin' ? [{ path: '/app/print-settings', label: 'Cài đặt máy in', icon: Settings2 }] : []),
+      ...(profile?.role === 'shop_admin' ? [{ path: '/app/print-settings', label: 'Cài đặt máy in', icon: Settings2 }] : []),
     ];
   }
 
