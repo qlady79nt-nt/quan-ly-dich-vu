@@ -121,7 +121,7 @@ const MainLayout = () => {
           </div>
         </div>
 
-        <nav style={{ flex: 1, padding: '0 1rem' }}>
+        <nav style={{ flex: 1, padding: '0 1rem', overflowY: 'auto' }}>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname.includes(item.path);
