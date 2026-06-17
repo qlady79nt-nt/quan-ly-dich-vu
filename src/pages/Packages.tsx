@@ -123,13 +123,16 @@ const Packages = () => {
   };
 
   const handleViewCustomerDetail = async (cp: any) => {
-    setSelectedCustomerPackage(cp);
     setCustomerPackageHistory([]);
     setLoadingHistory(true);
+
+    const { data: psData } = await supabase.from('package_sales').select('invoices(invoice_code)').eq('customer_package_id', cp.id).single();
+    const invCode = Array.isArray((psData as any)?.invoices) ? (psData as any).invoices[0]?.invoice_code : (psData as any)?.invoices?.invoice_code;
+    setSelectedCustomerPackage({ ...cp, invoice_code: invCode });
     
     // Fetch session history for this package
     const { data, error } = await supabase.from('service_sessions')
-      .select('id, created_at, staffs(full_name)')
+      .select('id, created_at, session_code, staffs(full_name)')
       .eq('customer_package_id', cp.id)
       .order('created_at', { ascending: false });
       
@@ -626,6 +629,18 @@ const Packages = () => {
                       <div style={{ color: 'var(--text-secondary)' }}>Giá mua</div>
                       <div style={{ fontWeight: '600' }}>{Number(selectedCustomerPackage.sale_price).toLocaleString()}đ</div>
                     </div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)' }}>Mã thẻ</div>
+                      <div style={{ fontWeight: '600', color: 'var(--secondary)' }}>{selectedCustomerPackage.card_code || '---'}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--text-secondary)' }}>Hóa đơn gốc</div>
+                      {selectedCustomerPackage.invoice_code ? (
+                        <a href={`/app/invoices?search=${selectedCustomerPackage.invoice_code}`} target="_blank" rel="noreferrer" style={{ fontWeight: '600', color: 'var(--primary)', textDecoration: 'none' }}>#{selectedCustomerPackage.invoice_code}</a>
+                      ) : (
+                        <div style={{ fontWeight: '600' }}>---</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -643,6 +658,7 @@ const Packages = () => {
                         <div style={{ flex: 1, paddingBottom: '0.75rem', borderBottom: idx === customerPackageHistory.length - 1 ? 'none' : '1px dashed var(--border)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                             <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-main)' }}>{new Date(history.created_at).toLocaleDateString('vi-VN')} • Trừ 1 buổi</div>
+                            <div style={{ fontWeight: '600', fontSize: '0.85rem', color: 'var(--primary)', background: 'var(--primary-light, #e0e7ff)', padding: '2px 8px', borderRadius: '12px' }}>#{history.session_code || '---'}</div>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             <span>NV: {history.staffs?.full_name || history.profiles?.full_name || '---'}</span>
