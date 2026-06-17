@@ -129,7 +129,7 @@ const Packages = () => {
     
     // Fetch session history for this package
     const { data, error } = await supabase.from('service_sessions')
-      .select('id, created_at, notes, staffs(full_name)')
+      .select('id, created_at, staffs(full_name)')
       .eq('customer_package_id', cp.id)
       .order('created_at', { ascending: false });
       
@@ -648,9 +648,6 @@ const Packages = () => {
                             <span>NV: {history.staffs?.full_name || history.profiles?.full_name || '---'}</span>
                             <span>{new Date(history.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                          {history.notes && (
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.25rem', fontStyle: 'italic' }}>"{history.notes}"</div>
-                          )}
                         </div>
                       </div>
                     ))}
