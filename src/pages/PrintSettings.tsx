@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, RefreshCw, Printer, Search, Settings2, Bug, SlidersHorizontal, FileText } from 'lucide-react';
+import { Save, RefreshCw, Printer, Search, Settings2, Bug, SlidersHorizontal, FileText, MonitorCheck, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { getPrintSettings, updatePrintSettings, DEFAULT_PRINT_SETTINGS } from '../lib/printSettings';
 import type { ShopPrintSettings } from '../lib/printSettings';
@@ -31,7 +31,6 @@ export default function PrintSettings() {
     }
   }, [shopId]);
 
-  // Cập nhật kích thước thực tế mỗi khi settings, debugMode, hoặc tab đổi
   useEffect(() => {
     const measure = () => {
       const ref = activeTab === 'test' ? testReceiptRef.current : receiptRef.current;
@@ -60,6 +59,7 @@ export default function PrintSettings() {
     setSaving(true);
     const success = await updatePrintSettings(settings);
     if (success) {
+      // Optional: Add a nice toast instead of alert
       alert('Đã lưu cấu hình máy in thành công!');
     } else {
       alert('Có lỗi xảy ra khi lưu cấu hình.');
@@ -77,7 +77,6 @@ export default function PrintSettings() {
   };
 
   const handleTestPrint = (size: '58mm' | '80mm') => {
-    // Tạm thời set khổ giấy in test
     const oldSize = settings?.paper_size;
     if (settings) {
       setSettings({ ...settings, paper_size: size });
@@ -85,7 +84,6 @@ export default function PrintSettings() {
     
     setTimeout(() => {
       window.print();
-      // Khôi phục lại
       if (settings && oldSize) {
         setTimeout(() => setSettings({ ...settings, paper_size: oldSize }), 100);
       }
@@ -93,10 +91,14 @@ export default function PrintSettings() {
   };
 
   if (loading || !settings) {
-    return <div className="p-4">Đang tải cấu hình...</div>;
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-gray-500">
+        <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+        <p className="font-medium animate-pulse">Đang tải cấu hình máy in...</p>
+      </div>
+    );
   }
 
-  // Hóa đơn mẫu
   const mockInvoice = {
     invoice_code: 'TEST-001',
     customer_name: 'Khách test',
@@ -105,8 +107,8 @@ export default function PrintSettings() {
     created_at: new Date().toISOString(),
     is_use_package: false,
     items: [
-      { name: 'Dịch vụ Test 1', price: 100000 },
-      { name: 'Dịch vụ Test 2', price: 99000 }
+      { name: 'Dịch vụ Massage VIP', price: 100000 },
+      { name: 'Xông hơi khô', price: 99000 }
     ],
     total_amount: 199000,
     discount_amount: 0,
@@ -114,24 +116,23 @@ export default function PrintSettings() {
   };
 
   const mockConfig = {
-    shop_name: profile?.shop?.name || 'SPA & POS',
-    address: '123 Đường Test, Quận 1',
-    phone: '0123456789'
+    shop_name: profile?.shop?.name || 'SPA & POS PREMIUM',
+    address: '123 Đường Ngọc Trai, Phường 1, Quận 1',
+    phone: '0123 456 789'
   };
 
-  const tabClass = (tabId: string) => 
-    `flex-1 py-3 px-4 text-center font-medium border-b-2 cursor-pointer transition-colors ${activeTab === tabId ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`;
-
-  // Kích thước container test
   const testPaperWidth = settings.paper_size === '58mm' ? '220px' : '300px';
   const testStyles: any = {
     width: testPaperWidth,
     margin: '0 auto',
     background: 'white',
-    padding: '10px',
+    padding: '20px',
     fontFamily: 'monospace',
-    color: '#000',
-    position: 'relative'
+    color: '#111827',
+    position: 'relative',
+    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    borderRadius: '8px', // slightly rounded for UI preview only
   };
 
   if (settings) {
@@ -144,237 +145,389 @@ export default function PrintSettings() {
   }
 
   if (debugMode) {
-    testStyles.border = '2px dashed red';
+    testStyles.border = '2px dashed #EF4444';
+    testStyles.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
   }
 
-  return (
-    <div className="animate-fade" style={{ padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-        <Settings2 size={24} className="text-primary" />
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>CÀI ĐẶT MÁY IN</h1>
-      </div>
+  const tabs = [
+    { id: 'preview', label: 'Xem trước', icon: Search, desc: 'Hiển thị nguyên bản hóa đơn' },
+    { id: 'debug', label: 'Debug', icon: Bug, desc: 'Đo lường & Gỡ lỗi lề' },
+    { id: 'tweak', label: 'Tinh chỉnh', icon: SlidersHorizontal, desc: 'Tọa độ & Kích thước' },
+    { id: 'test', label: 'In Test', icon: Printer, desc: 'Bài test máy in chuẩn' }
+  ] as const;
 
-      <div className="card overflow-hidden">
-        {/* Tab Header */}
-        <div className="flex border-b" style={{ overflowX: 'auto' }}>
-          <div className={tabClass('preview')} onClick={() => setActiveTab('preview')}>
-            <div className="flex items-center justify-center gap-2"><Search size={18} /> Xem trước</div>
+  return (
+    <div className="animate-fade pb-20 bg-gray-50/50 min-h-full">
+      {/* HEDER */}
+      <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-lg shadow-primary/30">
+              <Settings2 size={24} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">Cài Đặt Máy In</h1>
+              <p className="text-gray-500 text-sm mt-0.5">Tinh chỉnh và khắc phục lỗi khổ giấy / khoảng trắng</p>
+            </div>
           </div>
-          <div className={tabClass('debug')} onClick={() => setActiveTab('debug')}>
-            <div className="flex items-center justify-center gap-2"><Bug size={18} /> Debug</div>
-          </div>
-          <div className={tabClass('tweak')} onClick={() => setActiveTab('tweak')}>
-            <div className="flex items-center justify-center gap-2"><SlidersHorizontal size={18} /> Tinh chỉnh</div>
-          </div>
-          <div className={tabClass('test')} onClick={() => setActiveTab('test')}>
-            <div className="flex items-center justify-center gap-2"><Printer size={18} /> Test máy in</div>
+          
+          <div className="flex gap-3 w-full md:w-auto">
+            <button 
+              onClick={handleSave} 
+              disabled={saving}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              <Save size={18} /> {saving ? 'Đang lưu...' : 'Lưu cài đặt'}
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
-          
-          {/* TAB 1: XEM TRƯỚC */}
-          {activeTab === 'preview' && (
-            <div className="flex flex-col items-center">
-              <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                <h3 className="font-bold text-lg mb-2">Xem trước hóa đơn</h3>
-                <p className="text-gray-500 text-sm">Hiển thị nguyên bản hóa đơn sẽ in ra giấy.</p>
-              </div>
-              <div style={{ padding: '2rem', background: '#e5e7eb', borderRadius: '0.5rem', width: '100%', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
-                <ReceiptTemplate 
-                  invoice={mockInvoice}
-                  config={mockConfig}
-                  printSettings={settings}
-                  debugMode={debugMode}
-                  renderInline={true}
-                  containerRef={receiptRef}
-                />
-              </div>
-            </div>
-          )}
+      <div className="max-w-6xl mx-auto px-6 mt-8">
+        {/* SEGMENTED TAB BAR */}
+        <div className="bg-gray-100/80 backdrop-blur-md p-1.5 rounded-2xl flex flex-wrap md:flex-nowrap gap-1.5 mb-8 border shadow-inner">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-300 ease-out outline-none focus-visible:ring-2 focus-visible:ring-primary/50
+                  ${isActive 
+                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50 scale-[1.02]' 
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                  }
+                `}
+              >
+                <Icon size={18} className={isActive ? 'text-primary' : 'text-gray-400'} />
+                <div className="text-center sm:text-left">
+                  <div className="whitespace-nowrap">{tab.label}</div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
 
-          {/* TAB 2: DEBUG */}
-          {activeTab === 'debug' && (
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="font-bold text-lg mb-4">Chế độ gỡ lỗi (Debug)</h3>
-                <p className="text-gray-500 text-sm mb-6">Bật khung viền đỏ để xem hóa đơn có bị lệch trái/phải, hay margin đẩy lề không.</p>
+        {/* TAB CONTENTS - Dùng card chung để bọc nội dung */}
+        <div className="bg-white rounded-2xl shadow-sm border p-1 border-gray-200">
+          <div className="bg-white rounded-xl p-6 md:p-8">
+            
+            {/* TAB 1: XEM TRƯỚC */}
+            {activeTab === 'preview' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="text-center max-w-2xl mx-auto mb-8">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-600 mb-4">
+                    <Search size={24} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Xem trước hóa đơn</h3>
+                  <p className="text-gray-500">Đây là bản xem trước hiển thị chính xác những gì sẽ xuất hiện trên khổ giấy máy in của bạn.</p>
+                </div>
                 
-                <label className="flex items-center gap-3 p-4 bg-gray-50 border rounded-lg cursor-pointer hover:bg-gray-100 transition-colors mb-6">
-                  <input 
-                    type="checkbox" 
-                    className="w-5 h-5"
-                    checked={debugMode}
-                    onChange={(e) => setDebugMode(e.target.checked)}
+                <div className="bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] bg-gray-50 rounded-2xl border flex items-center justify-center p-8 md:p-12 min-h-[500px]">
+                  <div className="relative group">
+                    <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-primary/20 blur-xl opacity-0 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 rounded-3xl"></div>
+                    <ReceiptTemplate 
+                      invoice={mockInvoice}
+                      config={mockConfig}
+                      printSettings={settings}
+                      debugMode={debugMode}
+                      renderInline={true}
+                      containerRef={receiptRef}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: DEBUG */}
+            {activeTab === 'debug' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 grid lg:grid-cols-12 gap-8 items-start">
+                
+                <div className="lg:col-span-5 space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                      <Bug className="text-red-500" /> Chế độ Gỡ lỗi
+                    </h3>
+                    <p className="text-gray-500">Kích hoạt khung viền để kiểm tra sự cố lệch lề hoặc dư khoảng trắng do CSS container.</p>
+                  </div>
+                  
+                  <label className="group relative flex items-center justify-between p-5 bg-white border-2 border-gray-100 hover:border-red-200 rounded-2xl cursor-pointer transition-all hover:shadow-md">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${debugMode ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'}`}>
+                        <LayoutTemplate size={24} />
+                      </div>
+                      <div>
+                        <div className={`font-bold ${debugMode ? 'text-red-600' : 'text-gray-700'}`}>Hiện viền đỏ (Debug)</div>
+                        <div className="text-xs text-gray-400 mt-0.5">Kiểm tra đường biên thực tế</div>
+                      </div>
+                    </div>
+                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${debugMode ? 'bg-red-500' : 'bg-gray-200'}`}>
+                      <input type="checkbox" className="sr-only" checked={debugMode} onChange={(e) => setDebugMode(e.target.checked)} />
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${debugMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </div>
+                  </label>
+
+                  <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/5 blur-2xl"></div>
+                    
+                    <h4 className="font-medium text-gray-300 mb-4 flex items-center gap-2">
+                      <MonitorCheck size={18} /> Thông số Render thực tế
+                    </h4>
+                    
+                    <div className="space-y-4">
+                      <div className="bg-black/30 rounded-xl p-3 flex justify-between items-center backdrop-blur-sm border border-white/5">
+                        <span className="text-gray-400 text-sm">Khổ giấy gốc</span>
+                        <span className="font-mono font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded">{settings.paper_size}</span>
+                      </div>
+                      
+                      <div className="bg-black/30 rounded-xl p-3 flex justify-between items-center backdrop-blur-sm border border-white/5">
+                        <span className="text-gray-400 text-sm">Chiều rộng</span>
+                        <span className={`font-mono font-bold px-2 py-0.5 rounded ${realWidth > 400 ? 'text-red-400 bg-red-400/10' : 'text-green-400 bg-green-400/10'}`}>
+                          {realWidth}px
+                        </span>
+                      </div>
+                      
+                      <div className="bg-black/30 rounded-xl p-3 flex justify-between items-center backdrop-blur-sm border border-white/5">
+                        <span className="text-gray-400 text-sm">Chiều cao</span>
+                        <span className={`font-mono font-bold px-2 py-0.5 rounded ${realHeight > 5000 ? 'text-orange-400 bg-orange-400/10' : 'text-gray-100 bg-white/10'}`}>
+                          {realHeight}px
+                        </span>
+                      </div>
+                    </div>
+
+                    {(realWidth > 400 || realHeight > 5000) && (
+                      <div className="mt-5 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-sm flex gap-2">
+                        <Bug size={16} className="shrink-0 mt-0.5" />
+                        <p>Cảnh báo: Kích thước DOM vượt ngưỡng in thông thường. Khả năng cao do flex/grid bị bung.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="lg:col-span-7 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNFMkU4RjAiLz48L3N2Zz4=')] border rounded-3xl p-8 flex justify-center items-start min-h-[600px] overflow-auto shadow-inner relative">
+                  <div className="absolute top-4 left-4 bg-white/80 backdrop-blur text-xs font-mono px-3 py-1.5 rounded border text-gray-500 shadow-sm flex items-center gap-2">
+                    <MousePointer2 size={12}/> Live Preview
+                  </div>
+                  <ReceiptTemplate 
+                    invoice={mockInvoice}
+                    config={mockConfig}
+                    printSettings={settings}
+                    debugMode={debugMode}
+                    renderInline={true}
+                    containerRef={receiptRef}
                   />
-                  <span className="font-medium text-red-600">Hiện khung debug (viền đỏ)</span>
-                </label>
-
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <h4 className="font-semibold text-blue-800 mb-2">Thông số đo được:</h4>
-                  <ul className="space-y-2 text-sm text-blue-900">
-                    <li className="flex justify-between"><span>Khổ giấy đang cấu hình:</span> <strong>{settings.paper_size}</strong></li>
-                    <li className="flex justify-between"><span>Chiều rộng thực tế:</span> <strong className={realWidth > 400 ? 'text-red-600' : ''}>{realWidth}px</strong></li>
-                    <li className="flex justify-between"><span>Chiều cao thực tế:</span> <strong>{realHeight}px</strong></li>
-                  </ul>
-                  {realWidth > 400 && (
-                    <div className="mt-3 p-2 bg-red-100 text-red-700 rounded text-xs">
-                      ⚠️ Chiều rộng ({realWidth}px) đang quá lớn. Nếu in bị lỗi, có thể do CSS bị ghi đè.
-                    </div>
-                  )}
-                  {realHeight > 5000 && (
-                    <div className="mt-3 p-2 bg-red-100 text-red-700 rounded text-xs">
-                      ⚠️ Chiều cao ({realHeight}px) bất thường. Kiểm tra lại margin/padding!
-                    </div>
-                  )}
                 </div>
               </div>
-              <div className="bg-gray-100 p-4 rounded-lg flex justify-center items-start overflow-hidden relative" style={{ minHeight: '400px' }}>
-                <ReceiptTemplate 
-                  invoice={mockInvoice}
-                  config={mockConfig}
-                  printSettings={settings}
-                  debugMode={debugMode}
-                  renderInline={true}
-                  containerRef={receiptRef}
-                />
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* TAB 3: TINH CHỈNH */}
-          {activeTab === 'tweak' && (
-            <div className="max-w-xl mx-auto">
-              <h3 className="font-bold text-lg mb-6 text-center">Tinh chỉnh thông số máy in</h3>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block font-medium mb-3">Khổ giấy</label>
-                  <div className="flex gap-6">
-                    <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-lg flex-1 hover:bg-gray-50">
-                      <input 
-                        type="radio" 
-                        name="paper_size" 
-                        value="58mm" 
-                        checked={settings.paper_size === '58mm'}
-                        onChange={() => setSettings({ ...settings, paper_size: '58mm' })}
-                      />
-                      58mm (220px)
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-lg flex-1 hover:bg-gray-50">
-                      <input 
-                        type="radio" 
-                        name="paper_size" 
-                        value="80mm" 
-                        checked={settings.paper_size === '80mm'}
-                        onChange={() => setSettings({ ...settings, paper_size: '80mm' })}
-                      />
-                      80mm (300px)
-                    </label>
-                  </div>
+            {/* TAB 3: TINH CHỈNH */}
+            {activeTab === 'tweak' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-3xl mx-auto py-4">
+                <div className="text-center mb-10">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Canh Lề & Kích Thước</h3>
+                  <p className="text-gray-500">Bù trừ sai số từ Driver máy in bằng cách dịch chuyển trực tiếp gốc toạ độ của WebApp.</p>
                 </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block font-medium text-sm mb-1">Top Offset (px)</label>
-                    <input 
-                      type="number" 
-                      className="input w-full" 
-                      value={settings.top_offset}
-                      onChange={(e) => setSettings({ ...settings, top_offset: parseInt(e.target.value) || 0 })}
-                    />
-                    <span className="text-xs text-gray-500 mt-1 block">Vd: -80 đẩy lên</span>
-                  </div>
-                  <div>
-                    <label className="block font-medium text-sm mb-1">Left Offset (px)</label>
-                    <input 
-                      type="number" 
-                      className="input w-full" 
-                      value={settings.left_offset}
-                      onChange={(e) => setSettings({ ...settings, left_offset: parseInt(e.target.value) || 0 })}
-                    />
-                    <span className="text-xs text-gray-500 mt-1 block">Vd: 10 dịch phải</span>
-                  </div>
-                  <div>
-                    <label className="block font-medium text-sm mb-1">Scale (%)</label>
-                    <input 
-                      type="number" 
-                      className="input w-full" 
-                      value={settings.scale_percent}
-                      onChange={(e) => setSettings({ ...settings, scale_percent: parseInt(e.target.value) || 100 })}
-                    />
-                    <span className="text-xs text-gray-500 mt-1 block">Vd: 95 thu nhỏ</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 pt-4 border-t">
-                  <button onClick={handleReset} className="btn btn-outline flex-1">
-                    <RefreshCw size={18} /> Khôi phục mặc định
-                  </button>
-                  <button onClick={handleSave} className="btn btn-primary flex-1" disabled={saving}>
-                    <Save size={18} /> {saving ? 'Đang lưu...' : 'Lưu cấu hình (DB)'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: TEST MÁY IN */}
-          {activeTab === 'test' && (
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="font-bold text-lg mb-4 text-red-600 flex items-center gap-2">
-                  <FileText size={20}/> Khắc phục lỗi khoảng trắng
-                </h3>
-                <p className="text-sm text-gray-700 mb-4">
-                  Sử dụng công cụ này để kiểm tra xem lỗi sinh ra do trình duyệt (WebApp) hay do Máy in (Driver).
-                </p>
                 
-                <div className="bg-gray-100 p-4 rounded-lg mb-6">
-                  <h4 className="font-semibold text-sm mb-2">Đo đạc DOM (WebApp):</h4>
-                  <ul className="text-sm space-y-1">
-                    <li>Khoảng cách từ mép trên (Top Gap): <strong className={topGap > 10 ? 'text-red-600' : 'text-green-600'}>{topGap}px</strong></li>
-                  </ul>
-                  <p className="text-xs text-gray-500 mt-2">
-                    * Nếu Top Gap = 0px nhưng giấy in ra vẫn bị trắng 10cm, thì <strong>100% lỗi do Driver máy in hoặc lề Margin của trình duyệt khi ấn Print</strong>.
-                  </p>
+                <div className="bg-white border rounded-3xl p-6 md:p-10 shadow-sm mb-8 space-y-10 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-cyan-400"></div>
+                  
+                  {/* Khổ giấy */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">
+                      <FileText size={16} className="text-primary"/> 1. Chọn Khổ Giấy
+                    </label>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {['58mm', '80mm'].map((size) => {
+                        const isSelected = settings.paper_size === size;
+                        return (
+                          <label 
+                            key={size}
+                            className={`group relative flex flex-col p-5 border-2 rounded-2xl cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'}`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`font-bold text-lg ${isSelected ? 'text-primary' : 'text-gray-700'}`}>{size}</span>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-primary' : 'border-gray-300'}`}>
+                                {isSelected && <div className="w-2.5 h-2.5 bg-primary rounded-full" />}
+                              </div>
+                            </div>
+                            <span className="text-sm text-gray-500">Chuẩn {size === '58mm' ? '~220px' : '~300px'}</span>
+                            <input 
+                              type="radio" 
+                              name="paper_size" 
+                              value={size} 
+                              checked={isSelected}
+                              onChange={() => setSettings({ ...settings, paper_size: size as any })}
+                              className="sr-only"
+                            />
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <hr className="border-gray-100" />
+
+                  {/* Offset & Scale */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">
+                      <SlidersHorizontal size={16} className="text-primary"/> 2. Tinh chỉnh Tọa độ
+                    </label>
+                    <div className="grid md:grid-cols-3 gap-6">
+                      
+                      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 hover:border-blue-200 transition-colors group">
+                        <label className="block font-medium text-gray-700 text-sm mb-1 group-focus-within:text-blue-600 transition-colors">Dịch Trên (Top)</label>
+                        <div className="relative mt-2">
+                          <input 
+                            type="number" 
+                            className="w-full bg-white border border-gray-300 text-gray-900 text-lg rounded-xl focus:ring-primary focus:border-primary block px-4 py-3 shadow-sm"
+                            value={settings.top_offset}
+                            onChange={(e) => setSettings({ ...settings, top_offset: parseInt(e.target.value) || 0 })}
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400 font-mono text-sm">px</div>
+                        </div>
+                        <span className="text-xs text-gray-500 mt-2 block">Nhập <b>số âm</b> để kéo lên (-80px)</span>
+                      </div>
+
+                      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 hover:border-blue-200 transition-colors group">
+                        <label className="block font-medium text-gray-700 text-sm mb-1 group-focus-within:text-blue-600 transition-colors">Dịch Trái (Left)</label>
+                        <div className="relative mt-2">
+                          <input 
+                            type="number" 
+                            className="w-full bg-white border border-gray-300 text-gray-900 text-lg rounded-xl focus:ring-primary focus:border-primary block px-4 py-3 shadow-sm"
+                            value={settings.left_offset}
+                            onChange={(e) => setSettings({ ...settings, left_offset: parseInt(e.target.value) || 0 })}
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400 font-mono text-sm">px</div>
+                        </div>
+                        <span className="text-xs text-gray-500 mt-2 block">Dịch nội dung qua phải/trái</span>
+                      </div>
+
+                      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 hover:border-blue-200 transition-colors group">
+                        <label className="block font-medium text-gray-700 text-sm mb-1 group-focus-within:text-blue-600 transition-colors">Tỷ lệ Thu/Phóng</label>
+                        <div className="relative mt-2">
+                          <input 
+                            type="number" 
+                            className="w-full bg-white border border-gray-300 text-gray-900 text-lg rounded-xl focus:ring-primary focus:border-primary block px-4 py-3 shadow-sm"
+                            value={settings.scale_percent}
+                            onChange={(e) => setSettings({ ...settings, scale_percent: parseInt(e.target.value) || 100 })}
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400 font-mono text-sm">%</div>
+                        </div>
+                        <span className="text-xs text-gray-500 mt-2 block">Thu nhỏ nếu tràn viền (VD: 95)</span>
+                      </div>
+
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <button onClick={() => handleTestPrint('58mm')} className="btn w-full justify-center bg-gray-800 text-white hover:bg-gray-900">
-                    <Printer size={18} /> IN TEST KHỔ 58MM
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button onClick={handleReset} className="px-8 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2">
+                    <RefreshCw size={18} /> Đặt lại mặc định
                   </button>
-                  <button onClick={() => handleTestPrint('80mm')} className="btn w-full justify-center bg-gray-800 text-white hover:bg-gray-900">
-                    <Printer size={18} /> IN TEST KHỔ 80MM
+                  <button onClick={handleSave} disabled={saving} className="px-10 py-3 bg-gradient-to-r from-primary to-blue-600 text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:scale-100">
+                    <Save size={18} /> {saving ? 'Đang lưu...' : 'Cập nhật Hệ thống'}
                   </button>
                 </div>
               </div>
-              
-              <div className="bg-gray-100 p-4 rounded-lg flex justify-center items-start overflow-hidden relative">
-                {/* HÓA ĐƠN TEST MÁY IN (Rất tối giản) */}
-                <div 
-                  className="print-only inline-receipt" 
-                  style={testStyles}
-                  ref={testReceiptRef}
-                >
-                  <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '10px', marginBottom: '10px' }}>
-                    <h2 style={{ margin: 0, fontSize: '18px' }}>TOP MARK</h2>
+            )}
+
+            {/* TAB 4: TEST MÁY IN */}
+            {activeTab === 'test' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 grid lg:grid-cols-12 gap-10 items-start">
+                
+                <div className="lg:col-span-6 space-y-8">
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-sm font-bold mb-4 border border-orange-200">
+                      <Bug size={14} /> CÔNG CỤ CHUẨN ĐOÁN
+                    </div>
+                    <h3 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Kiểm tra Mạch cứng</h3>
+                    <p className="text-gray-600 leading-relaxed text-lg">
+                      Sử dụng mẫu test cực kì tối giản để truy tìm thủ phạm tạo ra khoảng trắng: do <strong>Trình duyệt</strong> hay do <strong>Driver máy in</strong>.
+                    </p>
                   </div>
-                  
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <h3 style={{ margin: 0 }}>SPA & POS</h3>
-                    <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>Bản in thử nghiệm lỗi</p>
+
+                  <div className="bg-white border-2 border-dashed border-gray-300 rounded-2xl p-6 hover:border-blue-300 transition-colors group">
+                    <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">1</div>
+                      Đọc thông số DOM trình duyệt
+                    </h4>
+                    <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100">
+                      <span className="font-medium text-gray-600">Khoảng cách từ mép trên cùng (Top Gap)</span>
+                      <span className={`text-2xl font-black tracking-tight ${topGap > 5 ? 'text-red-500' : 'text-green-600'}`}>{topGap}px</span>
+                    </div>
+                    <div className="mt-4 text-sm text-gray-500 bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
+                      <strong className="text-gray-700">Luật kiểm chứng:</strong> Nếu Top Gap = <strong className="text-green-600">0px</strong> nhưng in ra giấy thật vẫn bị trắng 1 đoạn dài phía trên ➔ <strong>100% lỗi từ setting Margin của Driver máy in</strong>.
+                    </div>
                   </div>
-                  
-                  <div style={{ textAlign: 'center', borderTop: '1px dashed #000', paddingTop: '10px', marginTop: '10px' }}>
-                    <h2 style={{ margin: 0, fontSize: '18px' }}>BOTTOM MARK</h2>
+
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">2</div>
+                      Phát lệnh in thử nghiệm
+                    </h4>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <button 
+                        onClick={() => handleTestPrint('58mm')} 
+                        className="group relative flex flex-col items-center justify-center gap-2 p-6 bg-gray-900 hover:bg-black text-white rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-900/20"
+                      >
+                        <Printer size={32} className="text-gray-400 group-hover:text-white transition-colors" />
+                        <span className="font-bold tracking-wide">IN TEST 58MM</span>
+                        <div className="absolute inset-0 rounded-2xl ring-2 ring-transparent group-focus:ring-blue-500"></div>
+                      </button>
+                      <button 
+                        onClick={() => handleTestPrint('80mm')} 
+                        className="group relative flex flex-col items-center justify-center gap-2 p-6 bg-gray-900 hover:bg-black text-white rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-900/20"
+                      >
+                        <Printer size={32} className="text-gray-400 group-hover:text-white transition-colors" />
+                        <span className="font-bold tracking-wide">IN TEST 80MM</span>
+                        <div className="absolute inset-0 rounded-2xl ring-2 ring-transparent group-focus:ring-blue-500"></div>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+                
+                <div className="lg:col-span-6 bg-gradient-to-br from-gray-100 to-gray-200 p-8 rounded-3xl min-h-[600px] flex items-center justify-center shadow-inner relative">
+                  
+                  <div className="absolute top-6 flex w-full justify-center opacity-50 font-mono text-xs text-gray-400 uppercase tracking-widest">
+                    Mô phỏng máy in
+                  </div>
 
+                  {/* HÓA ĐƠN TEST MÁY IN (Rất tối giản) */}
+                  <div 
+                    className="print-only inline-receipt relative" 
+                    style={testStyles}
+                    ref={testReceiptRef}
+                  >
+                    <div className="absolute -top-3 -left-3 -right-3 -bottom-3 border-2 border-dashed border-gray-200 rounded-xl pointer-events-none hidden md:block"></div>
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] text-gray-400 uppercase tracking-wider font-sans whitespace-nowrap hidden md:block">Gốc toạ độ Browser (Top: 0)</div>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-red-400 hidden md:block"></div>
+
+                    <div style={{ textAlign: 'center', borderBottom: '2px dashed #000', paddingBottom: '15px', marginBottom: '20px' }}>
+                      <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', letterSpacing: '2px' }}>TOP MARK</h2>
+                    </div>
+                    
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '800' }}>SPA & POS</h3>
+                      <p style={{ margin: '10px 0 0 0', fontSize: '13px', color: '#666' }}>Bản in thử nghiệm kiểm tra lỗi</p>
+                      
+                      <div style={{ marginTop: '20px', padding: '10px', background: '#f8f8f8', border: '1px solid #eee', fontSize: '11px', textAlign: 'left' }}>
+                        <div>Khổ: <strong>{settings.paper_size}</strong></div>
+                        <div>Top Offset: <strong>{settings.top_offset}px</strong></div>
+                        <div>Scale: <strong>{settings.scale_percent}%</strong></div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ textAlign: 'center', borderTop: '2px dashed #000', paddingTop: '15px', marginTop: '20px' }}>
+                      <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', letterSpacing: '2px' }}>BOTTOM MARK</h2>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
       </div>
     </div>
