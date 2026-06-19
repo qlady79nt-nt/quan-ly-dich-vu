@@ -12,7 +12,8 @@ const Invoices = () => {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
-  const [view, setView] = useState<'retail' | 'session'>('retail');
+  const [view, setView] = useState<'retail' | 'session' | 'cancel_logs'>('retail');
+  const [cancelLogs, setCancelLogs] = useState<any[]>([]);
   const [dateFilter, setDateFilter] = useState<'today' | '7days' | 'month' | 'all' | 'custom'>('today');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -198,6 +199,19 @@ const Invoices = () => {
         });
       }
       setSessions(finalSessions);
+
+      // 3. Fetch Cancel Logs
+      let auditQuery = supabase.from('audit_logs')
+        .select('*, profiles(full_name)')
+        .eq('shop_id', shopId)
+        .in('action_type', ['DELETE_INVOICE', 'HARD_DELETE_INVOICE'])
+        .order('created_at', { ascending: false });
+      
+      auditQuery = applyDateFilter(auditQuery);
+      
+      const { data: auditData, error: auditErr } = await auditQuery;
+      if (auditErr) console.error(auditErr);
+      if (auditData) setCancelLogs(auditData);
     } catch (e) {
       console.error(e);
     }
@@ -421,23 +435,23 @@ const Invoices = () => {
           cancelled_by: profile?.id
         }).eq('id', detailModal.data.customer_package_id);
 
-        // Hủy hoa hồng & doanh thu của gói
-        await supabase.from('revenue_logs').update({ status: 'cancelled' }).eq('reference_id', detailModal.data.customer_package_id);
+        // Xóa hoàn toàn doanh thu và hoa hồng của gói (để không lên báo cáo)
+        await supabase.from('revenue_logs').delete().eq('reference_id', detailModal.data.customer_package_id);
         // Hủy thông qua package_sale
         const { data: ps } = await supabase.from('package_sales').select('id').eq('customer_package_id', detailModal.data.customer_package_id);
         if (ps && ps.length > 0) {
           const psIds = ps.map(p => p.id);
-          await supabase.from('commission_logs').update({ status: 'cancelled' }).in('package_sale_id', psIds);
-          await supabase.from('revenue_logs').update({ status: 'cancelled' }).in('package_sale_id', psIds);
+          await supabase.from('commission_logs').delete().in('package_sale_id', psIds);
+          await supabase.from('revenue_logs').delete().in('package_sale_id', psIds);
         }
       }
 
-      // Hủy doanh thu và hoa hồng của hoá đơn bán lẻ
-      await supabase.from('revenue_logs').update({ status: 'cancelled' }).eq('invoice_id', detailModal.data.id);
+      // Xóa hoàn toàn doanh thu và hoa hồng của hoá đơn bán lẻ (để không lên báo cáo)
+      await supabase.from('revenue_logs').delete().eq('invoice_id', detailModal.data.id);
 
       const { data: invItems } = await supabase.from('invoice_items').select('id').eq('invoice_id', detailModal.data.id);
       if (invItems && invItems.length > 0) {
-        await supabase.from('commission_logs').update({ status: 'cancelled' }).in('invoice_item_id', invItems.map(i => i.id));
+        await supabase.from('commission_logs').delete().in('invoice_item_id', invItems.map(i => i.id));
       }
 
       const { error: auditErr } = await supabase.from('audit_logs').insert([{
@@ -659,7 +673,7 @@ const Invoices = () => {
         </div>
 
         <div className="mobile-stack mobile-search-sticky" style={{ gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
-          {selectedInvoices.length > 0 && view === 'retail' && hasPermission('sale.delete') && (
+          {selectedInvoices.length > 0 && view === 'retail' && (profile?.role === 'shop_admin' || hasPermission('sale.delete')) && (
             <button 
               onClick={handleDeleteMultiple} 
               className="btn" 
@@ -740,6 +754,9 @@ const Invoices = () => {
         </button>
         <button onClick={() => setView('session')} className="btn mobile-tab" style={{ background: view === 'session' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'session' ? 'white' : 'inherit' }}>
           <Filter size={18} /> Phiếu dùng liệu trình
+        </button>
+        <button onClick={() => setView('cancel_logs')} className="btn mobile-tab" style={{ background: view === 'cancel_logs' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'cancel_logs' ? 'white' : 'inherit' }}>
+          <FileText size={18} /> Nhật ký huỷ
         </button>
       </div>
 
@@ -928,6 +945,64 @@ const Invoices = () => {
             )}
           </div>
         </div>
+      ) : (
+        <div className="premium-card">
+          <div className="hidden-mobile table-responsive">
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                  <th style={{ padding: '1rem' }}>Thời gian</th>
+                  <th>Người hủy</th>
+                  <th>Loại hành động</th>
+                  <th>Nội dung</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cancelLogs.map(log => (
+                  <tr
+                    key={log.id}
+                    style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}
+                  >
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ fontWeight: '600' }}>{new Date(log.created_at).toLocaleDateString()}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{new Date(log.created_at).toLocaleTimeString()}</div>
+                    </td>
+                    <td>{log.profiles?.full_name || 'Hệ thống'}</td>
+                    <td>
+                      <span style={{ fontSize: '0.75rem', fontWeight: '700', padding: '0.25rem 0.5rem', borderRadius: '1rem', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)' }}>
+                        {log.action_type === 'HARD_DELETE_INVOICE' ? 'Xóa vĩnh viễn' : 'Hủy hóa đơn'}
+                      </span>
+                    </td>
+                    <td>{log.description}</td>
+                  </tr>
+                ))}
+                {cancelLogs.length === 0 && (
+                  <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có nhật ký hủy nào</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="visible-mobile flex flex-col">
+            {cancelLogs.map(log => (
+              <div key={log.id} className="invoice-card-compact">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--danger)' }}>
+                    {log.action_type === 'HARD_DELETE_INVOICE' ? 'Xóa vĩnh viễn' : 'Hủy hóa đơn'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
+                    {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} {new Date(log.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>{log.description}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Người hủy: {log.profiles?.full_name || 'Hệ thống'}</div>
+              </div>
+            ))}
+            {cancelLogs.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Không có nhật ký hủy nào</div>
+            )}
+          </div>
+        </div>
       )}
 
       {detailModal && createPortal(
@@ -1024,7 +1099,7 @@ const Invoices = () => {
                     </div>
                   </div>
 
-                  {detailModal.data.status !== 'cancelled' && hasPermission('sale.delete') && (
+                  {detailModal.data.status !== 'cancelled' && (profile?.role === 'shop_admin' || hasPermission('sale.delete')) && (
                     <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
                       <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--danger)', marginBottom: '0.5rem' }}>Hủy Hóa Đơn</h4>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
