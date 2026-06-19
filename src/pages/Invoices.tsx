@@ -643,13 +643,14 @@ const Invoices = () => {
         // 4. Xóa hóa đơn
         await supabase.from('invoices').delete().eq('id', invId);
 
+        const deletedInv = invoices.find(i => i.id === invId);
         await supabase.from('audit_logs').insert([{
           shop_id: shopId,
           actor_id: profile?.id,
           action_type: 'HARD_DELETE_INVOICE',
           entity_type: 'INVOICE',
           entity_id: invId,
-          description: `Đã XÓA VĨNH VIỄN hóa đơn hệ thống và tất cả dữ liệu liên quan.`
+          description: `Đã xóa #${deletedInv?.invoice_code || invId}`
         }]);
       }
       alert('Đã xóa thành công!');
