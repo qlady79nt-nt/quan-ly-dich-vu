@@ -872,7 +872,7 @@ const Invoices = () => {
           </div>
         </div>
         </div>
-      ) : (
+      ) : view === 'session' ? (
         <div className="premium-card">
           <div className="hidden-mobile table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
