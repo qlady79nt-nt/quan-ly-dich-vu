@@ -47,6 +47,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
 
   // History State
   const [history, setHistory] = useState<ReconciliationRecord[]>([]);
+  const [visibleCount, setVisibleCount] = useState(10);
   const [fromDate, setFromDate] = useState<string>(
     new Date(new Date().setDate(1)).toISOString().split('T')[0]
   );
@@ -107,6 +108,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
 
   const fetchHistory = async () => {
     setIsLoadingHistory(true);
+    setVisibleCount(10);
     try {
       const { data, error } = await supabase
         .from('revenue_reconciliations')
@@ -578,14 +580,14 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                           <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>DT phần mềm<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(1)</span></th>
                           <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tiền mặt<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(2)</span></th>
                           <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chuyển khoản<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(3)</span></th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(2) + (3)</span></th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(1) - [(2)+(3)]</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(1) - [(2)+(3)]</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch</th>
                           <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ghi chú</th>
                           <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {history.map((record, index) => {
+                        {history.slice(0, visibleCount).map((record, index) => {
                           const totalAct = record.actual_cash + record.actual_transfer;
                           const dailyTipAmount = dailyTips[record.reconciliation_date] || 0;
                           const diffMinusTip = record.difference - dailyTipAmount;
@@ -630,7 +632,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                   </div>
                   
                   <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {history.map(record => {
+                    {history.slice(0, visibleCount).map(record => {
                       const totalAct = record.actual_cash + record.actual_transfer;
                       const dailyTipAmount = dailyTips[record.reconciliation_date] || 0;
                       const diffMinusTip = record.difference - dailyTipAmount;
@@ -665,11 +667,11 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                           <div style={{ borderTop: isMissing ? '1px dashed rgba(239, 68, 68, 0.2)' : '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
                           
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
-                            <span style={{ fontWeight: '600' }}>Tổng thực thu <span style={{fontSize: '0.7rem'}}>(2)+(3)</span>:</span>
+                            <span style={{ fontWeight: '600' }}>Tổng thực thu <span style={{fontSize: '0.7rem'}}>(1)-[(2)+(3)]</span>:</span>
                             <span style={{ fontWeight: 'bold', color: isMissing ? 'var(--danger)' : 'inherit' }}>{totalAct.toLocaleString()}đ</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
-                            <span style={{ fontWeight: '600' }}>Chênh lệch <span style={{fontSize: '0.7rem'}}>(1)-[(2)+(3)]</span>:</span>
+                            <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
                             <span style={{ 
                               fontWeight: 'bold', 
                               color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)'
@@ -698,9 +700,16 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                             </div>
                           )}
                         </div>
-                      )
+                      );
                     })}
                   </div>
+                  {visibleCount < history.length && (
+                    <div style={{ textAlign: 'center', marginTop: '1.5rem', marginBottom: '1rem' }}>
+                      <button onClick={() => setVisibleCount(v => v + 10)} className="btn" style={{ background: 'var(--bg-card)', color: 'var(--primary)', border: '1px solid var(--border)', padding: '0.75rem 2rem', fontWeight: 'bold', borderRadius: '2rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                        Xem thêm ({history.length - visibleCount} ngày nữa)
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
