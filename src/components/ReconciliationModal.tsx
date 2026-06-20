@@ -12,6 +12,7 @@ interface ReconciliationRecord {
   actual_transfer: number;
   difference: number;
   note: string;
+  is_missing?: boolean;
 }
 
 interface ShopExpense {
@@ -116,7 +117,6 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
         .order('reconciliation_date', { ascending: false });
 
       if (error) throw error;
-      setHistory(data || []);
 
       // Fetch tips for the given date range
       const [fy, fm, fd] = fromDate.split('-').map(Number);
@@ -144,6 +144,63 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
         });
         setDailyTips(tipsMap);
       }
+
+      // Lấy doanh thu phần mềm để tạo các ngày chưa đối chiếu (is_missing)
+      const { data: revData } = await supabase
+        .from('revenue_logs')
+        .select('amount, type, recorded_at')
+        .eq('shop_id', shopId)
+        .gte('recorded_at', startFromDate)
+        .lte('recorded_at', endToDate)
+        .neq('status', 'cancelled');
+
+      const revMap = new Map();
+      if (revData) {
+        revData.forEach((r: any) => {
+          if (r.type !== 'retail' && r.type !== 'combo' && r.type !== 'package_sale') return;
+          const dateObj = new Date(r.recorded_at);
+          const y = dateObj.getFullYear();
+          const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const d = String(dateObj.getDate()).padStart(2, '0');
+          const dateStr = `${y}-${m}-${d}`;
+          revMap.set(dateStr, (revMap.get(dateStr) || 0) + Number(r.amount));
+        });
+      }
+
+      const historyMap = new Map();
+      data?.forEach(d => historyMap.set(d.reconciliation_date, d));
+
+      const fullHistory = [];
+      const start = new Date(fy, fm - 1, fd);
+      const end = new Date(ty, tm - 1, td);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const limitDate = end < today ? end : today;
+
+      for (let d = new Date(limitDate); d >= start; d.setDate(d.getDate() - 1)) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${day}`;
+
+        if (historyMap.has(dateStr)) {
+          fullHistory.push(historyMap.get(dateStr));
+        } else {
+          const rev = revMap.get(dateStr) || 0;
+          fullHistory.push({
+            id: `virtual-${dateStr}`,
+            reconciliation_date: dateStr,
+            software_revenue: rev,
+            actual_cash: 0,
+            actual_transfer: 0,
+            difference: -rev,
+            note: 'Chưa đối chiếu',
+            is_missing: true
+          });
+        }
+      }
+      setHistory(fullHistory);
+
     } catch (e: any) {
       console.error('Lỗi tải lịch sử:', e);
     } finally {
@@ -518,11 +575,11 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
                           <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày</th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>DT phần mềm</th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tiền mặt</th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chuyển khoản</th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu</th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch</th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>DT phần mềm<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(1)</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tiền mặt<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(2)</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chuyển khoản<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(3)</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(2) + (3)</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(1) - [(2)+(3)]</span></th>
                           <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ghi chú</th>
                           <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
                         </tr>
@@ -532,13 +589,14 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                           const totalAct = record.actual_cash + record.actual_transfer;
                           const dailyTipAmount = dailyTips[record.reconciliation_date] || 0;
                           const diffMinusTip = record.difference - dailyTipAmount;
+                          const isMissing = record.is_missing;
                           return (
-                            <tr key={record.id} style={{ borderBottom: index === history.length - 1 ? 'none' : '1px solid var(--border)' }}>
-                              <td style={{ padding: '1rem', fontWeight: 'bold', verticalAlign: 'top' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</td>
+                            <tr key={record.id} style={{ borderBottom: index === history.length - 1 ? 'none' : '1px solid var(--border)', background: isMissing ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
+                              <td style={{ padding: '1rem', fontWeight: 'bold', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</td>
                               <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', verticalAlign: 'top' }}>{record.software_revenue.toLocaleString()}đ</td>
-                              <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top' }}>{record.actual_cash.toLocaleString()}đ</td>
-                              <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top' }}>{record.actual_transfer.toLocaleString()}đ</td>
-                              <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', verticalAlign: 'top' }}>{totalAct.toLocaleString()}đ</td>
+                              <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{record.actual_cash.toLocaleString()}đ</td>
+                              <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{record.actual_transfer.toLocaleString()}đ</td>
+                              <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{totalAct.toLocaleString()}đ</td>
                               <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top' }}>
                                 <div style={{ fontWeight: 'bold', color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)' }}>
                                   {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
@@ -551,9 +609,18 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                                   {diffMinusTip > 0 ? '+' : ''}{diffMinusTip.toLocaleString()}đ
                                 </div>
                               </td>
-                              <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '200px', verticalAlign: 'top' }}>{record.note || '-'}</td>
+                              <td style={{ padding: '1rem', fontSize: '0.875rem', color: isMissing ? 'var(--danger)' : 'var(--text-secondary)', maxWidth: '200px', verticalAlign: 'top' }}>{record.note || '-'}</td>
                               <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'top' }}>
-                                <button onClick={() => handleEdit(record)} className="btn" style={{ background: 'transparent', color: 'var(--primary)', padding: '0.25rem 0.5rem', border: '1px solid var(--primary)', fontSize: '0.875rem' }}>Sửa</button>
+                                <button onClick={() => {
+                                  if (isMissing) {
+                                    setReconDate(record.reconciliation_date);
+                                    setActiveTab('form');
+                                  } else {
+                                    handleEdit(record);
+                                  }
+                                }} className="btn" style={{ background: isMissing ? 'var(--danger)' : 'transparent', color: isMissing ? 'white' : 'var(--primary)', padding: '0.25rem 0.5rem', border: isMissing ? 'none' : '1px solid var(--primary)', fontSize: '0.875rem' }}>
+                                  {isMissing ? 'Đối chiếu ngay' : 'Sửa'}
+                                </button>
                               </td>
                             </tr>
                           );
@@ -562,67 +629,72 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                     </table>
                   </div>
                   
-                  <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {history.map(record => {
                       const totalAct = record.actual_cash + record.actual_transfer;
                       const dailyTipAmount = dailyTips[record.reconciliation_date] || 0;
                       const diffMinusTip = record.difference - dailyTipAmount;
+                      const isMissing = record.is_missing;
                       return (
-                        <div key={record.id} style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', border: '1px solid var(--border)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                            <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</span>
-                            <button onClick={() => handleEdit(record)} className="btn" style={{ background: 'transparent', color: 'var(--primary)', padding: '0.25rem 0.5rem', border: '1px solid var(--primary)', fontSize: '0.875rem' }}>Sửa</button>
+                        <div key={record.id} style={{ background: isMissing ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-card)', padding: '1rem', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', border: isMissing ? '1px solid var(--danger)' : '1px solid var(--border)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: isMissing ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                            <span style={{ fontWeight: 'bold', fontSize: '1rem', color: isMissing ? 'var(--danger)' : 'inherit' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')} {isMissing && <span style={{fontSize: '0.7rem', background: 'var(--danger)', color: 'white', padding: '2px 6px', borderRadius: '1rem', marginLeft: '4px'}}>Chưa nhập</span>}</span>
+                            <button onClick={() => {
+                              if (isMissing) {
+                                setReconDate(record.reconciliation_date);
+                                setActiveTab('form');
+                              } else {
+                                handleEdit(record);
+                              }
+                            }} className="btn" style={{ background: isMissing ? 'var(--danger)' : 'transparent', color: isMissing ? 'white' : 'var(--primary)', padding: '0.2rem 0.5rem', border: isMissing ? 'none' : '1px solid var(--primary)', fontSize: '0.75rem' }}>{isMissing ? 'Đối chiếu ngay' : 'Sửa'}</button>
                           </div>
                           
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>DT phần mềm:</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>DT phần mềm <span style={{fontSize: '0.7rem'}}>(1)</span>:</span>
                             <span style={{ fontWeight: '600' }}>{record.software_revenue.toLocaleString()}đ</span>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Tiền mặt:</span>
-                            <span>{record.actual_cash.toLocaleString()}đ</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Tiền mặt <span style={{fontSize: '0.7rem'}}>(2)</span>:</span>
+                            <span style={{ color: isMissing ? 'var(--danger)' : 'inherit' }}>{record.actual_cash.toLocaleString()}đ</span>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Chuyển khoản:</span>
-                            <span>{record.actual_transfer.toLocaleString()}đ</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Chuyển khoản <span style={{fontSize: '0.7rem'}}>(3)</span>:</span>
+                            <span style={{ color: isMissing ? 'var(--danger)' : 'inherit' }}>{record.actual_transfer.toLocaleString()}đ</span>
                           </div>
                           
-                          <div style={{ borderTop: '1px dashed var(--border)', margin: '0.75rem 0' }}></div>
+                          <div style={{ borderTop: isMissing ? '1px dashed rgba(239, 68, 68, 0.2)' : '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
                           
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ fontWeight: '600' }}>Tổng thực thu:</span>
-                            <span style={{ fontWeight: 'bold' }}>{totalAct.toLocaleString()}đ</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                            <span style={{ fontWeight: '600' }}>Tổng thực thu <span style={{fontSize: '0.7rem'}}>(2)+(3)</span>:</span>
+                            <span style={{ fontWeight: 'bold', color: isMissing ? 'var(--danger)' : 'inherit' }}>{totalAct.toLocaleString()}đ</span>
                           </div>
-                          <div style={{ borderTop: '1px dashed var(--border)', margin: '0.75rem 0' }}></div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                            <span style={{ fontWeight: '600' }}>Chênh lệch <span style={{fontSize: '0.7rem'}}>(1)-[(2)+(3)]</span>:</span>
                             <span style={{ 
                               fontWeight: 'bold', 
-                              color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)' 
+                              color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)'
                             }}>
                               {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
                             </span>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Tổng tip trong ngày:</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Tip:</span>
                             <span>{dailyTipAmount.toLocaleString()}đ</span>
                           </div>
-                          
-                          <div style={{ borderTop: '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontWeight: '600' }}>Kết quả:</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem', fontSize: '0.85rem' }}>
+                            <span style={{ fontWeight: '600' }}>Thực Chênh (sau Tip):</span>
                             <span style={{ 
                               fontWeight: 'bold', 
-                              color: diffMinusTip === 0 ? 'var(--success)' : diffMinusTip > 0 ? 'var(--warning)' : 'var(--danger)' 
+                              color: diffMinusTip === 0 ? 'var(--success)' : diffMinusTip > 0 ? 'var(--warning)' : 'var(--danger)'
                             }}>
                               {diffMinusTip > 0 ? '+' : ''}{diffMinusTip.toLocaleString()}đ
                             </span>
                           </div>
 
                           {record.note && (
-                            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                              <strong>Ghi chú:</strong> {record.note}
+                            <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: isMissing ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-main)', borderRadius: '0.5rem', fontSize: '0.8rem', color: isMissing ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                              <strong style={{ display: 'block', marginBottom: '0.15rem', color: isMissing ? 'var(--danger)' : 'var(--text-main)' }}>Ghi chú:</strong>
+                              {record.note}
                             </div>
                           )}
                         </div>
