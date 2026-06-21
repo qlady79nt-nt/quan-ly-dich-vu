@@ -19,6 +19,7 @@ interface Profile {
     status: string;
     expired_at: string;
     shop_code: string;
+    custom_max_users?: number;
     plans?: {
       id: string;
       name: string;
