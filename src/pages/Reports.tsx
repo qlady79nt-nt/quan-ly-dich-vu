@@ -372,8 +372,9 @@ const Reports = () => {
 
         if (c.service_session_id) {
           const s = relatedSessions.find((x: any) => x.id === c.service_session_id);
+          const rLog = mappedRevLogs.find((r: any) => r.service_session_id === c.service_session_id && r.mapped_invoice_code);
           if (s) {
-            mappedCode = s.session_code || '---';
+            mappedCode = rLog?.mapped_invoice_code || s.session_code || '---';
             cName = s.retail_customer_name || s.customer_packages?.customer_name;
           }
         } else if (c.package_sale_id) {
