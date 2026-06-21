@@ -246,7 +246,7 @@ const Staff = () => {
 
     // Kiểm tra giới hạn số lượng tài khoản đăng nhập của gói
     if (!editingAccountId && currentUser?.role !== 'super_admin') {
-      const maxUsers = currentUser?.shop?.plans?.max_users || 1;
+      const maxUsers = currentUser?.shop?.custom_max_users ?? currentUser?.shop?.plans?.max_users ?? 1;
       const activeAccountsCount = accounts.filter(a => a.status !== 'inactive').length;
       if (activeAccountsCount >= maxUsers) {
         return alert(`Gói hiện tại của bạn chỉ cho phép tối đa ${maxUsers} tài khoản đăng nhập hoạt động. Vui lòng nâng cấp gói hoặc khóa bớt tài khoản khác.`);
@@ -365,7 +365,7 @@ const Staff = () => {
     
     // Nếu mở khóa tài khoản, cần kiểm tra giới hạn gói
     if (isInactive && currentUser?.role !== 'super_admin') {
-      const maxUsers = currentUser?.shop?.plans?.max_users || 1;
+      const maxUsers = currentUser?.shop?.custom_max_users ?? currentUser?.shop?.plans?.max_users ?? 1;
       const activeAccountsCount = accounts.filter(ac => ac.status !== 'inactive').length;
       if (activeAccountsCount >= maxUsers) {
         return alert(`Gói hiện tại của bạn chỉ cho phép tối đa ${maxUsers} tài khoản đăng nhập hoạt động. Vui lòng nâng cấp gói để mở khóa tài khoản này.`);

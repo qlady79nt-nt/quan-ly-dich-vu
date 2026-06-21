@@ -19,7 +19,8 @@ const Shops = () => {
     shop_code: '',
     plan_id: '',
     status: 'active',
-    expired_at: ''
+    expired_at: '',
+    custom_max_users: ''
   });
 
   useEffect(() => {
@@ -48,10 +49,11 @@ const Shops = () => {
     setSaving(true);
 
     const defaultPlanId = plans.find(p => p.name === 'FREE')?.id || plans[0]?.id;
-    const payload = {
+    const payload: any = {
       ...formData,
       plan_id: formData.plan_id || defaultPlanId,
-      expired_at: formData.expired_at || null
+      expired_at: formData.expired_at || null,
+      custom_max_users: formData.custom_max_users ? parseInt(formData.custom_max_users) : null
     };
 
     if (!payload.shop_code && !editingId) {
@@ -83,7 +85,8 @@ const Shops = () => {
       shop_code: shop.shop_code || '',
       plan_id: shop.plan_id || '',
       status: shop.status,
-      expired_at: shop.expired_at ? new Date(shop.expired_at).toISOString().split('T')[0] : ''
+      expired_at: shop.expired_at ? new Date(shop.expired_at).toISOString().split('T')[0] : '',
+      custom_max_users: shop.custom_max_users?.toString() || ''
     });
     setIsModalOpen(true);
   };
@@ -91,7 +94,7 @@ const Shops = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ name: '', shop_code: '', plan_id: plans[0]?.id || '', status: 'active', expired_at: '' });
+    setFormData({ name: '', shop_code: '', plan_id: plans[0]?.id || '', status: 'active', expired_at: '', custom_max_users: '' });
   };
 
   const toggleShopStatus = async (shop: any) => {
@@ -183,7 +186,7 @@ const Shops = () => {
                   <td>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       <div>Nhân sự Spa: <strong>{shop.plans?.max_staffs ?? '---'}</strong></div>
-                      <div>Tài khoản: <strong>{shop.plans?.max_users ?? '---'}</strong></div>
+                      <div>Tài khoản: <strong>{shop.custom_max_users ?? shop.plans?.max_users ?? '---'}</strong></div>
                     </div>
                   </td>
                   <td>
@@ -254,6 +257,10 @@ const Shops = () => {
                         Giới hạn: {plans.find(p => p.id === formData.plan_id).max_staffs} nhân sự, {plans.find(p => p.id === formData.plan_id).max_users} tài khoản
                       </div>
                     )}
+                  </div>
+                  <div>
+                    <label className="form-label">Số TK cấp thêm (Bỏ qua Gói)</label>
+                    <input type="number" className="form-input" min="1" placeholder="Để trống nếu theo gói" value={formData.custom_max_users} onChange={(e) => setFormData({...formData, custom_max_users: e.target.value})} />
                   </div>
                   <div>
                     <label className="form-label">Trạng thái</label>
