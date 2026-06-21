@@ -918,33 +918,43 @@ const POS = () => {
                   )})}
                   
                   <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
-                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-main)', fontWeight: '700' }}>Thông tin khách & Chỗ</h4>
-                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={activeTab === 'retail' ? retailCustomerId : comboCustomerId} onChange={e => { 
-                      if (activeTab === 'retail') { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }
-                      else { setComboCustomerId(e.target.value); setComboCustomerName(''); }
-                    }}>
-                      <option value="">Khách vãng lai (Nhập tên)</option>
-                      {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
-                    </select>
-                    {!(activeTab === 'retail' ? retailCustomerId : comboCustomerId) && (
-                      <input type="text" className="form-input" placeholder="Tên khách lẻ..." style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={activeTab === 'retail' ? customerName : comboCustomerName} onChange={e => {
-                        if (activeTab === 'retail') setRetailCustomerName(e.target.value);
-                        else setComboCustomerName(e.target.value);
-                      }} />
-                    )}
-                    {activeTab === 'retail' && (
-                      <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
-                        <option value="">-- Kỹ thuật viên (Bắt buộc) --</option>
-                        {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                    <div style={{ padding: '1rem', background: 'rgba(109, 40, 217, 0.05)', borderRadius: '12px', border: '1px solid rgba(109, 40, 217, 0.15)', marginBottom: '1rem' }}>
+                      <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--primary)', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ width: '6px', height: '16px', background: 'var(--primary)', borderRadius: '4px' }}></span> Kỹ thuật viên & Chỗ
+                      </h4>
+                      {activeTab === 'retail' && (
+                        <select className="form-select" style={{ marginBottom: '0.75rem', height: '48px', borderRadius: '12px', borderColor: 'var(--primary)', fontWeight: '600' }} value={retailStaffId} onChange={e => setRetailStaffId(e.target.value)}>
+                          <option value="">-- Chọn Kỹ thuật viên (Bắt buộc) --</option>
+                          {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                        </select>
+                      )}
+                      <select className="form-select" style={{ height: '48px', borderRadius: '12px', borderColor: 'var(--primary)', fontWeight: '600' }} value={activeTab === 'retail' ? retailBedId : comboBedId} onChange={e => {
+                        if (activeTab === 'retail') setRetailBedId(e.target.value);
+                        else setComboBedId(e.target.value);
+                      }}>
+                        <option value="">-- Chọn Chỗ (Trống) --</option>
+                        {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                       </select>
-                    )}
-                    <select className="form-select" style={{ marginBottom: '0.75rem', height: '44px', borderRadius: '12px' }} value={activeTab === 'retail' ? retailBedId : comboBedId} onChange={e => {
-                      if (activeTab === 'retail') setRetailBedId(e.target.value);
-                      else setComboBedId(e.target.value);
-                    }}>
-                      <option value="">-- Chọn Chỗ (Trống) --</option>
-                      {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
+                    </div>
+
+                    <div style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                      <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-main)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ width: '6px', height: '16px', background: 'var(--text-light)', borderRadius: '4px' }}></span> Khách hàng
+                      </h4>
+                      <select className="form-select" style={{ marginBottom: '0.75rem', height: '48px', borderRadius: '12px' }} value={activeTab === 'retail' ? retailCustomerId : comboCustomerId} onChange={e => { 
+                        if (activeTab === 'retail') { setRetailCustomerId(e.target.value); setRetailCustomerName(''); }
+                        else { setComboCustomerId(e.target.value); setComboCustomerName(''); }
+                      }}>
+                        <option value="">Khách vãng lai (Nhập tên phía dưới)</option>
+                        {customersList.map(c => <option key={c.id} value={c.id}>{c.name} {c.phone ? `- ${c.phone}` : ''}</option>)}
+                      </select>
+                      {!(activeTab === 'retail' ? retailCustomerId : comboCustomerId) && (
+                        <input type="text" className="form-input" placeholder="Tên khách lẻ (Không bắt buộc)..." style={{ height: '48px', borderRadius: '12px' }} value={activeTab === 'retail' ? customerName : comboCustomerName} onChange={e => {
+                          if (activeTab === 'retail') setRetailCustomerName(e.target.value);
+                          else setComboCustomerName(e.target.value);
+                        }} />
+                      )}
+                    </div>
                   </div>
                 </>
               )}
