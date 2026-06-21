@@ -633,7 +633,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                   </div>
                 ) : (
                   <>
-                  <div className="table-responsive hidden-mobile" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                  <div className="table-responsive hidden-mobile" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
@@ -731,7 +731,7 @@ const ReportsStaff = ({ shopId, startDate, endDate }: ReportsStaffProps) => {
                   </div>
                 ) : (
                   <>
-                  <div className="table-responsive hidden-mobile" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                  <div className="table-responsive hidden-mobile" style={{ border: '1px solid var(--border)', borderRadius: '0.75rem', overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '600px' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
