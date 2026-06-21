@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Loader2, BedDouble, CheckCircle2, Clock, X, Printer } from 'lucide-react';
+import { Plus, Loader2, BedDouble, CheckCircle2, Clock, X, Printer, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
@@ -116,6 +116,21 @@ const Beds = () => {
 
     const { error } = await supabase.from('beds').insert([{ shop_id: shopId, name: name.trim() }]);
     if (error) alert('Lỗi khi tạo chỗ: ' + error.message);
+    else fetchBedsAndSessions();
+  };
+
+  const handleDeleteBed = async (e: React.MouseEvent, bed: any) => {
+    e.stopPropagation();
+    if (profile?.role !== 'shop_admin' && profile?.role !== 'super_admin') {
+      return alert('Chỉ Quản lý (Shop Admin) mới có quyền xóa chỗ!');
+    }
+    if (bed.computed_status !== 'available') {
+      return alert('Không thể xóa chỗ đang có khách hoặc dọn dẹp!');
+    }
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa "${bed.name}" không?`)) return;
+
+    const { error } = await supabase.from('beds').delete().eq('id', bed.id).eq('shop_id', shopId);
+    if (error) alert('Lỗi khi xóa chỗ: ' + error.message);
     else fetchBedsAndSessions();
   };
 
@@ -554,8 +569,19 @@ const Beds = () => {
                     <span style={{ fontSize: '0.65rem', background: 'var(--warning)', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 'bold' }}>COMBO</span>
                   )}
                 </div>
-                <div style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', color: getStatusColor(bed.computed_status), background: `${getStatusColor(bed.computed_status)}15`, padding: '0.25rem 0.5rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
-                  {bed.computed_status === 'available' ? 'Trống' : (bed.computed_status === 'occupied' ? 'Có khách' : 'Vệ sinh')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', color: getStatusColor(bed.computed_status), background: `${getStatusColor(bed.computed_status)}15`, padding: '0.25rem 0.5rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
+                    {bed.computed_status === 'available' ? 'Trống' : (bed.computed_status === 'occupied' ? 'Có khách' : 'Vệ sinh')}
+                  </div>
+                  {(profile?.role === 'shop_admin' || profile?.role === 'super_admin') && bed.computed_status === 'available' && !isMultiSelectMode && (
+                    <button 
+                      onClick={(e) => handleDeleteBed(e, bed)}
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}
+                      title="Xóa chỗ"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
               
