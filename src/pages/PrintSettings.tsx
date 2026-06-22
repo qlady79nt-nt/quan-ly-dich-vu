@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { getPrintSettings, updatePrintSettings, DEFAULT_PRINT_SETTINGS } from '../lib/printSettings';
 import type { ShopPrintSettings } from '../lib/printSettings';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
+import { PrintContainer } from '../components/PrintContainer';
 
 export default function PrintSettings() {
   const { profile } = useAuth();
@@ -42,6 +43,9 @@ export default function PrintSettings() {
       div.style.transformOrigin = 'top left';
     }
   };
+
+  const [isTestingRealInvoice, setIsTestingRealInvoice] = useState(false);
+  const realInvoiceTestRef = useRef<HTMLDivElement>(null);
 
   const handlePrintTopMark = () => {
     const div = document.createElement('div');
@@ -639,6 +643,46 @@ export default function PrintSettings() {
                     <span className="font-bold text-purple-900">IN HÓA ĐƠN MẪU</span>
                     <span className="text-xs text-center text-purple-700">Sử dụng dữ liệu giả (SHOP TEST, Khách test) đi qua ReceiptTemplate thực tế.</span>
                   </button>
+                  <button onClick={() => {
+                    const testStyle = window.getComputedStyle(testReceiptRef.current!);
+                    const receiptStyle = window.getComputedStyle(diagnosticReceiptRef.current!);
+                    const getRelevantStyles = (style: CSSStyleDeclaration) => ({
+                      position: style.position,
+                      top: style.top,
+                      left: style.left,
+                      margin: style.margin,
+                      padding: style.padding,
+                      transform: style.transform,
+                      display: style.display,
+                    });
+                    const report = {
+                      testPrint: {
+                        offsetWidth: testReceiptRef.current?.offsetWidth,
+                        offsetHeight: testReceiptRef.current?.offsetHeight,
+                        outerHTML: testReceiptRef.current?.outerHTML,
+                        parentElement: testReceiptRef.current?.parentElement?.tagName,
+                        css: getRelevantStyles(testStyle)
+                      },
+                      receiptPrint: {
+                        offsetWidth: diagnosticReceiptRef.current?.offsetWidth,
+                        offsetHeight: diagnosticReceiptRef.current?.offsetHeight,
+                        outerHTML: diagnosticReceiptRef.current?.outerHTML,
+                        parentElement: diagnosticReceiptRef.current?.parentElement?.tagName,
+                        css: getRelevantStyles(receiptStyle)
+                      }
+                    };
+                    console.log("=== SO SÁNH TEST PRINT VÀ RECEIPT ===", report);
+                    alert("Đã xuất JSON so sánh ra Console (F12). Hãy gửi dữ liệu này cho ChatGPT.");
+                  }} className="p-6 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-2xl flex flex-col items-center gap-3 transition-colors">
+                    <div className="w-12 h-12 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold"><Search size={24} /></div>
+                    <span className="font-bold text-orange-900">SO SÁNH DOM</span>
+                    <span className="text-xs text-center text-orange-700">So sánh DOM & CSS giữa Test Print và Hóa đơn mẫu để tìm điểm khác biệt.</span>
+                  </button>
+                  <button onClick={() => setIsTestingRealInvoice(true)} className="p-6 bg-red-50 hover:bg-red-100 border border-red-200 rounded-2xl flex flex-col items-center gap-3 transition-colors">
+                    <div className="w-12 h-12 bg-red-600 text-white rounded-full flex items-center justify-center font-bold">4</div>
+                    <span className="font-bold text-red-900">IN HÓA ĐƠN THẬT RA PDF</span>
+                    <span className="text-xs text-center text-red-700">Dùng đúng pipeline của hóa đơn thật (PrintContainer) để test Save as PDF.</span>
+                  </button>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6 mt-8">
@@ -647,7 +691,9 @@ export default function PrintSettings() {
                     <div className="space-y-3 text-sm">
                       <div className="flex justify-between"><span className="text-gray-500">Khổ giấy hiện tại:</span><strong className="text-gray-900">{settings.paper_size || '80mm'}</strong></div>
                       <div className="flex justify-between"><span className="text-gray-500">Chiều rộng hóa đơn thực tế:</span><strong className="text-gray-900">{settings.paper_size === '58mm' ? '220px' : '300px'}</strong></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Chiều cao hóa đơn:</span><strong className="text-gray-900">{realHeight > 0 ? `${realHeight}px` : 'Đang tính...'}</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Chiều cao hóa đơn (Receipt Height):</span><strong className="text-gray-900">{realHeight > 0 ? `${realHeight}px` : 'Đang tính...'}</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Receipt Top (DOM):</span><strong className="text-blue-600">{topGap}px</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Container Height (Body):</span><strong className="text-blue-600">{document.body.scrollHeight}px</strong></div>
                       <div className="flex justify-between"><span className="text-gray-500">Top Offset:</span><strong className="text-gray-900">{settings.top_offset || 0}px</strong></div>
                       <div className="flex justify-between"><span className="text-gray-500">Left Offset:</span><strong className="text-gray-900">{settings.left_offset || 0}px</strong></div>
                       <div className="flex justify-between"><span className="text-gray-500">Scale:</span><strong className="text-gray-900">{settings.scale_percent || 100}%</strong></div>
@@ -701,6 +747,27 @@ export default function PrintSettings() {
           printSettings={settings}
           renderInline={false} // Bắt buộc render ra Portal để in
         />
+      )}
+
+      {/* Test Print Hóa Đơn Thật bằng PrintContainer */}
+      {isTestingRealInvoice && (
+        <PrintContainer onPrinted={() => {
+          setIsTestingRealInvoice(false);
+          console.log("=== LOG KẾT QUẢ IN HÓA ĐƠN THẬT ===", {
+            receiptHeight: realInvoiceTestRef.current?.offsetHeight,
+            receiptTop: realInvoiceTestRef.current?.getBoundingClientRect().top,
+            scrollY: window.scrollY,
+            bodyHeight: document.body.scrollHeight
+          });
+        }}>
+          <ReceiptTemplate
+            invoice={mockInvoice}
+            config={mockConfig}
+            printSettings={settings}
+            renderInline={true}
+            containerRef={realInvoiceTestRef}
+          />
+        </PrintContainer>
       )}
 
       {/* Hidden ReceiptTemplate để lấy realHeight cho tab diagnostic */}

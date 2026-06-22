@@ -18,6 +18,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
+import { PrintContainer } from '../components/PrintContainer';
 import { getPrintSettings } from '../lib/printSettings';
 import type { ShopPrintSettings } from '../lib/printSettings';
 import '../receipt.css';
@@ -37,6 +38,7 @@ const POS = () => {
   const [loading, setLoading] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<any>(null);
   const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // --- RETAIL STATE ---
   const [cart, setCart] = useState<any[]>([]);
@@ -94,9 +96,10 @@ const POS = () => {
   useEffect(() => {
     console.log('FETCH RUN - useEffect triggered');
     if (shopId) fetchData();
-    // Setup afterprint listener
+    // Setup afterprint listener (nếu cần, nhưng PrintContainer đã handle)
     const handleAfterPrint = () => {
-      setCompletedInvoice(null);
+      // Bỏ setCompletedInvoice(null) ở đây để người dùng vẫn thấy màn hình "Thành công"
+      setIsPrinting(false);
     };
     window.addEventListener('afterprint', handleAfterPrint);
 
@@ -450,10 +453,7 @@ const POS = () => {
 
       setPreviewInvoiceData(null);
       if (print) {
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          window.print();
-        }, 500);
+        setIsPrinting(true);
       }
     } catch (e: any) { alert('Lỗi: ' + e.message); }
     setLoading(false);
@@ -524,8 +524,7 @@ const POS = () => {
   };
 
   const handlePrint = () => {
-    window.scrollTo(0, 0);
-    window.print();
+    setIsPrinting(true);
   };
 
   const handleTestPrintMinimal = () => {
@@ -1040,15 +1039,20 @@ const POS = () => {
           </button>
         </div>
       )}
-      <ReceiptTemplate
-        invoice={completedInvoice}
-        config={{
-          shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
-          paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
-          footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
-        }}
-        printSettings={printSettings}
-      />
+      {isPrinting && completedInvoice && (
+        <PrintContainer onPrinted={() => setIsPrinting(false)}>
+          <ReceiptTemplate
+            invoice={completedInvoice}
+            config={{
+              shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
+              paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
+              footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
+            }}
+            printSettings={printSettings}
+            renderInline={true} // Cực kỳ quan trọng để ăn class .inline-receipt
+          />
+        </PrintContainer>
+      )}
 
       {/* Modal Preview Hóa Đơn */}
       {previewInvoiceData && createPortal(

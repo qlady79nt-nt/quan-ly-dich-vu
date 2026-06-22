@@ -4,6 +4,7 @@ import { Plus, Loader2, BedDouble, CheckCircle2, Clock, X, Printer, Trash2 } fro
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
+import { PrintContainer } from '../components/PrintContainer';
 import { getPrintSettings } from '../lib/printSettings';
 import type { ShopPrintSettings } from '../lib/printSettings';
 import '../receipt.css';
@@ -23,6 +24,7 @@ const Beds = () => {
   const [comboItemDiscounts, setComboItemDiscounts] = useState<Record<string, { type: 'amount' | 'percent', value: number }>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<any>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Multi-select State
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
@@ -39,7 +41,8 @@ const Beds = () => {
     const timer = setInterval(() => setNow(new Date()), 1000);
 
     const handleAfterPrint = () => {
-      setCompletedInvoice(null);
+      // Bỏ setCompletedInvoice(null) ở đây để người dùng vẫn thấy màn hình "Thành công"
+      setIsPrinting(false);
       fetchBedsAndSessions();
     };
     window.addEventListener('afterprint', handleAfterPrint);
@@ -508,7 +511,7 @@ const Beds = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    setIsPrinting(true);
   };
 
   return (
@@ -671,6 +674,36 @@ const Beds = () => {
             Thanh toán gộp
           </button>
         </div>
+      )}
+
+      {/* Hiển thị Popup hoàn thành nếu có */}
+      {completedInvoice && !isPrinting && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="premium-card animate-fade" style={{ textAlign: 'center', width: '90%', maxWidth: '400px' }}>
+            <div style={{ color: 'var(--success)', marginBottom: '1rem' }}><CheckCircle2 size={48} style={{ display: 'inline' }} /></div>
+            <h3 style={{ marginBottom: '0.5rem' }}>Thanh toán thành công</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Hoá đơn #{completedInvoice.invoice_code || completedInvoice.display_id || '---'}</p>
+            <button onClick={handlePrint} className="btn btn-primary" style={{ width: '100%', marginBottom: '0.5rem' }}><Printer size={18} /> In hoá đơn</button>
+            <button onClick={() => setCompletedInvoice(null)} className="btn" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border)' }}>Đóng</button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Ẩn PrintContainer để chờ print */}
+      {isPrinting && completedInvoice && (
+        <PrintContainer onPrinted={() => setIsPrinting(false)}>
+          <ReceiptTemplate
+            invoice={completedInvoice}
+            config={{
+              shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
+              paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
+              footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
+            }}
+            printSettings={printSettings}
+            renderInline={true}
+          />
+        </PrintContainer>
       )}
 
       {/* Modal Thanh Toán Gộp */}
