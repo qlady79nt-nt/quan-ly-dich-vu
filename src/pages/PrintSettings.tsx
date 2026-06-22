@@ -31,6 +31,18 @@ export default function PrintSettings() {
     localStorage.setItem('printer_test_notes', JSON.stringify(newNotes));
   };
 
+  const diagnosticReceiptRef = useRef<HTMLDivElement>(null);
+
+  const applySettingsToDiv = (div: HTMLDivElement) => {
+    if (!settings) return;
+    div.style.top = `${settings.top_offset || 0}px`;
+    div.style.left = `${settings.left_offset || 0}px`;
+    if (settings.scale_percent && settings.scale_percent !== 100) {
+      div.style.transform = `scale(${settings.scale_percent / 100})`;
+      div.style.transformOrigin = 'top left';
+    }
+  };
+
   const handlePrintTopMark = () => {
     const div = document.createElement('div');
     div.className = 'print-only print-test-top';
@@ -40,6 +52,7 @@ export default function PrintSettings() {
     div.style.fontSize = '16px';
     div.style.fontWeight = 'bold';
     div.innerText = 'TOP MARK';
+    applySettingsToDiv(div);
     document.body.appendChild(div);
 
     const cleanup = () => {
@@ -55,13 +68,16 @@ export default function PrintSettings() {
   const handlePrintBorder = () => {
     const div = document.createElement('div');
     div.className = 'print-only';
+    div.style.position = 'absolute';
+    div.style.top = '0px';
+    div.style.left = '0px';
     div.style.width = settings?.paper_size === '58mm' ? '220px' : '300px';
     div.style.border = '2px solid black';
     div.style.padding = '10px';
-    div.style.margin = '0 auto';
     div.style.textAlign = 'center';
     div.style.fontWeight = 'bold';
     div.innerText = 'TEST BORDER';
+    applySettingsToDiv(div);
     document.body.appendChild(div);
 
     const cleanup = () => {
@@ -101,7 +117,10 @@ export default function PrintSettings() {
 
   useEffect(() => {
     const measure = () => {
-      const ref = activeTab === 'test' ? testReceiptRef.current : receiptRef.current;
+      let ref = receiptRef.current;
+      if (activeTab === 'test') ref = testReceiptRef.current;
+      if (activeTab === 'diagnostic') ref = diagnosticReceiptRef.current;
+      
       if (ref) {
         const rect = ref.getBoundingClientRect();
         setRealWidth(Math.round(rect.width));
@@ -626,11 +645,12 @@ export default function PrintSettings() {
                   <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
                     <h4 className="font-bold text-gray-900 mb-4 border-b pb-2">THÔNG TIN DEBUG</h4>
                     <div className="space-y-3 text-sm">
-                      <div className="flex justify-between"><span className="text-gray-500">Khổ giấy:</span><strong className="text-gray-900">{settings.paper_size}</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Khổ giấy hiện tại:</span><strong className="text-gray-900">{settings.paper_size || '80mm'}</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Chiều rộng hóa đơn thực tế:</span><strong className="text-gray-900">{settings.paper_size === '58mm' ? '220px' : '300px'}</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Chiều cao hóa đơn:</span><strong className="text-gray-900">{realHeight > 0 ? `${realHeight}px` : 'Đang tính...'}</strong></div>
                       <div className="flex justify-between"><span className="text-gray-500">Top Offset:</span><strong className="text-gray-900">{settings.top_offset || 0}px</strong></div>
                       <div className="flex justify-between"><span className="text-gray-500">Left Offset:</span><strong className="text-gray-900">{settings.left_offset || 0}px</strong></div>
                       <div className="flex justify-between"><span className="text-gray-500">Scale:</span><strong className="text-gray-900">{settings.scale_percent || 100}%</strong></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Chiều rộng Browser:</span><strong className="text-gray-900">{window.innerWidth}px</strong></div>
                     </div>
                   </div>
 
@@ -681,6 +701,19 @@ export default function PrintSettings() {
           printSettings={settings}
           renderInline={false} // Bắt buộc render ra Portal để in
         />
+      )}
+
+      {/* Hidden ReceiptTemplate để lấy realHeight cho tab diagnostic */}
+      {activeTab === 'diagnostic' && (
+        <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', zIndex: -9999 }}>
+          <ReceiptTemplate 
+            invoice={mockInvoice}
+            config={mockConfig}
+            printSettings={settings}
+            renderInline={true}
+            containerRef={diagnosticReceiptRef}
+          />
+        </div>
       )}
     </div>
   );
