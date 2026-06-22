@@ -12,8 +12,76 @@ export default function PrintSettings() {
   const [saving, setSaving] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   
-  // Tabs: 'preview' | 'debug' | 'tweak' | 'test'
-  const [activeTab, setActiveTab] = useState<'preview' | 'debug' | 'tweak' | 'test'>('preview');
+  // Tabs: 'preview' | 'debug' | 'tweak' | 'test' | 'diagnostic'
+  const [activeTab, setActiveTab] = useState<'preview' | 'debug' | 'tweak' | 'test' | 'diagnostic'>('preview');
+
+  // Diagnostic states
+  const [printMockStatus, setPrintMockStatus] = useState(false);
+  const [testNotes, setTestNotes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('printer_test_notes');
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return { topGap: '', leftRightGap: '', notes: '' };
+  });
+
+  const updateTestNotes = (key: string, value: string) => {
+    const newNotes = { ...testNotes, [key]: value };
+    setTestNotes(newNotes);
+    localStorage.setItem('printer_test_notes', JSON.stringify(newNotes));
+  };
+
+  const handlePrintTopMark = () => {
+    const div = document.createElement('div');
+    div.className = 'print-only print-test-top';
+    div.style.position = 'absolute';
+    div.style.top = '0px';
+    div.style.left = '0px';
+    div.style.fontSize = '16px';
+    div.style.fontWeight = 'bold';
+    div.innerText = 'TOP MARK';
+    document.body.appendChild(div);
+
+    const cleanup = () => {
+      if (document.body.contains(div)) document.body.removeChild(div);
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    
+    window.scrollTo(0, 0);
+    window.print();
+  };
+
+  const handlePrintBorder = () => {
+    const div = document.createElement('div');
+    div.className = 'print-only';
+    div.style.width = settings?.paper_size === '58mm' ? '220px' : '300px';
+    div.style.border = '2px solid black';
+    div.style.padding = '10px';
+    div.style.margin = '0 auto';
+    div.style.textAlign = 'center';
+    div.style.fontWeight = 'bold';
+    div.innerText = 'TEST BORDER';
+    document.body.appendChild(div);
+
+    const cleanup = () => {
+      if (document.body.contains(div)) document.body.removeChild(div);
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+
+    window.scrollTo(0, 0);
+    window.print();
+  };
+
+  const handlePrintMockInvoice = () => {
+    setPrintMockStatus(true);
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      window.print();
+      setTimeout(() => setPrintMockStatus(false), 500);
+    }, 500);
+  };
   
   // States cho thông số thực tế
   const [realWidth, setRealWidth] = useState(0);
@@ -153,7 +221,8 @@ export default function PrintSettings() {
     { id: 'preview', label: 'Xem trước', icon: Search, desc: 'Hiển thị nguyên bản hóa đơn' },
     { id: 'debug', label: 'Debug', icon: Bug, desc: 'Đo lường & Gỡ lỗi lề' },
     { id: 'tweak', label: 'Tinh chỉnh', icon: SlidersHorizontal, desc: 'Tọa độ & Kích thước' },
-    { id: 'test', label: 'In Test', icon: Printer, desc: 'Bài test máy in chuẩn' }
+    { id: 'test', label: 'In Test', icon: Printer, desc: 'Bài test máy in chuẩn' },
+    { id: 'diagnostic', label: '🧪 Test máy in', icon: MonitorCheck, desc: 'Kiểm tra chẩn đoán' }
   ] as const;
 
   return (
@@ -525,11 +594,92 @@ export default function PrintSettings() {
 
                 </div>
               </div>
+            {/* TAB 5: DIAGNOSTIC (TEST MÁY IN) */}
+            {activeTab === 'diagnostic' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-4xl mx-auto space-y-8">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Công cụ chẩn đoán máy in nhiệt</h3>
+                  <p className="text-gray-500">Thực hiện các bài test tối giản để tìm ra nguyên nhân gây lệch khổ giấy, dư khoảng trắng.</p>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <button onClick={handlePrintTopMark} className="p-6 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-2xl flex flex-col items-center gap-3 transition-colors">
+                    <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</div>
+                    <span className="font-bold text-blue-900">IN TOP MARK</span>
+                    <span className="text-xs text-center text-blue-700">In chữ sát mép giấy (position: absolute; top: 0). Dùng để phát hiện khoảng trắng do máy in tự chừa.</span>
+                  </button>
+                  <button onClick={handlePrintBorder} className="p-6 bg-green-50 hover:bg-green-100 border border-green-200 rounded-2xl flex flex-col items-center gap-3 transition-colors">
+                    <div className="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">2</div>
+                    <span className="font-bold text-green-900">IN KHUNG TEST</span>
+                    <span className="text-xs text-center text-green-700">In ra khung viền với độ rộng thực tế ({settings.paper_size}). Giúp phát hiện sai lệch trái phải.</span>
+                  </button>
+                  <button onClick={handlePrintMockInvoice} className="p-6 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-2xl flex flex-col items-center gap-3 transition-colors">
+                    <div className="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold">3</div>
+                    <span className="font-bold text-purple-900">IN HÓA ĐƠN MẪU</span>
+                    <span className="text-xs text-center text-purple-700">Sử dụng dữ liệu giả (SHOP TEST, Khách test) đi qua ReceiptTemplate thực tế.</span>
+                  </button>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6 mt-8">
+                  <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                    <h4 className="font-bold text-gray-900 mb-4 border-b pb-2">THÔNG TIN DEBUG</h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between"><span className="text-gray-500">Khổ giấy:</span><strong className="text-gray-900">{settings.paper_size}</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Top Offset:</span><strong className="text-gray-900">{settings.top_offset || 0}px</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Left Offset:</span><strong className="text-gray-900">{settings.left_offset || 0}px</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Scale:</span><strong className="text-gray-900">{settings.scale_percent || 100}%</strong></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Chiều rộng Browser:</span><strong className="text-gray-900">{window.innerWidth}px</strong></div>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50/50 p-6 rounded-2xl border border-yellow-200">
+                    <h4 className="font-bold text-gray-900 mb-4 border-b pb-2">KẾT QUẢ TEST (Lưu LocalStorage)</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Khoảng trắng đầu giấy:</label>
+                        <input type="text" value={testNotes.topGap} onChange={e => updateTestNotes('topGap', e.target.value)} className="w-full form-input bg-white border-yellow-300" placeholder="VD: Bị dư 2cm..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Lệch trái/phải:</label>
+                        <input type="text" value={testNotes.leftRightGap} onChange={e => updateTestNotes('leftRightGap', e.target.value)} className="w-full form-input bg-white border-yellow-300" placeholder="VD: Lệch sang phải..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Nhận xét tổng quan:</label>
+                        <textarea value={testNotes.notes} onChange={e => updateTestNotes('notes', e.target.value)} className="w-full form-input bg-white border-yellow-300" rows={2} placeholder="Nhận định nguyên nhân..."></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
           </div>
         </div>
       </div>
+      
+      {/* Hidden Portal cho in Hóa đơn mẫu */}
+      {printMockStatus && (
+        <ReceiptTemplate 
+          invoice={{
+            invoice_code: 'TEST-123',
+            customer_name: 'Khách test',
+            customer_phone: '',
+            staff_name: 'System',
+            created_at: new Date().toISOString(),
+            is_use_package: false,
+            items: [{ name: 'Dịch vụ test', price: 199000 }],
+            total_amount: 199000,
+            discount_amount: 0,
+            final_amount: 199000
+          }}
+          config={{
+            shop_name: 'SHOP TEST',
+            paper_size: settings.paper_size
+          }}
+          printSettings={settings}
+          renderInline={false} // Bắt buộc render ra Portal để in
+        />
+      )}
     </div>
   );
 }
