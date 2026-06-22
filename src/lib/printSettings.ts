@@ -10,7 +10,7 @@ export interface ShopPrintSettings {
 }
 
 export const DEFAULT_PRINT_SETTINGS: Omit<ShopPrintSettings, 'shop_id'> = {
-  paper_size: '58mm',
+  paper_size: '80mm',
   top_offset: 0,
   left_offset: 0,
   scale_percent: 100,
