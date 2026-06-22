@@ -594,6 +594,8 @@ export default function PrintSettings() {
 
                 </div>
               </div>
+            )}
+            
             {/* TAB 5: DIAGNOSTIC (TEST MÁY IN) */}
             {activeTab === 'diagnostic' && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-4xl mx-auto space-y-8">
