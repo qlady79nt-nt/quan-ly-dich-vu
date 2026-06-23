@@ -475,6 +475,32 @@ const Invoices = () => {
     setIsCancelling(false);
   };
 
+  const handleViewCancelledInvoice = async (log: any) => {
+    if (log.action_type === 'HARD_DELETE_INVOICE') {
+      alert('Hóa đơn này đã bị xóa vĩnh viễn khỏi cơ sở dữ liệu, không thể xem lại chi tiết.');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { data: inv, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', log.entity_id)
+        .single();
+        
+      if (error || !inv) {
+        alert('Không tìm thấy dữ liệu hóa đơn, có thể đã bị xóa vĩnh viễn.');
+      } else {
+        await handleViewInvoice(inv);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Đã xảy ra lỗi khi tải hóa đơn.');
+    }
+    setLoading(false);
+  };
+
   const handleUpdateDate = async () => {
     if (!newDate) return;
     const dateToSave = new Date(newDate).toISOString();
@@ -962,7 +988,10 @@ const Invoices = () => {
                 {cancelLogs.map(log => (
                   <tr
                     key={log.id}
-                    style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}
+                    onClick={() => handleViewCancelledInvoice(log)}
+                    style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem', cursor: 'pointer', transition: 'background 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'rgba(109, 40, 217, 0.05)'}
+                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td style={{ padding: '1rem' }}>
                       <div style={{ fontWeight: '600' }}>{new Date(log.created_at).toLocaleDateString()}</div>
@@ -986,7 +1015,12 @@ const Invoices = () => {
 
           <div className="visible-mobile flex flex-col">
             {cancelLogs.map(log => (
-              <div key={log.id} className="invoice-card-compact">
+              <div 
+                key={log.id} 
+                className="invoice-card-compact"
+                onClick={() => handleViewCancelledInvoice(log)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--danger)' }}>
                     {log.action_type === 'HARD_DELETE_INVOICE' ? 'Xóa vĩnh viễn' : 'Hủy hóa đơn'}
