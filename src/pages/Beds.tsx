@@ -295,7 +295,12 @@ const Beds = () => {
           customer_name: comboGroup.customer_name || 'Khách Combo',
           customer_phone: comboGroup.customer_phone,
           staff_name: sessions.map((sess: any) => sess.staffs?.full_name).filter(Boolean).join(', ') || 'Combo (Nhiều KTV)',
-          items: sessions.map((sess: any) => ({ name: sess.services?.name, price: Number(sess.service_price || sess.services?.price || 0) })),
+          items: sessions.map((sess: any) => {
+            const basePrice = Number(sess.service_price || sess.services?.price || 0);
+            const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+            const itemDisc = d.type === 'percent' ? (basePrice * d.value) / 100 : d.value;
+            return { name: sess.services?.name, price: basePrice, discount: itemDisc };
+          }),
           total_amount: totalOriginalPrice,
           discount_amount: totalDiscount,
           final_amount: finalTotal,
@@ -390,7 +395,7 @@ const Beds = () => {
             customer_name: sess.retail_customer_name || 'Khách lẻ',
             customer_phone: sess.retail_customer_phone,
             staff_name: sess.staffs?.full_name || 'KTV',
-            items: [{ name: svc.name, price: price }],
+            items: [{ name: svc.name, price: price, discount: discount }],
             total_amount: price,
             discount_amount: discount,
             final_amount: finalTotal,
@@ -493,7 +498,12 @@ const Beds = () => {
         customer_name: firstCustomerName,
         customer_phone: firstCustomerPhone,
         staff_name: [...new Set(allSessions.map((sess: any) => sess.staffs?.full_name).filter(Boolean))].join(', ') || 'Nhiều KTV',
-        items: allSessions.map((sess: any) => ({ name: sess.services?.name, price: Number(sess.service_price || sess.services?.price || 0) })),
+        items: allSessions.map((sess: any) => {
+          const basePrice = Number(sess.service_price || sess.services?.price || 0);
+          const d = comboItemDiscounts[sess.id] || { type: 'amount', value: 0 };
+          const itemDisc = d.type === 'percent' ? (basePrice * d.value) / 100 : d.value;
+          return { name: sess.services?.name, price: basePrice, discount: itemDisc };
+        }),
         total_amount: totalOriginalPrice,
         discount_amount: totalDiscount,
         final_amount: finalTotal,

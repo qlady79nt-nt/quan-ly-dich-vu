@@ -204,9 +204,17 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({
 
         <div className="receipt-section">
           {invoice.items?.map((item: any, i: number) => (
-            <div key={i} className="receipt-item">
-              <span style={{ maxWidth: '60%' }}>{item.name}</span>
-              <span>{item.price === '-' ? '-' : Number(item.price).toLocaleString()}</span>
+            <div key={i} style={{ marginBottom: item.discount > 0 ? '6px' : '2px', pageBreakInside: 'avoid' }}>
+              <div className="receipt-item">
+                <span style={{ maxWidth: '60%' }}>{item.name}</span>
+                <span>{item.price === '-' ? '-' : Number(item.price).toLocaleString()}</span>
+              </div>
+              {item.discount > 0 && (
+                <div className="receipt-item" style={{ fontSize: '11px', fontStyle: 'italic', marginTop: '-2px', color: '#555' }}>
+                  <span style={{ maxWidth: '60%' }}>↳ Giảm giá:</span>
+                  <span>-{Number(item.discount).toLocaleString()}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>

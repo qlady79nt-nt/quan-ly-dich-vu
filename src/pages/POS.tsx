@@ -408,7 +408,7 @@ const POS = () => {
 
         setCompletedInvoice({
           ...inv,
-          items: [{ name: pkg_name, price: original_price }],
+          items: [{ name: pkg_name, price: original_price, discount: pkgDiscountType === 'percent' ? (original_price * pkgDiscountValue) / 100 : pkgDiscountValue }],
           staff_name: staff.find(s => s.id === sellerId)?.full_name || profile?.full_name || 'Thu ngân'
         });
         setCustomerPhone('');

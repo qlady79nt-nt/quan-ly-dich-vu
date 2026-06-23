@@ -171,7 +171,25 @@ const Shops = () => {
                 <tr key={shop.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.875rem' }}>
                   <td style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{shop.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '700', marginTop: '0.25rem' }}>{shop.shop_code}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '700', marginTop: '0.25rem' }}>Mã cửa hàng: {shop.shop_code}</div>
+                    {shop.shop_code && (
+                      <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
+                          Link: <a href={`https://${shop.shop_code.toLowerCase()}.posspa.dichvupro.net`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>https://{shop.shop_code.toLowerCase()}.posspa.dichvupro.net</a>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                          <button onClick={() => {
+                            navigator.clipboard.writeText(`https://${shop.shop_code.toLowerCase()}.posspa.dichvupro.net`);
+                            alert('Đã copy link!');
+                          }} className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', background: 'var(--bg-main)' }}>
+                            Sao chép link
+                          </button>
+                          <a href={`https://${shop.shop_code.toLowerCase()}.posspa.dichvupro.net`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', textDecoration: 'none' }}>
+                            Mở cửa hàng
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </td>
                   <td>
                     <span className="badge" style={{ background: 'rgba(109, 40, 217, 0.1)', color: 'var(--primary)', fontWeight: '600' }}>

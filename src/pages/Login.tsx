@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Shield, Lock, User, Building2, Loader2, Scissors } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import { getShopCodeFromSubdomain } from '../lib/shopResolver';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -13,6 +14,9 @@ const Login = () => {
   const [shopCode, setShopCode] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  
+  const [isSubdomainMode, setIsSubdomainMode] = useState(false);
+  const [shopName, setShopName] = useState<string | null>(null);
 
   // Auto redirect if already logged in
   useEffect(() => {
@@ -20,6 +24,31 @@ const Login = () => {
       navigate('/app');
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    const checkSubdomain = async () => {
+      const code = getShopCodeFromSubdomain();
+      if (code) {
+        setIsSubdomainMode(true);
+        setShopCode(code.toUpperCase());
+        
+        // Lookup shop name
+        const { data, error } = await supabase
+          .from('shops')
+          .select('name')
+          .ilike('shop_code', code)
+          .single();
+          
+        if (error || !data) {
+          setError('Cửa hàng không tồn tại hoặc đã ngừng hoạt động.');
+        } else {
+          setShopName(data.name);
+        }
+      }
+    };
+    
+    checkSubdomain();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +103,9 @@ const Login = () => {
             <Scissors size={32} />
           </div>
           <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Đăng nhập</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Chào mừng bạn đến với hệ thống Spa & Salon</p>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            {shopName ? `Chào mừng bạn đến với ${shopName}` : 'Chào mừng bạn đến với hệ thống Spa & Salon'}
+          </p>
         </div>
 
         {error && (
@@ -85,20 +116,22 @@ const Login = () => {
         )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div>
-            <label className="form-label">Mã cửa hàng (Shop Code)</label>
-            <div style={{ position: 'relative' }}>
-              <Building2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="ABC123" 
-                style={{ paddingLeft: '2.75rem' }}
-                value={shopCode}
-                onChange={(e) => setShopCode(e.target.value.toUpperCase())}
-              />
+          {!isSubdomainMode && (
+            <div>
+              <label className="form-label">Mã cửa hàng (Shop Code)</label>
+              <div style={{ position: 'relative' }}>
+                <Building2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="ABC123" 
+                  style={{ paddingLeft: '2.75rem' }}
+                  value={shopCode}
+                  onChange={(e) => setShopCode(e.target.value.toUpperCase())}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="form-label">Tên đăng nhập (Username)</label>
