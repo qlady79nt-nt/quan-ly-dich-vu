@@ -17,7 +17,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   
   const [isPredefinedMode, setIsPredefinedMode] = useState(false);
-  const [shopName, setShopName] = useState<string | null>(null);
 
   // Auto redirect if already logged in
   useEffect(() => {
@@ -27,26 +26,10 @@ const Login = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    const checkPredefinedShop = async () => {
-      // Ưu tiên đọc từ param URL (VD: /login/spa-123)
-      const code = paramShopCode;
-      
-      if (code) {
-        setIsPredefinedMode(true);
-        setShopCode(code.toUpperCase());
-        
-        // Lookup shop name qua shopResolver
-        const shop = await resolveShopByCode(code);
-          
-        if (!shop) {
-          setError('Cửa hàng không tồn tại hoặc đã ngừng hoạt động.');
-        } else {
-          setShopName(shop.name);
-        }
-      }
-    };
-    
-    checkPredefinedShop();
+    if (paramShopCode) {
+      setIsPredefinedMode(true);
+      setShopCode(paramShopCode.toUpperCase());
+    }
   }, [paramShopCode]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -102,9 +85,7 @@ const Login = () => {
             <Scissors size={32} />
           </div>
           <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Đăng nhập</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            {shopName ? `Chào mừng bạn đến với ${shopName}` : 'Chào mừng bạn đến với hệ thống Spa & Salon'}
-          </p>
+          <p style={{ color: 'var(--text-secondary)' }}>Chào mừng bạn đến với hệ thống Spa & Salon</p>
         </div>
 
         {error && (
@@ -115,22 +96,21 @@ const Login = () => {
         )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {!isPredefinedMode && (
-            <div>
-              <label className="form-label">Mã cửa hàng (Shop Code)</label>
-              <div style={{ position: 'relative' }}>
-                <Building2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="ABC123" 
-                  style={{ paddingLeft: '2.75rem' }}
-                  value={shopCode}
-                  onChange={(e) => setShopCode(e.target.value.toUpperCase())}
-                />
-              </div>
+          <div>
+            <label className="form-label">Mã cửa hàng (Shop Code)</label>
+            <div style={{ position: 'relative' }}>
+              <Building2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="ABC123" 
+                style={{ paddingLeft: '2.75rem', background: isPredefinedMode ? 'var(--bg-main)' : 'white' }}
+                value={shopCode}
+                onChange={(e) => setShopCode(e.target.value.toUpperCase())}
+                disabled={isPredefinedMode}
+              />
             </div>
-          )}
+          </div>
 
           <div>
             <label className="form-label">Tên đăng nhập (Username)</label>
