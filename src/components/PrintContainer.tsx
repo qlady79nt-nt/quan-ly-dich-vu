@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface PrintContainerProps {
   children: React.ReactNode;
@@ -44,7 +45,7 @@ export const PrintContainer: React.FC<PrintContainerProps> = ({ children, onPrin
     };
   }, [isReady, onPrinted]);
 
-  return (
+  return createPortal(
     <div 
       className="print-container-wrapper"
       style={{ 
@@ -62,6 +63,7 @@ export const PrintContainer: React.FC<PrintContainerProps> = ({ children, onPrin
       <div style={{ position: 'relative', height: 'auto', overflow: 'visible' }}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

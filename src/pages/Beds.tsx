@@ -961,16 +961,6 @@ const Beds = () => {
         </div>, document.body
       )}
 
-      {/* GIAO DIỆN IN HOÁ ĐƠN TẬP TRUNG */}
-      <ReceiptTemplate 
-        invoice={completedInvoice} 
-        config={{
-          shop_name: 'SPA & POS',
-          paper_size: '80mm',
-          footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
-        }} 
-        printSettings={printSettings}
-      />
     </>
   );
 };
