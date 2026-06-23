@@ -650,7 +650,7 @@ const Beds = () => {
                   
                   <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
                     {!isMultiSelectMode && (
-                      <button onClick={(e) => { e.stopPropagation(); openCheckout(bed); }} className={`btn ${isPackage ? 'btn' : 'btn-primary'}`} style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', width: '100%', background: isPackage ? 'var(--success)' : (isCombo ? 'var(--warning)' : 'var(--primary)'), color: 'white', border: 'none', minHeight: '36px' }}>
+                      <button onClick={(e) => { e.stopPropagation(); openCheckout(bed); }} className={`btn ${isPackage ? 'btn' : 'btn-primary'}`} style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', width: '100%', background: isPackage ? 'var(--success)' : (isCombo ? 'var(--warning)' : 'var(--primary)'), color: 'white', border: 'none', minHeight: '36px', boxShadow: isPackage ? '0 0 10px rgba(16, 185, 129, 0.4)' : (isCombo ? '0 0 10px rgba(245, 158, 11, 0.4)' : '0 0 10px rgba(109, 40, 217, 0.4)') }}>
                         {isPackage ? 'TRỪ BUỔI' : (isCombo ? 'THANH TOÁN COMBO' : 'TÍNH TIỀN')}
                       </button>
                     )}

@@ -802,7 +802,7 @@ const POS = () => {
                 onClick={handleSellPackageClick}
                 disabled={isRestricted()}
                 className="btn btn-primary"
-                style={{ width: '100%', height: '50px' }}
+                style={{ width: '100%', height: '50px', boxShadow: '0 0 12px rgba(109, 40, 217, 0.5)' }}
                 title={isRestricted() ? 'Vui lòng gia hạn gói dịch vụ để thực hiện tính năng này' : ''}
               >
                 Xác nhận thanh toán gói
@@ -840,7 +840,7 @@ const POS = () => {
                   <div className="premium-card" style={{ background: 'rgba(16, 185, 129, 0.05)' }}>
                     <select className="form-select" style={{ marginBottom: '0.5rem' }} value={technicianId} onChange={e => setTechnicianId(e.target.value)}><option value="">-- Kỹ thuật viên --</option>{staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select>
                     <select className="form-select" value={packageBedId} onChange={e => setPackageBedId(e.target.value)}><option value="">-- Chọn Chỗ (Trống) --</option>{bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-                    <button onClick={handleUseSessionClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--success)' }}>{loading ? <Loader2 className="animate-spin" /> : 'Bắt đầu & Xếp chỗ'}</button>
+                    <button onClick={handleUseSessionClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', background: 'var(--success)', boxShadow: '0 0 12px rgba(16, 185, 129, 0.5)' }}>{loading ? <Loader2 className="animate-spin" /> : 'Bắt đầu & Xếp chỗ'}</button>
                   </div>
                 )}
               </div>
@@ -1018,7 +1018,7 @@ const POS = () => {
                     ).toLocaleString()}đ
                   </span>
                 </div>
-                <button onClick={activeTab === 'retail' ? handleRetailCheckoutClick : handleComboCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px', background: activeTab === 'combo' ? 'var(--warning)' : 'var(--primary)' }}>
+                <button onClick={activeTab === 'retail' ? handleRetailCheckoutClick : handleComboCheckoutClick} disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '50px', fontSize: '16px', fontWeight: 'bold', borderRadius: '12px', background: activeTab === 'combo' ? 'var(--warning)' : 'var(--primary)', boxShadow: activeTab === 'combo' ? '0 0 12px rgba(245, 158, 11, 0.5)' : '0 0 12px rgba(109, 40, 217, 0.5)' }}>
                   {loading ? <Loader2 className="animate-spin" /> : 'XẾP CHỖ NGAY'}
                 </button>
               </div>
