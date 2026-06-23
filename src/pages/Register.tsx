@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Shield, Lock, User, Building2, Loader2, Scissors, CheckCircle } from 'lucide-react';
+import { generateShopCode } from '../lib/shopResolver';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -19,8 +20,8 @@ const Register = () => {
     setError(null);
 
     try {
-      // 1. Tạo shop_code ngẫu nhiên
-      const shopCode = 'SPA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      // 1. Tạo shop_code từ tên cửa hàng
+      const shopCode = generateShopCode(shopName);
       const fakeEmail = `${username.toLowerCase()}@${shopCode.toLowerCase()}.spa.local`;
 
       // 2. Đăng ký tài khoản Auth Supabase

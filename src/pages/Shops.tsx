@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Search, Plus, ShieldAlert, ShieldCheck, Loader2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { generateShopCode } from '../lib/shopResolver';
 
 const Shops = () => {
   useAuth();
@@ -57,7 +58,7 @@ const Shops = () => {
     };
 
     if (!payload.shop_code && !editingId) {
-      payload.shop_code = 'SPA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      payload.shop_code = generateShopCode(payload.name || '');
     }
 
     let error;
