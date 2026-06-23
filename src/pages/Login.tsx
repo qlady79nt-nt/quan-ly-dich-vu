@@ -3,7 +3,7 @@ import { useNavigate, Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Shield, Lock, User, Building2, Loader2, Scissors } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { resolveShopByCode } from '../lib/shopResolver';
+
 
 const Login = () => {
   const navigate = useNavigate();
