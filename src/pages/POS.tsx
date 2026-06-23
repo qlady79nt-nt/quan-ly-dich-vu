@@ -134,7 +134,21 @@ const POS = () => {
     setServices(svc.data || []);
     setGroups(grps.data || []);
     setPackages(pkg.data || []);
-    setStaff(stf.data || []);
+    
+    const staffData = stf.data || [];
+    staffData.sort((a, b) => {
+      const getWeight = (pos: string) => {
+        if (pos === 'technician' || pos === 'staff') return 1;
+        if (pos === 'tour') return 2;
+        if (pos === 'manager') return 3;
+        if (pos === 'receptionist') return 4;
+        if (pos === 'collaborator') return 5;
+        return 6;
+      };
+      return getWeight(a.position) - getWeight(b.position);
+    });
+    setStaff(staffData);
+    
     setCustomersList(custs.data || []);
 
     const allBeds = bds.data || [];

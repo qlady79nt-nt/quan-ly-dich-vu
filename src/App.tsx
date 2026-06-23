@@ -125,6 +125,7 @@ const MainLayout = () => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname.includes(item.path);
+            const isSpecialTab = item.path === '/app/pos' || item.path === '/app/beds';
             return (
               <Link 
                 key={item.path} 
@@ -136,11 +137,11 @@ const MainLayout = () => {
                   gap: '0.75rem', 
                   padding: '0.875rem 1rem', 
                   textDecoration: 'none', 
-                  color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                  background: isActive ? 'rgba(109, 40, 217, 0.05)' : 'transparent',
+                  color: isSpecialTab ? (isActive ? '#c9563c' : '#bd6551') : (isActive ? 'var(--primary)' : 'var(--text-secondary)'),
+                  background: isSpecialTab && isActive ? 'rgba(201, 86, 60, 0.08)' : (isActive ? 'rgba(109, 40, 217, 0.05)' : 'transparent'),
                   borderRadius: '0.75rem',
                   marginBottom: '0.25rem',
-                  fontWeight: isActive ? '600' : '500',
+                  fontWeight: isSpecialTab ? '700' : (isActive ? '600' : '500'),
                   transition: 'all 0.2s'
                 }}
               >
@@ -242,9 +243,9 @@ const MainLayout = () => {
           <FileText size={24} />
           <span>Hóa đơn</span>
         </Link>
-        <Link to="/app/pos" className={`mobile-nav-item ${location.pathname.includes('/pos') ? 'active' : ''}`}>
+        <Link to="/app/pos" className={`mobile-nav-item ${location.pathname.includes('/pos') ? 'active' : ''}`} style={{ color: '#c9563c' }}>
           <ShoppingCart size={24} />
-          <span>Bán hàng</span>
+          <span style={{ fontWeight: '700' }}>Bán hàng</span>
         </Link>
         <Link to="/app/customers" className={`mobile-nav-item ${location.pathname.includes('/customers') ? 'active' : ''}`}>
           <UserCircle size={24} />

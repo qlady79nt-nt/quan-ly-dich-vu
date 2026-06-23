@@ -436,7 +436,16 @@ const Staff = () => {
     .sort((a, b) => {
       if (a.status === 'active' && b.status === 'inactive') return -1;
       if (a.status === 'inactive' && b.status === 'active') return 1;
-      return 0;
+      
+      const getWeight = (pos: string) => {
+        if (pos === 'technician' || pos === 'staff') return 1;
+        if (pos === 'tour') return 2;
+        if (pos === 'manager') return 3;
+        if (pos === 'receptionist') return 4;
+        if (pos === 'collaborator') return 5;
+        return 6;
+      };
+      return getWeight(a.position) - getWeight(b.position);
     });
   
   // Tab account: Lọc theo từ khóa (hiển thị cả tài khoản đang bị khóa)
@@ -518,7 +527,7 @@ const Staff = () => {
                     <td>
                       <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
                         <Briefcase size={12} style={{ display: 'inline', marginRight: '4px' }}/>
-                        {s.position === 'technician' ? 'KTV' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'Cộng tác viên' : s.position === 'staff' ? 'KTV' : (s.position || 'KTV')}
+                        {s.position === 'technician' ? 'KTV' : s.position === 'tour' ? 'Tour' : s.position === 'receptionist' ? 'Lễ tân' : s.position === 'manager' ? 'Quản lý' : s.position === 'collaborator' ? 'Cộng tác viên' : s.position === 'staff' ? 'KTV' : (s.position || 'KTV')}
                       </span>
                     </td>
                     <td>
@@ -620,7 +629,7 @@ const Staff = () => {
                     </td>
                     <td>
                       {a.staffs ? (
-                        <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal', fontSize: '0.75rem' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
+                        <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal', fontSize: '0.75rem' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'tour' ? 'Tour' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
                       ) : (
                         <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
                       )}
@@ -693,7 +702,7 @@ const Staff = () => {
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Nhân sự liên kết:</div>
                   <div style={{ marginTop: '0.1rem' }}>
                     {a.staffs ? (
-                      <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
+                      <span style={{ fontWeight: '600' }}>{a.staffs.full_name} <span style={{ color: 'var(--text-light)', fontWeight: 'normal' }}>({a.staffs.position === 'technician' ? 'KTV' : a.staffs.position === 'tour' ? 'Tour' : a.staffs.position === 'receptionist' ? 'Lễ tân' : a.staffs.position === 'manager' ? 'Quản lý' : a.staffs.position === 'collaborator' ? 'CTV' : a.staffs.position === 'staff' ? 'KTV' : (a.staffs.position || 'KTV')})</span></span>
                     ) : (
                       <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Không liên kết (Admin)</span>
                     )}
@@ -755,6 +764,7 @@ const Staff = () => {
                 <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>Vị trí / Chức vụ</label>
                 <select className="form-select" value={staffFormData.position} onChange={(e) => setStaffFormData({...staffFormData, position: e.target.value})}>
                   <option value="technician">Kỹ thuật viên</option>
+                  <option value="tour">Tour</option>
                   <option value="receptionist">Lễ tân</option>
                   <option value="manager">Quản lý</option>
                   <option value="collaborator">Cộng tác viên</option>
