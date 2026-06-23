@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Shield, Lock, User, Building2, Loader2, Scissors } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { getShopCodeFromSubdomain } from '../lib/shopResolver';
+import { resolveShopByCode } from '../lib/shopResolver';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { shopCode: paramShopCode } = useParams<{ shopCode: string }>();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +16,7 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   
-  const [isSubdomainMode, setIsSubdomainMode] = useState(false);
+  const [isPredefinedMode, setIsPredefinedMode] = useState(false);
   const [shopName, setShopName] = useState<string | null>(null);
 
   // Auto redirect if already logged in
@@ -26,29 +27,27 @@ const Login = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    const checkSubdomain = async () => {
-      const code = getShopCodeFromSubdomain();
+    const checkPredefinedShop = async () => {
+      // Ưu tiên đọc từ param URL (VD: /login/spa-123)
+      const code = paramShopCode;
+      
       if (code) {
-        setIsSubdomainMode(true);
+        setIsPredefinedMode(true);
         setShopCode(code.toUpperCase());
         
-        // Lookup shop name
-        const { data, error } = await supabase
-          .from('shops')
-          .select('name')
-          .ilike('shop_code', code)
-          .single();
+        // Lookup shop name qua shopResolver
+        const shop = await resolveShopByCode(code);
           
-        if (error || !data) {
+        if (!shop) {
           setError('Cửa hàng không tồn tại hoặc đã ngừng hoạt động.');
         } else {
-          setShopName(data.name);
+          setShopName(shop.name);
         }
       }
     };
     
-    checkSubdomain();
-  }, []);
+    checkPredefinedShop();
+  }, [paramShopCode]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +115,7 @@ const Login = () => {
         )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {!isSubdomainMode && (
+          {!isPredefinedMode && (
             <div>
               <label className="form-label">Mã cửa hàng (Shop Code)</label>
               <div style={{ position: 'relative' }}>

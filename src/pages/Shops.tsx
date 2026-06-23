@@ -175,16 +175,16 @@ const Shops = () => {
                     {shop.shop_code && (
                       <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
-                          Link: <a href={`https://${shop.shop_code.toLowerCase()}.posspa.dichvupro.net`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>https://{shop.shop_code.toLowerCase()}.posspa.dichvupro.net</a>
+                          Link: <a href={`https://posspa.dichvupro.net/login/${shop.shop_code.toLowerCase()}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>https://posspa.dichvupro.net/login/{shop.shop_code.toLowerCase()}</a>
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
                           <button onClick={() => {
-                            navigator.clipboard.writeText(`https://${shop.shop_code.toLowerCase()}.posspa.dichvupro.net`);
+                            navigator.clipboard.writeText(`https://posspa.dichvupro.net/login/${shop.shop_code.toLowerCase()}`);
                             alert('Đã copy link!');
                           }} className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', background: 'var(--bg-main)' }}>
                             Sao chép link
                           </button>
-                          <a href={`https://${shop.shop_code.toLowerCase()}.posspa.dichvupro.net`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', textDecoration: 'none' }}>
+                          <a href={`https://posspa.dichvupro.net/login/${shop.shop_code.toLowerCase()}`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', textDecoration: 'none' }}>
                             Mở cửa hàng
                           </a>
                         </div>
