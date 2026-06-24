@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FileText, Loader2, Search, Filter } from 'lucide-react';
+import { FileText, Loader2, Search, Filter, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { TableSkeleton } from '../components/Skeleton';
+import { PrintContainer } from '../components/PrintContainer';
+import { ReceiptTemplate } from '../components/ReceiptTemplate';
+import { getPrintSettings } from '../lib/printSettings';
+import type { ShopPrintSettings } from '../lib/printSettings';
 
 const Invoices = () => {
   const { hasPermission, profile } = useAuth();
@@ -27,9 +31,14 @@ const Invoices = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [newDate, setNewDate] = useState('');
+  const [printSettings, setPrintSettings] = useState<ShopPrintSettings | undefined>(undefined);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
-    if (shopId) fetchData();
+    if (shopId) {
+      fetchData();
+      getPrintSettings(shopId).then(setPrintSettings);
+    }
   }, [shopId, dateFilter, customStartDate, customEndDate]);
 
   const fetchData = async () => {
@@ -1224,10 +1233,37 @@ const Invoices = () => {
               )}
             </div>
 
-            <button onClick={() => setDetailModal(null)} className="btn" style={{ background: 'var(--bg-main)', width: '100%' }}>Đóng</button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={() => setDetailModal(null)} className="btn" style={{ background: 'var(--bg-main)', flex: 1 }}>Đóng</button>
+              {detailModal.type === 'invoice' && (
+                <button onClick={() => setIsPrinting(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flex: 1 }}>
+                  <Printer size={18} /> In lại hoá đơn
+                </button>
+              )}
+            </div>
           </div>
         </div>
         , document.body)}
+
+      {isPrinting && detailModal?.data && detailModal.type === 'invoice' && (
+        <PrintContainer onPrinted={() => setIsPrinting(false)}>
+          <ReceiptTemplate
+            invoice={{
+              ...detailModal.data,
+              staff_name: detailModal.data.real_staff_name
+            }}
+            config={{
+              shop_name: profile?.shop?.name || 'SPA & POS PREMIUM',
+              address: '',
+              phone: '',
+              paper_size: printSettings?.paper_size || '80mm',
+              footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
+            }}
+            printSettings={printSettings}
+            renderInline={true}
+          />
+        </PrintContainer>
+      )}
     </div>
   );
 };
