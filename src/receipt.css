@@ -129,6 +129,15 @@
     padding: 0 !important;
   }
   
+  /* 5. Khôi phục lại print-container-wrapper khi in */
+  .print-container-wrapper {
+    opacity: 1 !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+    z-index: auto !important;
+  }
+  
   html, body {
     height: auto !important;
   }
