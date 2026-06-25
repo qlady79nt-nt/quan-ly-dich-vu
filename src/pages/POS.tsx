@@ -240,7 +240,7 @@ const POS = () => {
       is_retail: true,
       retail_customer_name: finalCustName,
       retail_customer_phone: finalCustPhone,
-      session_code: 'S' + new Date().getFullYear().toString().slice(-2) + Math.floor(1000 + Math.random() * 9000).toString()
+      session_code: 'S' + new Date().getDate().toString().padStart(2, '0') + (new Date().getMonth() + 1).toString().padStart(2, '0') + Math.floor(1000 + Math.random() * 9000).toString()
     }]);
 
     if (error) {
@@ -300,7 +300,7 @@ const POS = () => {
 
     try {
       // 1. Tạo combo_group
-      const comboCode = 'CB' + new Date().getFullYear().toString().slice(-2) + Math.floor(1000 + Math.random() * 9000).toString();
+      const comboCode = 'CB' + new Date().getDate().toString().padStart(2, '0') + (new Date().getMonth() + 1).toString().padStart(2, '0') + Math.floor(1000 + Math.random() * 9000).toString();
       const { data: comboGrp, error: comboErr } = await supabase.from('combo_groups').insert([{
         shop_id: shopId,
         combo_code: comboCode,
@@ -326,7 +326,7 @@ const POS = () => {
         retail_customer_name: finalCustName,
         retail_customer_phone: finalCustPhone,
         combo_group_id: comboGrp.id,
-        session_code: 'S' + new Date().getFullYear().toString().slice(-2) + Math.floor(100 + index).toString() + Math.floor(1000 + Math.random() * 9000).toString()
+        session_code: 'S' + new Date().getDate().toString().padStart(2, '0') + (new Date().getMonth() + 1).toString().padStart(2, '0') + Math.floor(100 + index).toString() + Math.floor(100 + Math.random() * 900).toString()
       }));
 
       const { error: sessErr } = await supabase.from('service_sessions').insert(sessionsToInsert);
@@ -406,7 +406,7 @@ const POS = () => {
       } else if (previewInvoiceData.type === 'sell_package') {
         const { subtotal, discount, finalTotal, customerName, customerPhone, selectedPkgId, sellerId, total_sessions, original_price, pkg_sale_price, commission_sale_type, commission_sale_value, pkg_name } = previewInvoiceData;
 
-        const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+        const invCode = `HD${new Date().getDate().toString().padStart(2, '0')}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${Math.floor(1000 + Math.random() * 9000).toString()}`;
 
         const { data: inv, error: invErr } = await supabase.from('invoices').insert([{
           shop_id: shopId,

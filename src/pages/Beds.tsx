@@ -235,7 +235,7 @@ const Beds = () => {
         const totalDiscount = itemDiscountTotal + globalDiscount;
         const finalTotal = totalOriginalPrice - totalDiscount;
         
-        const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+        const invCode = `HD${new Date().getDate().toString().padStart(2, '0')}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${Math.floor(1000 + Math.random() * 9000).toString()}`;
         
         const invoiceData = {
           shop_id: shopId,
@@ -358,7 +358,7 @@ const Beds = () => {
           const finalTotal = price - discount;
           const comm = svc.commission_type === 'percent' ? (price * svc.commission_value) / 100 : svc.commission_value;
 
-          const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+          const invCode = `HD${new Date().getDate().toString().padStart(2, '0')}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${Math.floor(1000 + Math.random() * 9000).toString()}`;
 
           const invoiceData = {
             shop_id: shopId,
@@ -437,7 +437,7 @@ const Beds = () => {
       const totalDiscount = itemDiscountTotal + globalDiscount;
       const finalTotal = totalOriginalPrice - totalDiscount;
 
-      const invCode = `HD${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000).toString()}`;
+      const invCode = `HD${new Date().getDate().toString().padStart(2, '0')}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${Math.floor(1000 + Math.random() * 9000).toString()}`;
       
       const firstCustomerName = multiCheckoutSession[0].comboGroup?.customer_name || multiCheckoutSession[0].sessions[0]?.retail_customer_name || 'Khách gộp';
       const firstCustomerPhone = multiCheckoutSession[0].comboGroup?.customer_phone || multiCheckoutSession[0].sessions[0]?.retail_customer_phone || '';
