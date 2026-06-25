@@ -289,8 +289,8 @@ const POS = () => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện thanh toán');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền thanh toán');
     if (comboCart.length < 2) return alert('Combo phải chứa ít nhất 2 dịch vụ');
-    if (comboCart.some(item => !item.staff_id)) return alert('Vui lòng chọn Kỹ thuật viên cho tất cả dịch vụ');
     if (!comboBedId) return alert('Vui lòng chọn Chỗ (Bắt buộc)');
+    if (comboCart.some(item => !item.staff_id)) return alert('Vui lòng chọn Kỹ thuật viên cho tất cả dịch vụ');
 
     setLoading(true);
     const customer = comboCustomerId ? customersList.find(c => c.id === comboCustomerId) : null;
@@ -1037,13 +1037,17 @@ const POS = () => {
                           {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
                         </select>
                       )}
-                      <select className="form-select" style={{ height: '48px', borderRadius: '12px', borderColor: 'var(--primary)', fontWeight: '600' }} value={activeTab === 'retail' ? retailBedId : comboBedId} onChange={e => {
-                        if (activeTab === 'retail') setRetailBedId(e.target.value);
-                        else setComboBedId(e.target.value);
-                      }}>
-                        <option value="">-- Chọn Chỗ (Trống) --</option>
-                        {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                      </select>
+                      {activeTab === 'retail' ? (
+                        <select className="form-select" style={{ height: '48px', borderRadius: '12px', borderColor: 'var(--primary)', fontWeight: '600' }} value={retailBedId} onChange={e => setRetailBedId(e.target.value)}>
+                          <option value="">-- Chọn Chỗ (Trống) --</option>
+                          {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      ) : (
+                        <select className="form-select" style={{ height: '48px', borderRadius: '12px', borderColor: 'var(--primary)', fontWeight: '600' }} value={comboBedId} onChange={e => setComboBedId(e.target.value)}>
+                          <option value="">-- Chọn Chỗ (Trống) --</option>
+                          {bedsList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      )}
                     </div>
 
                     <div style={{ padding: '1rem', background: 'var(--bg-main)', borderRadius: '12px', border: '1px solid var(--border)' }}>
