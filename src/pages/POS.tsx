@@ -21,7 +21,25 @@ import { ReceiptTemplate } from '../components/ReceiptTemplate';
 import { PrintContainer } from '../components/PrintContainer';
 import { getPrintSettings } from '../lib/printSettings';
 import type { ShopPrintSettings } from '../lib/printSettings';
+import {
+  logPrintEvent,
+  captureBeforePrint,
+  captureAfterPrint,
+  captureComponentTree,
+  captureDOM,
+  exportPrintDebug
+} from '../lib/printDebugger';
 import '../receipt.css';
+
+const DebugReceiptTemplate = (props: any) => {
+  logPrintEvent('ReceiptTemplate render');
+  return <ReceiptTemplate {...props} />;
+};
+
+const DebugPrintContainer = (props: any) => {
+  logPrintEvent('PrintContainer render');
+  return <PrintContainer {...props} />;
+};
 
 const POS = () => {
   const { profile, hasPermission, isRestricted } = useAuth();
@@ -98,15 +116,26 @@ const POS = () => {
     if (shopId) fetchData();
     // Setup afterprint listener (nếu cần, nhưng PrintContainer đã handle)
     const handleAfterPrint = () => {
+      logPrintEvent('handleAfterPrint');
       // Bỏ setCompletedInvoice(null) ở đây để người dùng vẫn thấy màn hình "Thành công"
       setIsPrinting(false);
+      // Wait a tick for DOM to update after printing state changes
+      setTimeout(() => captureAfterPrint(completedInvoice, isPrinting), 100);
     };
     window.addEventListener('afterprint', handleAfterPrint);
 
+    const originalPrint = window.print;
+    window.print = function(...args) {
+      logPrintEvent('window.print called');
+      captureBeforePrint(profile);
+      return originalPrint.apply(window, args);
+    };
+
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
+      window.print = originalPrint;
     };
-  }, [shopId, profile]);
+  }, [shopId, profile, completedInvoice, isPrinting]);
 
   const fetchData = async () => {
     console.log('fetchData execution started...');
@@ -346,6 +375,7 @@ const POS = () => {
   };
 
   const handleConfirmCheckout = async (print: boolean) => {
+    logPrintEvent('handleConfirmCheckout');
     if (!previewInvoiceData) return;
     setLoading(true);
 
@@ -420,6 +450,7 @@ const POS = () => {
         const { error: revLogErr } = await supabase.from('revenue_logs').insert([{ shop_id: shopId, amount: finalTotal, type: 'package_sale', package_sale_id: sale.id }]);
         if (revLogErr) throw new Error(`Lỗi lưu doanh thu bán gói: ${revLogErr.message}`);
 
+        logPrintEvent('setCompletedInvoice');
         setCompletedInvoice({
           ...inv,
           items: [{ name: pkg_name, price: original_price, discount: pkgDiscountType === 'percent' ? (original_price * pkgDiscountValue) / 100 : pkgDiscountValue }],
@@ -467,6 +498,7 @@ const POS = () => {
 
       setPreviewInvoiceData(null);
       if (print) {
+        logPrintEvent('setIsPrinting');
         setIsPrinting(true);
       }
     } catch (e: any) { alert('Lỗi: ' + e.message); }
@@ -538,6 +570,10 @@ const POS = () => {
   };
 
   const handlePrint = () => {
+    logPrintEvent('handlePrint');
+    captureComponentTree(profile, completedInvoice, isPrinting, true, false);
+    captureDOM();
+    logPrintEvent('setIsPrinting');
     setIsPrinting(true);
   };
 
@@ -1054,8 +1090,8 @@ const POS = () => {
         </div>
       )}
       {isPrinting && completedInvoice && (
-        <PrintContainer onPrinted={() => setIsPrinting(false)}>
-          <ReceiptTemplate
+        <DebugPrintContainer onPrinted={() => { logPrintEvent('PrintContainer onPrinted (setIsPrinting false)'); setIsPrinting(false); }}>
+          <DebugReceiptTemplate
             invoice={completedInvoice}
             config={{
               shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
@@ -1065,7 +1101,7 @@ const POS = () => {
             printSettings={printSettings}
             renderInline={true} // Cực kỳ quan trọng để ăn class .inline-receipt
           />
-        </PrintContainer>
+        </DebugPrintContainer>
       )}
 
       {/* Modal Preview Hóa Đơn */}
@@ -1185,9 +1221,15 @@ const POS = () => {
       <div className="no-print" style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 999999 }}>
         <button 
           onClick={handleTestPrintMinimal} 
-          style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+          style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', marginRight: '10px' }}
         >
           TEST PRINT MINIMAL
+        </button>
+        <button 
+          onClick={exportPrintDebug} 
+          style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+        >
+          EXPORT PRINT DEBUG
         </button>
       </div>
     </div>

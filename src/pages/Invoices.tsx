@@ -8,6 +8,24 @@ import { PrintContainer } from '../components/PrintContainer';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
 import { getPrintSettings } from '../lib/printSettings';
 import type { ShopPrintSettings } from '../lib/printSettings';
+import {
+  logPrintEvent,
+  captureBeforePrint,
+  captureAfterPrint,
+  captureComponentTree,
+  captureDOM,
+  exportPrintDebug
+} from '../lib/printDebugger';
+
+const DebugReceiptTemplate = (props: any) => {
+  logPrintEvent('ReceiptTemplate render');
+  return <ReceiptTemplate {...props} />;
+};
+
+const DebugPrintContainer = (props: any) => {
+  logPrintEvent('PrintContainer render');
+  return <PrintContainer {...props} />;
+};
 
 const Invoices = () => {
   const { hasPermission, profile } = useAuth();
@@ -40,6 +58,27 @@ const Invoices = () => {
       getPrintSettings(shopId).then(setPrintSettings);
     }
   }, [shopId, dateFilter, customStartDate, customEndDate]);
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      logPrintEvent('handleAfterPrint (Invoices)');
+      setIsPrinting(false);
+      setTimeout(() => captureAfterPrint(detailModal?.data, isPrinting), 100);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    const originalPrint = window.print;
+    window.print = function(...args) {
+      logPrintEvent('window.print called (Invoices)');
+      captureBeforePrint(profile);
+      return originalPrint.apply(window, args);
+    };
+
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+      window.print = originalPrint;
+    };
+  }, [profile, isPrinting, detailModal]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -1236,7 +1275,13 @@ const Invoices = () => {
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button onClick={() => setDetailModal(null)} className="btn" style={{ background: 'var(--bg-main)', flex: 1 }}>Đóng</button>
               {detailModal.type === 'invoice' && (
-                <button onClick={() => setIsPrinting(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flex: 1 }}>
+                <button onClick={() => {
+                  logPrintEvent('handlePrint (Invoices)');
+                  captureComponentTree(profile, detailModal.data, isPrinting, true, false);
+                  captureDOM();
+                  logPrintEvent('setIsPrinting (Invoices)');
+                  setIsPrinting(true);
+                }} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flex: 1 }}>
                   <Printer size={18} /> In lại hoá đơn
                 </button>
               )}
@@ -1246,8 +1291,8 @@ const Invoices = () => {
         , document.body)}
 
       {isPrinting && detailModal?.data && detailModal.type === 'invoice' && (
-        <PrintContainer onPrinted={() => setIsPrinting(false)}>
-          <ReceiptTemplate
+        <DebugPrintContainer onPrinted={() => { logPrintEvent('PrintContainer onPrinted (Invoices)'); setIsPrinting(false); }}>
+          <DebugReceiptTemplate
             invoice={{
               ...detailModal.data,
               staff_name: detailModal.data.real_staff_name
@@ -1262,8 +1307,18 @@ const Invoices = () => {
             printSettings={printSettings}
             renderInline={true}
           />
-        </PrintContainer>
+        </DebugPrintContainer>
       )}
+
+      {/* Nút EXPORT PRINT DEBUG */}
+      <div className="no-print" style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 999999 }}>
+        <button 
+          onClick={exportPrintDebug} 
+          style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+        >
+          EXPORT PRINT DEBUG
+        </button>
+      </div>
     </div>
   );
 };
