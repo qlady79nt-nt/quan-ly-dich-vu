@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Save, RefreshCw, Printer, Search, Settings2, Bug, SlidersHorizontal, FileText, MonitorCheck, LayoutTemplate, MousePointer2 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { getPrintSettings, updatePrintSettings, DEFAULT_PRINT_SETTINGS } from '../lib/printSettings';
