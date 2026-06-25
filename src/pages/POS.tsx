@@ -1218,20 +1218,23 @@ const POS = () => {
       )}
 
       {/* Nút TEST PRINT MINIMAL */}
-      <div className="no-print" style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 999999 }}>
-        <button 
-          onClick={handleTestPrintMinimal} 
-          style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', marginRight: '10px' }}
-        >
-          TEST PRINT MINIMAL
-        </button>
-        <button 
-          onClick={exportPrintDebug} 
-          style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-        >
-          EXPORT PRINT DEBUG
-        </button>
-      </div>
+      {createPortal(
+        <div className="no-print" style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 999999 }}>
+          <button 
+            onClick={handleTestPrintMinimal} 
+            style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', marginRight: '10px' }}
+          >
+            TEST PRINT MINIMAL
+          </button>
+          <button 
+            onClick={exportPrintDebug} 
+            style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+          >
+            EXPORT PRINT DEBUG
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
     </div>
   );
