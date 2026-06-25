@@ -18,6 +18,8 @@ export default function PrintSettings() {
 
   // Diagnostic states
   const [printMockStatus, setPrintMockStatus] = useState(false);
+  const [isTestFeed, setIsTestFeed] = useState(false);
+  const [testFeedCutPaper, setTestFeedCutPaper] = useState(false);
   const [testNotes, setTestNotes] = useState(() => {
     try {
       const saved = localStorage.getItem('printer_test_notes');
@@ -103,6 +105,14 @@ export default function PrintSettings() {
     }, 500);
   };
   
+  const handleTestFeed = () => {
+    setIsTestFeed(true);
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      window.print();
+    }, 100);
+  };
+
   // States cho thông số thực tế
   const [realWidth, setRealWidth] = useState(0);
   const [realHeight, setRealHeight] = useState(0);
@@ -683,6 +693,17 @@ export default function PrintSettings() {
                     <span className="font-bold text-red-900">IN HÓA ĐƠN THẬT RA PDF</span>
                     <span className="text-xs text-center text-red-700">Dùng đúng pipeline của hóa đơn thật (PrintContainer) để test Save as PDF.</span>
                   </button>
+                  <div className="p-6 bg-pink-50 border border-pink-200 rounded-2xl flex flex-col items-center gap-3 transition-colors">
+                    <button onClick={handleTestFeed} className="flex flex-col items-center gap-3 w-full hover:bg-pink-100 rounded-xl p-2 transition-colors">
+                      <div className="w-12 h-12 bg-pink-600 text-white rounded-full flex items-center justify-center font-bold">5</div>
+                      <span className="font-bold text-pink-900">TEST FEED</span>
+                      <span className="text-xs text-center text-pink-700">In text cực ngắn (60px) không có css thừa. Không clear DOM sau in. Thử in 5 lần liên tục.</span>
+                    </button>
+                    <label className="flex items-center gap-2 mt-2 text-sm text-pink-800 font-medium cursor-pointer">
+                      <input type="checkbox" checked={testFeedCutPaper} onChange={(e) => setTestFeedCutPaper(e.target.checked)} className="form-checkbox text-pink-600 rounded" />
+                      Cắt giấy (page-break-after: always)
+                    </label>
+                  </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6 mt-8">
@@ -747,6 +768,29 @@ export default function PrintSettings() {
           printSettings={settings}
           renderInline={false} // Bắt buộc render ra Portal để in
         />
+      )}
+
+      {/* Hidden Portal cho in Test Feed */}
+      {isTestFeed && createPortal(
+        <div className="print-only" style={{ 
+          width: settings?.paper_size || '80mm', 
+          height: '60px', 
+          background: 'white', 
+          color: 'black', 
+          fontSize: '14px', 
+          fontFamily: 'monospace',
+          textAlign: 'center',
+          padding: 0,
+          margin: 0,
+          overflow: 'hidden',
+          pageBreakAfter: testFeedCutPaper ? 'always' : 'avoid'
+        }}>
+          ----------------<br/>
+          TEST<br/>
+          END<br/>
+          ----------------
+        </div>,
+        document.body
       )}
 
       {/* Test Print Hóa Đơn Thật bằng PrintContainer */}
