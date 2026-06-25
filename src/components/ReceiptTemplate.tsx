@@ -59,80 +59,6 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({
     };
   }, []);
 
-  const handleDebugPrintReport = async () => {
-    let cssText = "Không thể đọc file CSS";
-    try {
-      const res = await fetch('/src/receipt.css');
-      if (res.ok) cssText = await res.text();
-    } catch (e) {}
-
-    const el = receiptRef.current;
-    const styles = el ? window.getComputedStyle(el) : null;
-
-    const report = {
-      receiptRect: {
-        receiptWidth: el?.offsetWidth,
-        receiptHeight: el?.offsetHeight,
-        boundingRect: el?.getBoundingClientRect(),
-        scrollTop: window.scrollY,
-        scrollLeft: window.scrollX
-      },
-      styles: {
-        position: styles?.position,
-        top: styles?.top,
-        left: styles?.left,
-        marginTop: styles?.marginTop,
-        marginBottom: styles?.marginBottom,
-        marginLeft: styles?.marginLeft,
-        marginRight: styles?.marginRight,
-        paddingTop: styles?.paddingTop,
-        paddingBottom: styles?.paddingBottom,
-        transform: styles?.transform,
-        display: styles?.display
-      },
-      body: {
-        bodyScrollHeight: document.body.scrollHeight,
-        bodyOffsetHeight: document.body.offsetHeight,
-        bodyClientHeight: document.body.clientHeight
-      },
-      html: {
-        htmlScrollHeight: document.documentElement.scrollHeight,
-        htmlOffsetHeight: document.documentElement.offsetHeight,
-        htmlClientHeight: document.documentElement.clientHeight
-      },
-      dom: {
-        outerHTML: document.querySelector('.print-only')?.outerHTML
-      },
-      printSettings: {
-        paper_size: printSettings?.paper_size || config.paper_size,
-        top_offset: printSettings?.top_offset,
-        left_offset: printSettings?.left_offset,
-        scale_percent: printSettings?.scale_percent
-      },
-      receiptCss: cssText,
-      receiptLocation: renderInline ? "Inline trong DOM" : "createPortal -> document.body",
-      scroll: {
-        scrollY: window.scrollY,
-        scrollX: window.scrollX
-      },
-      printContainer: {
-        bodyClass: document.body.className,
-        htmlClass: document.documentElement.className
-      }
-    };
-
-    console.log("=== DEBUG PRINT REPORT V2 ===");
-    console.log(report);
-    
-    const jsonStr = JSON.stringify(report, null, 2);
-    try {
-      await navigator.clipboard.writeText(jsonStr);
-      alert("Đã copy toàn bộ dữ liệu thành JSON! Hãy dán để gửi cho ChatGPT.");
-    } catch (e) {
-      console.log(jsonStr);
-      alert("Copy thất bại do giới hạn trình duyệt. Vui lòng mở F12 (Console) để copy chuỗi JSON.");
-    }
-  };
 
   // Cấu hình kích thước giấy ưu tiên từ printSettings, nếu không có lấy từ config tĩnh
   const paperSize = printSettings?.paper_size || config.paper_size || '58mm';
@@ -160,14 +86,8 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({
       {debugMode && (
         <div className="no-print" style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 999999, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <button 
-            onClick={handleDebugPrintReport} 
-            style={{ background: '#f59e0b', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-          >
-            DEBUG PRINT REPORT
-          </button>
-          <button 
             onClick={() => {
-              alert("Vui lòng chọn 'Save as PDF' (Lưu dưới dạng PDF) trong hộp thoại in.\n\nSau khi lưu, hãy kiểm tra xem:\n1. Bản PDF có khoảng trắng không?\n2. Khi in ra máy in thật có khoảng trắng không?");
+              alert("Vui lòng chọn 'Save as PDF' (Lưu dưới dạng PDF) trong hộp thoại in.\\n\\nSau khi lưu, hãy kiểm tra xem:\\n1. Bản PDF có khoảng trắng không?\\n2. Khi in ra máy in thật có khoảng trắng không?");
               window.print();
             }} 
             style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}

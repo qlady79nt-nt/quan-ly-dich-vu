@@ -13,8 +13,7 @@ import {
   captureBeforePrint,
   captureAfterPrint,
   captureComponentTree,
-  captureDOM,
-  exportPrintDebug
+  captureDOM
 } from '../lib/printDebugger';
 
 const DebugReceiptTemplate = (props: any) => {
@@ -1327,18 +1326,7 @@ const Invoices = () => {
         </DebugPrintContainer>
       )}
 
-      {/* Nút EXPORT PRINT DEBUG */}
-      {createPortal(
-        <div className="no-print" style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 999999 }}>
-          <button 
-            onClick={exportPrintDebug} 
-            style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-          >
-            EXPORT PRINT DEBUG
-          </button>
-        </div>,
-        document.body
-      )}
+
     </div>
   );
 };
