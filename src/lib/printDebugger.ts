@@ -103,6 +103,121 @@ export const captureBeforePrint = (profile: any) => {
   
   console.log('--- BEFORE PRINT ---', PrintDebugState.beforePrint);
   console.log('--- CSS BEFORE PRINT ---', PrintDebugState.cssComputed.before);
+
+  requestAnimationFrame(() => {
+    const receipt = document.querySelector('.receipt-container');
+    const wrapper = document.querySelector('.print-container-wrapper');
+    
+    // 1. Log computed styles inside requestAnimationFrame
+    const rAnimLog = {
+      receipt: receipt ? {
+        display: window.getComputedStyle(receipt).display,
+        position: window.getComputedStyle(receipt).position,
+        height: window.getComputedStyle(receipt).height,
+        opacity: window.getComputedStyle(receipt).opacity,
+        transform: window.getComputedStyle(receipt).transform,
+      } : null,
+      wrapper: wrapper ? {
+        display: window.getComputedStyle(wrapper).display,
+        position: window.getComputedStyle(wrapper).position,
+        height: window.getComputedStyle(wrapper).height,
+        opacity: window.getComputedStyle(wrapper).opacity,
+        transform: window.getComputedStyle(wrapper).transform,
+      } : null,
+      body: {
+        display: window.getComputedStyle(document.body).display,
+        position: window.getComputedStyle(document.body).position,
+        height: window.getComputedStyle(document.body).height,
+        padding: window.getComputedStyle(document.body).padding,
+        margin: window.getComputedStyle(document.body).margin,
+      },
+      html: {
+        display: window.getComputedStyle(document.documentElement).display,
+        position: window.getComputedStyle(document.documentElement).position,
+        height: window.getComputedStyle(document.documentElement).height,
+        padding: window.getComputedStyle(document.documentElement).padding,
+        margin: window.getComputedStyle(document.documentElement).margin,
+      }
+    };
+    
+    console.log("--- RAF COMPUTED STYLES ---", rAnimLog);
+    PrintDebugState.cssComputed.raf = rAnimLog;
+
+    // 2. document.styleSheets
+    const styleSheetsLog = Array.from(document.styleSheets).map(sheet => {
+      let ruleCount = 0;
+      try {
+        ruleCount = sheet.cssRules ? sheet.cssRules.length : 0;
+      } catch(e) {
+        ruleCount = -1; // CORS or blocked
+      }
+      return {
+        href: sheet.href,
+        title: sheet.title,
+        ruleCount
+      };
+    });
+    console.log("--- STYLESHEETS ---", styleSheetsLog);
+    PrintDebugState.cssComputed.styleSheets = styleSheetsLog;
+
+    // 3. Find last matching rules for specific selectors
+    const selectorsToTrack = ['.print-only', '.receipt-container', '.print-container-wrapper', 'body', 'html'];
+    const lastMatchingRules: any = {};
+    
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        const rules = sheet.cssRules;
+        if (!rules) return;
+        Array.from(rules).forEach((rule: any) => {
+          if (rule.type === CSSRule.STYLE_RULE) {
+            selectorsToTrack.forEach(sel => {
+              if (rule.selectorText && rule.selectorText.includes(sel)) {
+                if (!lastMatchingRules[sel]) lastMatchingRules[sel] = [];
+                lastMatchingRules[sel].push({
+                  sheet: sheet.href || 'inline',
+                  cssText: rule.cssText
+                });
+              }
+            });
+          } else if (rule.type === CSSRule.MEDIA_RULE) {
+            if (rule.conditionText.includes('print')) {
+              Array.from(rule.cssRules).forEach((mediaRule: any) => {
+                if (mediaRule.type === CSSRule.STYLE_RULE) {
+                  selectorsToTrack.forEach(sel => {
+                    if (mediaRule.selectorText && mediaRule.selectorText.includes(sel)) {
+                      if (!lastMatchingRules[sel + ' (@media print)']) lastMatchingRules[sel + ' (@media print)'] = [];
+                      lastMatchingRules[sel + ' (@media print)'].push({
+                        sheet: sheet.href || 'inline',
+                        cssText: mediaRule.cssText
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          }
+        });
+      } catch (e) {
+        // Ignore CORS errors
+      }
+    });
+
+    console.log("--- LAST MATCHING RULES ---", lastMatchingRules);
+    PrintDebugState.cssComputed.lastMatchingRules = lastMatchingRules;
+
+    // 4. classNames
+    const classNamesLog = {
+      body: document.body.className,
+      html: document.documentElement.className
+    };
+    console.log("--- CLASSNAMES ---", classNamesLog);
+    PrintDebugState.cssComputed.classNames = classNamesLog;
+
+    // 5. matchMedia('print')
+    const isPrintMediaActive = window.matchMedia('print').matches;
+    console.log("--- MATCHMEDIA PRINT ---", isPrintMediaActive);
+    PrintDebugState.cssComputed.isPrintMediaActive = isPrintMediaActive;
+  });
 };
 
 export const captureAfterPrint = (completedInvoice: any, isPrinting: boolean) => {

@@ -32,6 +32,13 @@ import {
 import '../receipt.css';
 
 const DebugReceiptTemplate = (props: any) => {
+  console.log({
+    role: props.profile?.role,
+    invoice: props.invoice,
+    config: props.config,
+    props
+  });
+  console.trace("ReceiptTemplate render");
   logPrintEvent('ReceiptTemplate render');
   return <ReceiptTemplate {...props} />;
 };
@@ -54,9 +61,17 @@ const POS = () => {
   const [staff, setStaff] = useState<any[]>([]);
   const [customersList, setCustomersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [completedInvoice, setCompletedInvoice] = useState<any>(null);
+  const [completedInvoice, setCompletedInvoiceActual] = useState<any>(null);
+  const setCompletedInvoice = (val: any) => {
+    console.trace("setCompletedInvoice", val);
+    setCompletedInvoiceActual(val);
+  };
   const [previewInvoiceData, setPreviewInvoiceData] = useState<any>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
+  const [isPrinting, setIsPrintingActual] = useState(false);
+  const setIsPrinting = (val: boolean | ((prev: boolean) => boolean)) => {
+    console.trace("setIsPrinting", val);
+    setIsPrintingActual(val);
+  };
 
   // --- RETAIL STATE ---
   const [cart, setCart] = useState<any[]>([]);
@@ -120,6 +135,11 @@ const POS = () => {
       // Bỏ setCompletedInvoice(null) ở đây để người dùng vẫn thấy màn hình "Thành công"
       setIsPrinting(false);
       // Wait a tick for DOM to update after printing state changes
+      const stillExists = document.querySelectorAll('.receipt-container').length;
+      console.log(`[DOM SAU AFTERPRINT] Số lượng .receipt-container còn lại trong DOM: ${stillExists}`);
+      if (stillExists > 0) {
+        console.log(`⚠️ CẢNH BÁO: ReceiptTemplate VẪN CÒN TỒN TẠI TRONG DOM SAU KHI IN!`);
+      }
       setTimeout(() => captureAfterPrint(completedInvoice, isPrinting), 100);
     };
     window.addEventListener('afterprint', handleAfterPrint);
@@ -1092,6 +1112,7 @@ const POS = () => {
       {isPrinting && completedInvoice && (
         <DebugPrintContainer onPrinted={() => { logPrintEvent('PrintContainer onPrinted (setIsPrinting false)'); setIsPrinting(false); }}>
           <DebugReceiptTemplate
+            profile={profile}
             invoice={completedInvoice}
             config={{
               shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
