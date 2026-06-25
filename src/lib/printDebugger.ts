@@ -36,13 +36,64 @@ export const captureBeforePrint = (profile: any) => {
   const receiptRect = document.querySelector('.receipt-container')?.getBoundingClientRect();
   const wrapperRect = document.querySelector('.print-container-wrapper')?.getBoundingClientRect();
   
+  // 1. DOM CHAIN TRƯỚC KHI IN
+  const receipt = document.querySelector('.receipt-container');
+  let node = receipt as HTMLElement | null;
+  const parents = [];
+  while (node) {
+    const style = window.getComputedStyle(node);
+    parents.push({
+      tag: node.tagName,
+      id: node.id,
+      class: node.className,
+      position: style.position,
+      display: style.display,
+      overflow: style.overflow,
+      height: style.height,
+      transform: style.transform
+    });
+    node = node.parentElement;
+  }
+
+  // 2. Độ dài body.innerHTML
+  const bodyHtmlLength = document.body.innerHTML.length;
+
+  // 3. Các elements fixed position
+  const fixedElements = Array.from(document.querySelectorAll('*'))
+    .filter(x => window.getComputedStyle(x).position === 'fixed')
+    .map(x => {
+      const style = window.getComputedStyle(x);
+      return {
+        tag: x.tagName,
+        id: x.id,
+        class: x.className,
+        zIndex: style.zIndex,
+        display: style.display,
+        opacity: style.opacity,
+      };
+    });
+
+  // 4. Modal / Overlay count
+  const overlays = {
+    modal: document.querySelectorAll('.modal').length,
+    dialogRole: document.querySelectorAll('[role="dialog"]').length,
+    overlay: document.querySelectorAll('.overlay').length,
+    drawer: document.querySelectorAll('.drawer').length,
+    sheet: document.querySelectorAll('.sheet').length,
+    dialog: document.querySelectorAll('.dialog').length,
+  };
+  
   PrintDebugState.beforePrint = {
     role: profile?.role,
     scrollY: window.scrollY,
     scrollX: window.scrollX,
     bodyHeight: document.body.scrollHeight,
     receiptRect,
-    wrapperRect
+    wrapperRect,
+    domChain: parents,
+    bodyHtmlLength,
+    fixedElements,
+    overlays
   };
   
   PrintDebugState.cssComputed.before = {
