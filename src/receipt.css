@@ -111,6 +111,10 @@
   .no-print { 
     display: none !important; 
   }
+
+  body > *:not(.print-container-wrapper):not(.print-only) {
+    display: none !important;
+  }
   
   /* 3. Lôi hóa đơn ra hiển thị - Hóa đơn này đang nằm trực tiếp dưới document.body do createPortal */
   .print-only { 
