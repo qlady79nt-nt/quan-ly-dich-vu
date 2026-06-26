@@ -674,7 +674,7 @@ const Staff = () => {
             </table>
           </div>
 
-          <div className="visible-mobile flex flex-col" style={{ gap: '1rem' }}>
+          <div className="mobile-only flex flex-col" style={{ gap: '1rem' }}>
             {filteredAccounts.map((a) => (
               <div key={a.id} className="report-card" style={{ opacity: a.status === 'inactive' ? 0.6 : 1, borderLeft: a.role === 'shop_admin' ? '3px solid var(--secondary)' : 'none', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div>
