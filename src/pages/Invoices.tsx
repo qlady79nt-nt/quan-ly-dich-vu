@@ -557,6 +557,12 @@ const Invoices = () => {
       if (error || !inv) {
         alert('Không tìm thấy dữ liệu hóa đơn, có thể đã bị xóa vĩnh viễn.');
       } else {
+        if (inv.created_by) {
+          const { data: creator } = await supabase.from('profiles').select('full_name').eq('id', inv.created_by).single();
+          if (creator) {
+            inv.profiles = creator;
+          }
+        }
         await handleViewInvoice(inv);
       }
     } catch (e) {
