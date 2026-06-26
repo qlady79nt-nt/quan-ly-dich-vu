@@ -644,7 +644,7 @@ const POS = () => {
   }
 
   return (
-    <div className="page-container animate-fade">
+    <div className="page-container compact-view animate-fade">
       <div className="no-print mobile-tabs" style={{ marginBottom: '1rem' }}>
         <button onClick={() => setActiveTab('retail')} className="btn mobile-tab" style={{ background: activeTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: activeTab === 'retail' ? 'white' : 'inherit' }}>
           <Zap size={18} /> Bán lẻ

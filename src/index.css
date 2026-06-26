@@ -890,3 +890,48 @@ h1, h2, h3, h4 {
     margin-bottom: 12px;
   }
 }
+
+/* Compact View Styles specifically requested for Beds and POS */
+.compact-view {
+  font-size: 0.9em;
+}
+
+.compact-view .premium-card {
+  padding: 0.75rem !important;
+}
+
+.compact-view .page-title {
+  font-size: 1.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.compact-view .page-subtitle {
+  font-size: 0.85rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.compact-view h2, .compact-view h3, .compact-view h4 {
+  font-size: 1.1em !important;
+}
+
+.compact-view .btn {
+  padding: 0.4rem 0.75rem !important;
+  font-size: 0.85em !important;
+  height: auto !important;
+}
+
+.compact-view .form-input,
+.compact-view .form-select,
+.compact-view .form-control {
+  padding: 0.4rem 0.75rem !important;
+  font-size: 0.85em !important;
+}
+
+.compact-view .pos-grid {
+  gap: 1rem !important;
+}
+
+.compact-view .mobile-stack {
+  gap: 0.5rem !important;
+  margin-bottom: 1rem !important;
+}

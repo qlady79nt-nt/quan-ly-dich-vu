@@ -41,8 +41,8 @@ const Beds = () => {
     const timer = setInterval(() => setNow(new Date()), 1000);
 
     const handleAfterPrint = () => {
-      // Bỏ setCompletedInvoice(null) ở đây để người dùng vẫn thấy màn hình "Thành công"
       setIsPrinting(false);
+      setCompletedInvoice(null);
       fetchBedsAndSessions();
     };
     window.addEventListener('afterprint', handleAfterPrint);
@@ -526,7 +526,7 @@ const Beds = () => {
 
   return (
     <>
-      <div className="page-container animate-fade no-print" style={{ paddingBottom: isMultiSelectMode && selectedBeds.length > 0 ? '80px' : 'auto' }}>
+      <div className="page-container compact-view animate-fade no-print" style={{ paddingBottom: isMultiSelectMode && selectedBeds.length > 0 ? '80px' : 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="page-title">Quản lý Chỗ & Điều phối</h1>
@@ -554,7 +554,7 @@ const Beds = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
           {beds.map((bed) => {
             const isSelected = selectedBeds.includes(bed.id);
             return (

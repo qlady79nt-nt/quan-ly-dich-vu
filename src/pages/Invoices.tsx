@@ -73,12 +73,14 @@ const Invoices = () => {
     const handleAfterPrint = () => {
       logPrintEvent('handleAfterPrint (Invoices)');
       setIsPrinting(false);
+      const currentModalData = detailModal?.data;
+      setDetailModal(null);
       const stillExists = document.querySelectorAll('.receipt-container').length;
       console.log(`[DOM SAU AFTERPRINT] Số lượng .receipt-container còn lại trong DOM: ${stillExists}`);
       if (stillExists > 0) {
         console.log(`⚠️ CẢNH BÁO: ReceiptTemplate VẪN CÒN TỒN TẠI TRONG DOM SAU KHI IN!`);
       }
-      setTimeout(() => captureAfterPrint(detailModal?.data, isPrinting), 100);
+      setTimeout(() => captureAfterPrint(currentModalData, isPrinting), 100);
     };
     window.addEventListener('afterprint', handleAfterPrint);
 
