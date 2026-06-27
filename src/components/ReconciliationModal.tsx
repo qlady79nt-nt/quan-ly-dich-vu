@@ -433,37 +433,37 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
         {/* TABS */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', overflowX: 'auto', alignItems: 'center' }}>
           <button 
-            style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'form' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'form' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ flex: 1, minWidth: 'max-content', whiteSpace: 'nowrap', padding: '0.8rem 0.6rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'form' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'form' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
             onClick={() => setActiveTab('form')}
           >
             {editingId ? 'Cập nhật đối chiếu' : 'Thêm đối chiếu'}
           </button>
           <button 
-            style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'history' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'history' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ flex: 1, minWidth: 'max-content', whiteSpace: 'nowrap', padding: '0.8rem 0.6rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'history' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'history' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
             onClick={() => { setActiveTab('history'); setEditingId(null); }}
           >
             Lịch sử đối chiếu
           </button>
           
-          <div style={{ minWidth: '4px', width: '4px', height: '2rem', background: 'var(--text-secondary)', margin: '0 1rem', borderRadius: '2px', opacity: 0.5, flexShrink: 0 }}></div>
+          <div style={{ minWidth: '2px', width: '2px', height: '1.5rem', background: 'var(--text-secondary)', margin: '0 0.5rem', borderRadius: '2px', opacity: 0.3, flexShrink: 0 }}></div>
 
           <button 
-            style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'expenses' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'expenses' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ flex: 1, minWidth: 'max-content', whiteSpace: 'nowrap', padding: '0.8rem 0.6rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'expenses' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'expenses' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
             onClick={() => setActiveTab('expenses')}
           >
             Nhập chi hàng hoá
           </button>
           <button 
-            style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'expenses_history' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'expenses_history' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ flex: 1, minWidth: 'max-content', whiteSpace: 'nowrap', padding: '0.8rem 0.6rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'expenses_history' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'expenses_history' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
             onClick={() => { setActiveTab('expenses_history'); setEditingExpenseId(null); }}
           >
             Lịch sử chi
           </button>
           
-          <div style={{ minWidth: '4px', width: '4px', height: '2rem', background: 'var(--text-secondary)', margin: '0 1rem', borderRadius: '2px', opacity: 0.5, flexShrink: 0 }}></div>
+          <div style={{ minWidth: '2px', width: '2px', height: '1.5rem', background: 'var(--text-secondary)', margin: '0 0.5rem', borderRadius: '2px', opacity: 0.3, flexShrink: 0 }}></div>
 
           <button 
-            style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'staff_expenses' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'staff_expenses' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ flex: 1, minWidth: 'max-content', whiteSpace: 'nowrap', padding: '0.8rem 0.6rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'staff_expenses' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'staff_expenses' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
             onClick={() => setActiveTab('staff_expenses')}
           >
             💰 Chi phí NV
