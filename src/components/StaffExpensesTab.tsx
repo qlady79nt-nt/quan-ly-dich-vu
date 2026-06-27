@@ -18,6 +18,7 @@ interface ExpenseData {
   commission: number;
   tip: number;
   overtime: number;
+  overtimeMoney: number;
   tour: number;
   meal: number;
   kpi: number;
@@ -29,6 +30,7 @@ const DEFAULT_EXPENSE: ExpenseData = {
   commission: 0,
   tip: 0,
   overtime: 0,
+  overtimeMoney: 0,
   tour: 0,
   meal: 0,
   kpi: 0,
@@ -202,6 +204,8 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             if (next[s.id].tip !== staffInc.tip) { next[s.id].tip = staffInc.tip; hasChanges = true; }
             if (next[s.id].tour !== staffInc.tour) { next[s.id].tour = staffInc.tour; hasChanges = true; }
             if (next[s.id].overtime !== staffInc.overtime) { next[s.id].overtime = staffInc.overtime; hasChanges = true; }
+            const calcOvertimeMoney = Math.round((staffInc.overtime / 60) * 25000);
+            if (next[s.id].overtimeMoney !== calcOvertimeMoney) { next[s.id].overtimeMoney = calcOvertimeMoney; hasChanges = true; }
             if (next[s.id].meal !== staffInc.meal) { next[s.id].meal = staffInc.meal; hasChanges = true; }
           });
           if (hasChanges) {
@@ -247,7 +251,19 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
 
   const calculateTotal = (staffId: string) => {
     const data = expenses[staffId] || DEFAULT_EXPENSE;
-    return Object.values(data).reduce((sum, val) => sum + (val || 0), 0);
+    let total = 0;
+    (Object.keys(data) as Array<keyof ExpenseData>).forEach(k => {
+      if (k !== 'overtime') {
+        total += data[k] || 0;
+      }
+    });
+    return total;
+  };
+
+  const formatInputValue = (val: number | undefined, key: string) => {
+    if (!val) return '';
+    if (key === 'overtime') return val.toString();
+    return new Intl.NumberFormat('vi-VN').format(val);
   };
 
   const exportJPG = async (staffId: string, staffName: string) => {
@@ -295,8 +311,12 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.tip)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px 0; color: #555;">N.Giờ:</td>
-            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.overtime)}</td>
+            <td style="padding: 10px 0; color: #555;">N.Giờ (phút):</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${data.overtime}p</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px 0; color: #555;">Tiền N.Giờ:</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.overtimeMoney)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">Tiền Tour:</td>
@@ -350,7 +370,8 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     { key: 'salary', label: 'Lương' },
     { key: 'commission', label: 'H.Hồng' },
     { key: 'tip', label: 'Tip' },
-    { key: 'overtime', label: 'N.Giờ' },
+    { key: 'overtime', label: 'N.Giờ (phút)' },
+    { key: 'overtimeMoney', label: 'Tiền N.Giờ' },
     { key: 'tour', label: 'T Tour' },
     { key: 'meal', label: 'T Ăn' },
     { key: 'kpi', label: 'KPI' },
@@ -409,11 +430,11 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                     {cat.label}
                   </td>
                   {staffs.map(staff => {
-                    const isAuto = ['commission', 'tip', 'tour', 'overtime', 'meal'].includes(cat.key);
+                    const isAuto = ['commission', 'tip', 'tour', 'overtime', 'overtimeMoney', 'meal'].includes(cat.key);
                     return (
                       <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.1rem', borderBottom: '1px solid var(--border)' }}>
                         <input
-                          type="number"
+                          type="text"
                           className="no-spin"
                           style={{ 
                             width: '100%', 
@@ -427,7 +448,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                             color: isAuto ? 'var(--primary)' : 'inherit',
                             cursor: isAuto ? 'not-allowed' : 'text'
                           }}
-                          value={expenses[staff.id]?.[cat.key] || ''}
+                          value={formatInputValue(expenses[staff.id]?.[cat.key], cat.key)}
                           onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
                           placeholder="0"
                           readOnly={isAuto}
