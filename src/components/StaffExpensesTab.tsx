@@ -146,8 +146,8 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
       initializeEmptyExpenses();
     }
     
-    // Tự động lấy hoa hồng cho ngày hiện tại
-    const fetchCommissions = async () => {
+    // Tự động lấy hoa hồng và thu nhập KTV cho tháng hiện tại
+    const fetchData = async () => {
       try {
         const dateObj = new Date(selectedDate);
         const y = dateObj.getFullYear();
@@ -158,7 +158,8 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
         const startStr = firstDay.toISOString();
         const endStr = lastDay.toISOString();
 
-        const { data } = await supabase
+        // 1. Fetch commission_logs
+        const { data: commData } = await supabase
           .from('commission_logs')
           .select('staff_id, amount')
           .eq('shop_id', shopId)
@@ -166,35 +167,54 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           .gte('created_at', startStr)
           .lte('created_at', endStr);
 
-        if (data) {
-          const commMap = new Map<string, number>();
-          data.forEach(c => {
-            commMap.set(c.staff_id, (commMap.get(c.staff_id) || 0) + Number(c.amount));
+        const commMap = new Map<string, number>();
+        commData?.forEach(c => {
+          commMap.set(c.staff_id, (commMap.get(c.staff_id) || 0) + Number(c.amount));
+        });
+
+        // 2. Fetch staff_daily_income
+        const { data: incData } = await supabase
+          .from('staff_daily_income')
+          .select('staff_name, tip_amount, tour_amount, overtime_minutes, meal_amount')
+          .eq('shop_id', shopId)
+          .gte('created_at', startStr)
+          .lte('created_at', endStr);
+
+        const incomeMap = new Map<string, { tip: number, tour: number, overtime: number, meal: number }>();
+        incData?.forEach(inc => {
+          const current = incomeMap.get(inc.staff_name) || { tip: 0, tour: 0, overtime: 0, meal: 0 };
+          current.tip += Number(inc.tip_amount) || 0;
+          current.tour += Number(inc.tour_amount) || 0;
+          current.overtime += Number(inc.overtime_minutes) || 0;
+          current.meal += Number(inc.meal_amount) || 0;
+          incomeMap.set(inc.staff_name, current);
+        });
+        
+        setExpenses(prev => {
+          const next = { ...prev };
+          let hasChanges = false;
+          staffs.forEach(s => {
+            if (!next[s.id]) next[s.id] = { ...DEFAULT_EXPENSE };
+            const newComm = commMap.get(s.id) || 0;
+            const staffInc = incomeMap.get(s.full_name) || { tip: 0, tour: 0, overtime: 0, meal: 0 };
+
+            if (next[s.id].commission !== newComm) { next[s.id].commission = newComm; hasChanges = true; }
+            if (next[s.id].tip !== staffInc.tip) { next[s.id].tip = staffInc.tip; hasChanges = true; }
+            if (next[s.id].tour !== staffInc.tour) { next[s.id].tour = staffInc.tour; hasChanges = true; }
+            if (next[s.id].overtime !== staffInc.overtime) { next[s.id].overtime = staffInc.overtime; hasChanges = true; }
+            if (next[s.id].meal !== staffInc.meal) { next[s.id].meal = staffInc.meal; hasChanges = true; }
           });
-          
-          setExpenses(prev => {
-            const next = { ...prev };
-            let hasChanges = false;
-            staffs.forEach(s => {
-              if (!next[s.id]) next[s.id] = { ...DEFAULT_EXPENSE };
-              const newComm = commMap.get(s.id) || 0;
-              if (next[s.id].commission !== newComm) {
-                next[s.id].commission = newComm;
-                hasChanges = true;
-              }
-            });
-            if (hasChanges) {
-              localStorage.setItem(key, JSON.stringify(next));
-            }
-            return next;
-          });
-        }
+          if (hasChanges) {
+            localStorage.setItem(key, JSON.stringify(next));
+          }
+          return next;
+        });
       } catch (err) {
-        console.error('Error fetching commissions:', err);
+        console.error('Error fetching data:', err);
       }
     };
     
-    fetchCommissions();
+    fetchData();
   };
 
   const initializeEmptyExpenses = () => {
@@ -388,30 +408,33 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                   <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)', padding: '0.2rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-main)', zIndex: 10 }}>
                     {cat.label}
                   </td>
-                  {staffs.map(staff => (
-                    <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.1rem', borderBottom: '1px solid var(--border)' }}>
-                      <input
-                        type="number"
-                        className="no-spin"
-                        style={{ 
-                          width: '100%', 
-                          textAlign: 'right', 
-                          fontWeight: 'bold', 
-                          padding: '0.1rem', 
-                          border: '1px solid var(--border)', 
-                          borderRadius: '2px', 
-                          background: cat.key === 'commission' ? 'var(--bg-card)' : 'var(--bg-main)', 
-                          fontSize: '0.75rem',
-                          color: cat.key === 'commission' ? 'var(--primary)' : 'inherit',
-                          cursor: cat.key === 'commission' ? 'not-allowed' : 'text'
-                        }}
-                        value={expenses[staff.id]?.[cat.key] || ''}
-                        onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
-                        placeholder="0"
-                        readOnly={cat.key === 'commission'}
-                      />
-                    </td>
-                  ))}
+                  {staffs.map(staff => {
+                    const isAuto = ['commission', 'tip', 'tour', 'overtime', 'meal'].includes(cat.key);
+                    return (
+                      <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.1rem', borderBottom: '1px solid var(--border)' }}>
+                        <input
+                          type="number"
+                          className="no-spin"
+                          style={{ 
+                            width: '100%', 
+                            textAlign: 'right', 
+                            fontWeight: 'bold', 
+                            padding: '0.1rem', 
+                            border: '1px solid var(--border)', 
+                            borderRadius: '2px', 
+                            background: isAuto ? 'var(--bg-card)' : 'var(--bg-main)', 
+                            fontSize: '0.75rem',
+                            color: isAuto ? 'var(--primary)' : 'inherit',
+                            cursor: isAuto ? 'not-allowed' : 'text'
+                          }}
+                          value={expenses[staff.id]?.[cat.key] || ''}
+                          onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
+                          placeholder="0"
+                          readOnly={isAuto}
+                        />
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
               
