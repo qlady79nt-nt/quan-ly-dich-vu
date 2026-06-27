@@ -62,15 +62,67 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const fetchStaffs = async () => {
     setLoading(true);
     try {
+      // 8. Log chính xác query Supabase đang chạy
+      console.log(`
+      QUERY ĐANG SỬ DỤNG ĐỂ DEBUG:
+      supabase
+        .from('staffs')
+        .select('*')
+        .eq('shop_id', '${shopId}')
+      `);
+
+      // 7. Log current shop_id
+      console.log("7. Current shop_id:", shopId);
+
+      // 8. Log current user role
+      console.log("8. Current user role:", profile?.role);
+
+      // KHÔNG SỬ DỤNG điều kiện position === 'Kỹ thuật viên'
       const { data, error } = await supabase
         .from('staffs')
-        .select('id, full_name')
-        .eq('shop_id', shopId)
-        .eq('position', 'Kỹ thuật viên')
-        .eq('status', 'active');
+        .select('*')
+        .eq('shop_id', shopId);
         
       if (!error && data) {
-        setStaffs(data as any);
+        // 1. Log toàn bộ record trả về từ bảng staffs
+        console.log("1. Toàn bộ record trả về từ bảng staffs:", data);
+
+        // 2. Log toàn bộ giá trị position duy nhất
+        const uniquePositions = [...new Set(data.map(s => s.position))];
+        console.log("2. Toàn bộ giá trị position duy nhất:", uniquePositions);
+
+        // 3. Log toàn bộ giá trị status duy nhất
+        const uniqueStatuses = [...new Set(data.map(s => s.status))];
+        console.log("3. Toàn bộ giá trị status duy nhất:", uniqueStatuses);
+
+        // 4. Log toàn bộ giá trị is_active duy nhất
+        const uniqueIsActive = [...new Set(data.map(s => s.is_active))];
+        console.log("4. Toàn bộ giá trị is_active duy nhất:", uniqueIsActive);
+
+        // 9. Log kết quả của position, position.trim(), position.toLowerCase()
+        console.log("9. Kết quả xử lý chuỗi position:");
+        data.forEach(s => {
+          console.log({
+            id: s.id,
+            name: s.full_name,
+            position: s.position,
+            trimmed: s.position ? s.position.trim() : null,
+            lower: s.position ? s.position.toLowerCase() : null
+          });
+        });
+
+        // Filter để component chạy tiếp (với đúng điều kiện gốc bị lỗi)
+        const filteredData = data.filter(s => 
+          s.position === 'Kỹ thuật viên' && 
+          s.status === 'active'
+        );
+
+        // 5. Log số record trước và sau filter
+        console.log("5. Số record:");
+        console.log("- Trước filter:", data.length);
+        console.log("- Sau filter:", filteredData.length);
+
+        setStaffs(filteredData as any);
       }
     } catch (err) {
       console.error('Error fetching staffs', err);
