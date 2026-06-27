@@ -351,26 +351,26 @@ const StaffIncome = () => {
 
       {activeTab === 'history' && (
       <div className="animate-fade">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div className="premium-card" style={{ padding: '1rem', textAlign: 'center', background: 'rgba(59, 130, 246, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-            <DollarSign className="text-primary" size={20} />
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tổng Tip</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary)' }}>{formatMoney(totalTip)}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
+          <div className="premium-card" style={{ padding: '0.5rem', textAlign: 'center', background: 'rgba(59, 130, 246, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+            <DollarSign className="text-primary" size={16} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tổng Tip</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--primary)' }}>{formatMoney(totalTip)}</div>
           </div>
-          <div className="premium-card" style={{ padding: '1rem', textAlign: 'center', background: 'rgba(16, 185, 129, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-            <DollarSign className="text-success" size={20} />
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tour Ngoài</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--success)' }}>{formatMoney(totalTour)}</div>
+          <div className="premium-card" style={{ padding: '0.5rem', textAlign: 'center', background: 'rgba(16, 185, 129, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+            <DollarSign className="text-success" size={16} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tour Ngoài</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--success)' }}>{formatMoney(totalTour)}</div>
           </div>
-          <div className="premium-card" style={{ padding: '1rem', textAlign: 'center', background: 'rgba(245, 158, 11, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-            <DollarSign className="text-warning" size={20} />
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tiền Ăn</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--warning)' }}>{formatMoney(totalMeal)}</div>
+          <div className="premium-card" style={{ padding: '0.5rem', textAlign: 'center', background: 'rgba(245, 158, 11, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+            <DollarSign className="text-warning" size={16} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Tiền Ăn</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--warning)' }}>{formatMoney(totalMeal)}</div>
           </div>
-          <div className="premium-card" style={{ padding: '1rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-            <Clock className="text-danger" size={20} />
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Làm Thêm</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--danger)' }}>{totalOvertime > 0 ? `${totalOvertime}p` : '0p'}</div>
+          <div className="premium-card" style={{ padding: '0.5rem', textAlign: 'center', background: 'rgba(239, 68, 68, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+            <Clock className="text-danger" size={16} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Làm Thêm</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--danger)' }}>{totalOvertime > 0 ? `${totalOvertime}p` : '0p'}</div>
           </div>
         </div>
 
@@ -431,16 +431,16 @@ const StaffIncome = () => {
               <div className="table-responsive">
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
                   <thead>
-                    <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', fontSize: '0.85rem' }}>
-                      <th style={{ padding: '0.75rem' }}>Thời gian</th>
-                      <th style={{ padding: '0.75rem' }}>Nhân viên</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Tiền Tip</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Tour ngoài</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'center' }}>Làm thêm</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Tiền ăn</th>
-                      <th style={{ padding: '0.75rem' }}>Ghi chú</th>
-                      <th style={{ padding: '0.75rem', textAlign: 'right', color: 'var(--success)' }}>Tổng nhận</th>
-                      {isShopAdmin && <th style={{ padding: '0.75rem', textAlign: 'right' }}>Thao tác</th>}
+                    <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', fontSize: '0.8rem' }}>
+                      <th style={{ padding: '0.4rem 0.5rem' }}>Thời gian</th>
+                      <th style={{ padding: '0.4rem 0.5rem' }}>Nhân viên</th>
+                      <th style={{ padding: '0.4rem 0.5rem', textAlign: 'right' }}>Tiền Tip</th>
+                      <th style={{ padding: '0.4rem 0.5rem', textAlign: 'right' }}>Tour ngoài</th>
+                      <th style={{ padding: '0.4rem 0.5rem', textAlign: 'center' }}>Làm thêm</th>
+                      <th style={{ padding: '0.4rem 0.5rem', textAlign: 'right' }}>Tiền ăn</th>
+                      <th style={{ padding: '0.4rem 0.5rem' }}>Ghi chú</th>
+                      <th style={{ padding: '0.4rem 0.5rem', textAlign: 'right', color: 'var(--success)' }}>Tổng nhận</th>
+                      {isShopAdmin && <th style={{ padding: '0.4rem 0.5rem', textAlign: 'right' }}>Thao tác</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -448,20 +448,20 @@ const StaffIncome = () => {
                       const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
                       const isEvenDay = new Date(item.created_at).getDate() % 2 === 0;
                       return (
-                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.85rem', background: isEvenDay ? 'var(--bg-main)' : 'transparent' }} className="hover-row">
-                          <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</td>
-                          <td style={{ padding: '0.75rem', fontWeight: 'bold', color: 'var(--primary)' }}>{item.staff_name}</td>
-                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</td>
-                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</td>
-                          <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: '600', color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</td>
-                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</td>
-                          <td style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.note}>{item.note || '-'}</td>
-                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</td>
+                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.8rem', background: isEvenDay ? 'var(--bg-main)' : 'transparent' }} className="hover-row">
+                          <td style={{ padding: '0.4rem 0.5rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>{item.staff_name}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', textAlign: 'center', fontWeight: '600', color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.note}>{item.note || '-'}</td>
+                          <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</td>
                           {isShopAdmin && (
-                            <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                <button onClick={() => { handleEdit(item); setActiveTab('input'); }} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
-                                <button onClick={() => handleDelete(item.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xóa</button>
+                            <td style={{ padding: '0.4rem 0.5rem', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end' }}>
+                                <button onClick={() => { handleEdit(item); setActiveTab('input'); }} className="btn" style={{ padding: '0.15rem 0.4rem', fontSize: '0.7rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
+                                <button onClick={() => handleDelete(item.id)} className="btn" style={{ padding: '0.15rem 0.4rem', fontSize: '0.7rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xóa</button>
                               </div>
                             </td>
                           )}
