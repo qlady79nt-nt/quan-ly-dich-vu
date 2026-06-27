@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, Plus, Unlock } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { useAuth } from '../lib/auth';
 
@@ -43,6 +43,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const [expenses, setExpenses] = useState<Record<string, ExpenseData>>({});
   const [loading, setLoading] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [unlockedRows, setUnlockedRows] = useState<Record<string, boolean>>({});
 
   const { profile } = useAuth();
   const isShopAdmin = profile?.role === 'shop_admin' || profile?.role === 'super_admin';
@@ -421,16 +422,23 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                     {staff.full_name}
                   </th>
                 ))}
+                <th style={{ display: 'table-cell', position: 'sticky', right: 0, background: 'var(--bg-card)', padding: '0.2rem', borderBottom: '2px solid var(--border)', borderLeft: '2px solid var(--border)', zIndex: 30, width: '35px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Sửa
+                </th>
               </tr>
             </thead>
             <tbody style={{ display: 'table-row-group' }}>
-              {categories.map((cat, index) => (
-                <tr key={cat.key} style={{ display: 'table-row', background: index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)' }}>
-                  <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)', padding: '0.2rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-main)', zIndex: 10 }}>
+              {categories.map((cat, index) => {
+                const isOvertimeRow = cat.key === 'overtime' || cat.key === 'overtimeMoney';
+                const rowBg = isOvertimeRow ? '#fef3c7' : (index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)');
+                return (
+                <tr key={cat.key} style={{ display: 'table-row', background: rowBg }}>
+                  <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: rowBg, padding: '0.2rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-main)', zIndex: 10 }}>
                     {cat.label}
                   </td>
                   {staffs.map(staff => {
                     const isAuto = ['commission', 'tip', 'tour', 'overtime', 'overtimeMoney', 'meal'].includes(cat.key);
+                    const isReadOnly = isAuto && !unlockedRows[cat.key];
                     return (
                       <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.1rem', borderBottom: '1px solid var(--border)' }}>
                         <input
@@ -443,21 +451,30 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                             padding: '0.1rem', 
                             border: '1px solid var(--border)', 
                             borderRadius: '2px', 
-                            background: isAuto ? 'var(--bg-card)' : 'var(--bg-main)', 
+                            background: isAuto ? (isReadOnly ? 'rgba(0,0,0,0.03)' : 'var(--bg-main)') : 'var(--bg-main)', 
                             fontSize: '0.75rem',
-                            color: isAuto ? 'var(--primary)' : 'inherit',
-                            cursor: isAuto ? 'not-allowed' : 'text'
+                            color: isAuto ? (isReadOnly ? 'var(--primary)' : 'inherit') : 'inherit',
+                            cursor: isReadOnly ? 'not-allowed' : 'text'
                           }}
                           value={formatInputValue(expenses[staff.id]?.[cat.key], cat.key)}
                           onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
                           placeholder="0"
-                          readOnly={isAuto}
+                          readOnly={isReadOnly}
                         />
                       </td>
                     );
                   })}
+                  <td style={{ display: 'table-cell', position: 'sticky', right: 0, background: rowBg, padding: '0.1rem', borderBottom: '1px solid var(--border)', borderLeft: '2px solid var(--border)', textAlign: 'center', zIndex: 10 }}>
+                    <button 
+                      onClick={() => setUnlockedRows(prev => ({...prev, [cat.key]: !prev[cat.key]}))}
+                      title={isAuto ? "Mở khóa để sửa tay" : "Cố định/Sửa"}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.2rem', color: unlockedRows[cat.key] ? 'var(--success)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
+                    >
+                      {unlockedRows[cat.key] ? <Unlock size={14} /> : <Plus size={14} />}
+                    </button>
+                  </td>
                 </tr>
-              ))}
+              )})}
               
               {/* Hàng tổng */}
               <tr style={{ display: 'table-row' }}>
@@ -472,6 +489,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                     </td>
                   );
                 })}
+                <td style={{ display: 'table-cell', position: 'sticky', right: 0, background: '#fee2e2', padding: '0.2rem', borderBottom: '1px solid var(--border)', borderLeft: '2px solid var(--border)', zIndex: 10 }}></td>
               </tr>
 
               {/* Hàng nút xuất ảnh */}
@@ -491,6 +509,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                     </button>
                   </td>
                 ))}
+                <td style={{ display: 'table-cell', position: 'sticky', right: 0, padding: '0.1rem', background: 'var(--bg-card)', borderLeft: '2px solid var(--border)', zIndex: 10 }}></td>
               </tr>
             </tbody>
           </table>
