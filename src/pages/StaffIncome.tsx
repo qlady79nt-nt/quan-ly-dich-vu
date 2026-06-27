@@ -426,75 +426,21 @@ const StaffIncome = () => {
           </div>
         ) : (
           <>
-            {/* Mobile View: Card List */}
-            <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {incomes.slice(0, displayLimit).map(item => {
-                const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
-                const isEvenDay = new Date(item.created_at).getDate() % 2 === 0;
-                return (
-                  <div key={item.id} className="premium-card" style={{ padding: '1rem', background: isEvenDay ? 'var(--bg-main)' : 'var(--bg-card)', borderColor: isEvenDay ? 'transparent' : 'var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
-                      <div>
-                        <div style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary)' }}>{item.staff_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', textTransform: 'uppercase', fontWeight: 'bold' }}>Tổng nhận</div>
-                        <div style={{ fontWeight: '800', fontSize: '1.25rem', color: 'var(--success)' }}>{formatMoney(totalAmount)}</div>
-                      </div>
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Tiền Tip:</span>
-                        <strong style={{ color: 'var(--text-main)' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Tour:</span>
-                        <strong style={{ color: 'var(--text-main)' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Tiền Ăn:</span>
-                        <strong style={{ color: 'var(--text-main)' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Tăng Ca:</span>
-                        <strong style={{ color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</strong>
-                      </div>
-                    </div>
-                    
-                    {item.note && (
-                      <div style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: 'var(--text-secondary)', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.25rem', fontStyle: 'italic' }}>
-                        Ghi chú: {item.note}
-                      </div>
-                    )}
-                    
-                    {isShopAdmin && (
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem', borderTop: '1px dashed var(--border)', paddingTop: '1rem' }}>
-                        <button onClick={() => { handleEdit(item); setActiveTab('input'); }} className="btn" style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
-                        <button onClick={() => handleDelete(item.id)} className="btn" style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xóa</button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Desktop View: Table */}
-            <div className="premium-card desktop-only" style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Responsive Dense Table for both PC and Mobile */}
+            <div className="premium-card" style={{ padding: 0, overflow: 'hidden' }}>
               <div className="table-responsive">
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
                   <thead>
-                    <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
-                      <th style={{ padding: '1rem' }}>Thời gian</th>
-                      <th style={{ padding: '1rem' }}>Nhân viên</th>
-                      <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền Tip</th>
-                      <th style={{ padding: '1rem', textAlign: 'right' }}>Tour ngoài</th>
-                      <th style={{ padding: '1rem', textAlign: 'center' }}>Làm thêm</th>
-                      <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền ăn</th>
-                      <th style={{ padding: '1rem' }}>Ghi chú</th>
-                      <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--success)' }}>Tổng nhận</th>
-                      {isShopAdmin && <th style={{ padding: '1rem', textAlign: 'right' }}>Thao tác</th>}
+                    <tr style={{ background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', fontSize: '0.85rem' }}>
+                      <th style={{ padding: '0.75rem' }}>Thời gian</th>
+                      <th style={{ padding: '0.75rem' }}>Nhân viên</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Tiền Tip</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Tour ngoài</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'center' }}>Làm thêm</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Tiền ăn</th>
+                      <th style={{ padding: '0.75rem' }}>Ghi chú</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right', color: 'var(--success)' }}>Tổng nhận</th>
+                      {isShopAdmin && <th style={{ padding: '0.75rem', textAlign: 'right' }}>Thao tác</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -502,17 +448,17 @@ const StaffIncome = () => {
                       const totalAmount = Number(item.tip_amount || 0) + Number(item.tour_amount || 0) + Number(item.meal_amount || 0);
                       const isEvenDay = new Date(item.created_at).getDate() % 2 === 0;
                       return (
-                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.9rem', background: isEvenDay ? 'var(--bg-main)' : 'transparent' }}>
-                          <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</td>
-                          <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--primary)' }}>{item.staff_name}</td>
-                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</td>
-                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</td>
-                          <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</td>
-                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</td>
-                          <td style={{ padding: '1rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.note}>{item.note || '-'}</td>
-                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</td>
+                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', fontSize: '0.85rem', background: isEvenDay ? 'var(--bg-main)' : 'transparent' }} className="hover-row">
+                          <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>{formatDate(item.created_at)}</td>
+                          <td style={{ padding: '0.75rem', fontWeight: 'bold', color: 'var(--primary)' }}>{item.staff_name}</td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tip_amount) > 0 ? formatMoney(item.tip_amount) : '-'}</td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.tour_amount) > 0 ? formatMoney(item.tour_amount) : '-'}</td>
+                          <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: '600', color: 'var(--warning)' }}>{Number(item.overtime_minutes) > 0 ? `${item.overtime_minutes}p` : '-'}</td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600' }}>{Number(item.meal_amount) > 0 ? formatMoney(item.meal_amount) : '-'}</td>
+                          <td style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.note}>{item.note || '-'}</td>
+                          <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>{formatMoney(totalAmount)}</td>
                           {isShopAdmin && (
-                            <td style={{ padding: '1rem', textAlign: 'right' }}>
+                            <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                                 <button onClick={() => { handleEdit(item); setActiveTab('input'); }} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
                                 <button onClick={() => handleDelete(item.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xóa</button>
