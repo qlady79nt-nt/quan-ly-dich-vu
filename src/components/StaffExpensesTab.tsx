@@ -317,14 +317,14 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
         </div>
       ) : (
         <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-card)', borderRadius: '0.5rem', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <table style={{ display: 'table', width: '100%', borderCollapse: 'collapse', minWidth: 'max-content', fontSize: '0.75rem' }}>
+          <table style={{ display: 'table', width: 'auto', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: '0.75rem', margin: '0' }}>
             <thead style={{ display: 'table-header-group', position: 'sticky', top: 0, zIndex: 20 }}>
               <tr style={{ display: 'table-row' }}>
-                <th style={{ display: 'table-cell', position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '0.2rem', borderBottom: '2px solid var(--border)', borderRight: '2px solid var(--border)', zIndex: 30, minWidth: '50px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 'bold' }}>
+                <th style={{ display: 'table-cell', position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '0.2rem', borderBottom: '2px solid var(--border)', borderRight: '2px solid var(--border)', zIndex: 30, width: '70px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 'bold' }}>
                   Khoản chi
                 </th>
                 {staffs.map(staff => (
-                  <th key={staff.id} style={{ display: 'table-cell', padding: '0.2rem', background: 'var(--bg-card)', borderBottom: '2px solid var(--border)', textAlign: 'center', minWidth: '40px', color: 'var(--primary)', fontWeight: 'bold', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <th key={staff.id} style={{ display: 'table-cell', padding: '0.2rem', background: 'var(--bg-card)', borderBottom: '2px solid var(--border)', textAlign: 'center', width: '55px', color: 'var(--primary)', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {staff.full_name}
                   </th>
                 ))}
@@ -340,7 +340,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                     <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.1rem', borderBottom: '1px solid var(--border)' }}>
                       <input
                         type="number"
-                        style={{ width: '100%', textAlign: 'right', fontWeight: 'bold', padding: '0.1rem', border: '1px solid var(--border)', borderRadius: '2px', background: 'var(--bg-main)', fontSize: '0.75rem', minWidth: '40px' }}
+                        style={{ width: '100%', textAlign: 'right', fontWeight: 'bold', padding: '0.1rem', border: '1px solid var(--border)', borderRadius: '2px', background: 'var(--bg-main)', fontSize: '0.75rem' }}
                         value={expenses[staff.id]?.[cat.key] || ''}
                         onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
                         placeholder="0"
