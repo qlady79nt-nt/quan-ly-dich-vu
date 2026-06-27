@@ -317,14 +317,14 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
         </div>
       ) : (
         <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-card)', borderRadius: '0.5rem', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <table style={{ display: 'table', width: '100%', borderCollapse: 'collapse', minWidth: 'max-content', fontSize: '0.85rem' }}>
+          <table style={{ display: 'table', width: '100%', borderCollapse: 'collapse', minWidth: 'max-content', fontSize: '0.75rem' }}>
             <thead style={{ display: 'table-header-group', position: 'sticky', top: 0, zIndex: 20 }}>
               <tr style={{ display: 'table-row' }}>
-                <th style={{ display: 'table-cell', position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '0.5rem', borderBottom: '2px solid var(--border)', borderRight: '2px solid var(--border)', zIndex: 30, minWidth: '100px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 'bold' }}>
+                <th style={{ display: 'table-cell', position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '0.2rem', borderBottom: '2px solid var(--border)', borderRight: '2px solid var(--border)', zIndex: 30, minWidth: '50px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 'bold' }}>
                   Khoản chi
                 </th>
                 {staffs.map(staff => (
-                  <th key={staff.id} style={{ display: 'table-cell', padding: '0.5rem', background: 'var(--bg-card)', borderBottom: '2px solid var(--border)', textAlign: 'center', minWidth: '110px', color: 'var(--primary)', fontWeight: 'bold' }}>
+                  <th key={staff.id} style={{ display: 'table-cell', padding: '0.2rem', background: 'var(--bg-card)', borderBottom: '2px solid var(--border)', textAlign: 'center', minWidth: '40px', color: 'var(--primary)', fontWeight: 'bold', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {staff.full_name}
                   </th>
                 ))}
@@ -333,14 +333,14 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <tbody style={{ display: 'table-row-group' }}>
               {categories.map((cat, index) => (
                 <tr key={cat.key} style={{ display: 'table-row', background: index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)' }}>
-                  <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)', padding: '0.4rem 0.5rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-main)', zIndex: 10 }}>
+                  <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)', padding: '0.2rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-main)', zIndex: 10 }}>
                     {cat.label}
                   </td>
                   {staffs.map(staff => (
-                    <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.3rem', borderBottom: '1px solid var(--border)' }}>
+                    <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.1rem', borderBottom: '1px solid var(--border)' }}>
                       <input
                         type="number"
-                        style={{ width: '100%', textAlign: 'right', fontWeight: 'bold', padding: '0.3rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-main)', fontSize: '0.85rem' }}
+                        style={{ width: '100%', textAlign: 'right', fontWeight: 'bold', padding: '0.1rem', border: '1px solid var(--border)', borderRadius: '2px', background: 'var(--bg-main)', fontSize: '0.75rem', minWidth: '40px' }}
                         value={expenses[staff.id]?.[cat.key] || ''}
                         onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
                         placeholder="0"
@@ -352,13 +352,13 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
               
               {/* Hàng tổng */}
               <tr style={{ display: 'table-row' }}>
-                <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: '#fee2e2', padding: '0.5rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: '900', color: '#dc2626', zIndex: 10, textTransform: 'uppercase' }}>
-                  Tổng chi
+                <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: '#fee2e2', padding: '0.2rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: '900', color: '#dc2626', zIndex: 10, textTransform: 'uppercase' }}>
+                  Tổng
                 </td>
                 {staffs.map(staff => {
                   const total = calculateTotal(staff.id);
                   return (
-                    <td key={`total-${staff.id}`} style={{ display: 'table-cell', padding: '0.5rem', background: '#fee2e2', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: '900', color: '#dc2626', fontSize: '0.95rem' }}>
+                    <td key={`total-${staff.id}`} style={{ display: 'table-cell', padding: '0.2rem', background: '#fee2e2', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: '900', color: '#dc2626', fontSize: '0.8rem' }}>
                       {formatMoney(total)}
                     </td>
                   );
@@ -367,18 +367,18 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
 
               {/* Hàng nút xuất ảnh */}
               <tr style={{ display: 'table-row' }}>
-                <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '0.5rem', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-secondary)', zIndex: 10 }}>
-                  Xuất dữ liệu
+                <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '0.2rem', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-secondary)', zIndex: 10 }}>
+                  Xuất
                 </td>
                 {staffs.map(staff => (
-                  <td key={`export-${staff.id}`} style={{ display: 'table-cell', padding: '0.4rem', textAlign: 'center', background: 'var(--bg-card)' }}>
+                  <td key={`export-${staff.id}`} style={{ display: 'table-cell', padding: '0.1rem', textAlign: 'center', background: 'var(--bg-card)' }}>
                     <button
                       onClick={() => exportJPG(staff.id, staff.full_name)}
                       disabled={exportingId === staff.id}
-                      style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                      style={{ width: '100%', padding: '0.2rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '2px', cursor: 'pointer', fontWeight: 'bold' }}
                     >
-                      {exportingId === staff.id ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
-                      Xuất JPG
+                      {exportingId === staff.id ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
+                      JPG
                     </button>
                   </td>
                 ))}
