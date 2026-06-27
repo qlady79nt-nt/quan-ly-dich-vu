@@ -47,7 +47,7 @@ const Services = () => {
   const fetchData = async () => {
     setLoading(true);
     
-    let servicesQuery = supabase.from('services').select('*').order('created_at', { ascending: false });
+    let servicesQuery = supabase.from('services').select('*').order('name', { ascending: true });
     let groupsQuery = supabase.from('service_groups').select('*').order('sort_order', { ascending: true });
     
     if (profile?.role !== 'super_admin') {
