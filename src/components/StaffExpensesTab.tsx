@@ -279,10 +279,6 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.overtime)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px 0; color: #555;">Ngoài giờ:</td>
-            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.extraTime)}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">Tiền Tour:</td>
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.tour)}</td>
           </tr>
@@ -293,6 +289,10 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">KPI:</td>
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.kpi)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px 0; color: #555;">Hỗ trợ:</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.support)}</td>
           </tr>
         </table>
         
