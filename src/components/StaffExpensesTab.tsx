@@ -431,13 +431,13 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
               {categories.map((cat, index) => {
                 const isOvertimeRow = cat.key === 'overtime' || cat.key === 'overtimeMoney';
                 const rowBg = isOvertimeRow ? '#fef3c7' : (index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)');
+                const isAuto = ['commission', 'tip', 'tour', 'overtime', 'overtimeMoney', 'meal'].includes(cat.key);
                 return (
                 <tr key={cat.key} style={{ display: 'table-row', background: rowBg }}>
                   <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: rowBg, padding: '0.2rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-main)', zIndex: 10 }}>
                     {cat.label}
                   </td>
                   {staffs.map(staff => {
-                    const isAuto = ['commission', 'tip', 'tour', 'overtime', 'overtimeMoney', 'meal'].includes(cat.key);
                     const isReadOnly = isAuto && !unlockedRows[cat.key];
                     return (
                       <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.1rem', borderBottom: '1px solid var(--border)' }}>
