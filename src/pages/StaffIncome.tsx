@@ -213,7 +213,7 @@ const StaffIncome = () => {
   const totalOvertime = incomes.reduce((sum, item) => sum + (Number(item.overtime_minutes) || 0), 0);
 
   return (
-    <div className="page-container animate-fade" style={{ padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="page-container animate-fade" style={{ padding: '1rem 1rem 80px 1rem', maxWidth: '1000px', margin: '0 auto' }}>
       <h1 className="page-title" style={{ marginBottom: '1rem', fontSize: '1.5rem', textAlign: 'center' }}>Thu Nhập KTV</h1>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none' }}>
