@@ -935,3 +935,14 @@ h1, h2, h3, h4 {
   gap: 0.5rem !important;
   margin-bottom: 1rem !important;
 }
+
+/* Hide spin buttons for specific number inputs */
+.no-spin::-webkit-inner-spin-button,
+.no-spin::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spin {
+  -moz-appearance: textfield;
+}
+

@@ -392,10 +392,23 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
                     <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.1rem', borderBottom: '1px solid var(--border)' }}>
                       <input
                         type="number"
-                        style={{ width: '100%', textAlign: 'right', fontWeight: 'bold', padding: '0.1rem', border: '1px solid var(--border)', borderRadius: '2px', background: 'var(--bg-main)', fontSize: '0.75rem' }}
+                        className="no-spin"
+                        style={{ 
+                          width: '100%', 
+                          textAlign: 'right', 
+                          fontWeight: 'bold', 
+                          padding: '0.1rem', 
+                          border: '1px solid var(--border)', 
+                          borderRadius: '2px', 
+                          background: cat.key === 'commission' ? 'var(--bg-card)' : 'var(--bg-main)', 
+                          fontSize: '0.75rem',
+                          color: cat.key === 'commission' ? 'var(--primary)' : 'inherit',
+                          cursor: cat.key === 'commission' ? 'not-allowed' : 'text'
+                        }}
                         value={expenses[staff.id]?.[cat.key] || ''}
                         onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
                         placeholder="0"
+                        readOnly={cat.key === 'commission'}
                       />
                     </td>
                   ))}
