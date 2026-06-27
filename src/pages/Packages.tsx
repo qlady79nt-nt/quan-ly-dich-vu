@@ -302,51 +302,65 @@ const Packages = () => {
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /> Đang tải...</div>
       ) : activeTab === 'config' ? (
         <>
-          <div className="desktop-only kpi-grid">
-            {packages.map((p) => (
-              <div key={p.id} className="premium-card" style={{ opacity: p.status === 'inactive' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: p.status === 'inactive' ? 'rgba(0,0,0,0.05)' : 'rgba(212, 175, 55, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: p.status === 'inactive' ? 'var(--text-light)' : 'var(--secondary)' }}>
-                      <PackageIcon size={24} />
-                    </div>
-                    <div>
+          <div className="desktop-only table-responsive premium-card" style={{ padding: 0, marginBottom: '1.5rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                  <th style={{ padding: '1rem' }}>Tên liệu trình</th>
+                  <th>Giá (Bán/Gốc)</th>
+                  <th>Số buổi</th>
+                  <th>Hoa hồng bán</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {packages.map((p) => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', opacity: p.status === 'inactive' ? 0.6 : 1 }} className="hover-row">
+                    <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <h4 style={{ fontSize: '1.1rem', margin: 0, textDecoration: p.status === 'inactive' ? 'line-through' : 'none' }}>{p.name}</h4>
-                        {p.status === 'inactive' && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>NGƯNG BÁN</span>}
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '600', textDecoration: p.status === 'inactive' ? 'line-through' : 'none' }}>{p.name}</h4>
+                        {p.status === 'inactive' && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)', fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}>NGƯNG BÁN</span>}
                       </div>
-                      <div style={{ fontSize: '0.875rem', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                        <Link2 size={14} /> Gắn với: {p.services?.name}
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        <Link2 size={12} /> Gắn với: {p.services?.name}
                       </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '800', color: p.status === 'inactive' ? 'var(--text-secondary)' : 'var(--primary)' }}>{Number(p.sale_price).toLocaleString()}đ</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', textDecoration: 'line-through' }}>{Number(p.original_price).toLocaleString()}đ</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-main)', padding: '0.75rem 1rem', borderRadius: '0.5rem' }}>
-                  <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-                    <div>Số buổi: <strong>{p.total_sessions}</strong></div>
-                    <div>HH Bán: <strong>{p.commission_sale_type === 'percent' ? `${p.commission_sale_value}%` : `${p.commission_sale_value}đ`}</strong></div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {profile?.role === 'shop_admin' && (
-                      <button onClick={() => handleEdit(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
-                    )}
-                    {profile?.role === 'shop_admin' && (
-                      <button onClick={() => handleToggleStatus(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: p.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)' }}>
-                        {p.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
-                      </button>
-                    )}
-                    {profile?.role === 'super_admin' && (
-                      <button onClick={() => handleHardDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={14} /></button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: '700', color: p.status === 'inactive' ? 'var(--text-secondary)' : 'var(--primary)' }}>{Number(p.sale_price).toLocaleString()}đ</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', textDecoration: 'line-through' }}>{Number(p.original_price).toLocaleString()}đ</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: '600' }}>{p.total_sessions}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: '600' }}>{p.commission_sale_type === 'percent' ? `${p.commission_sale_value}%` : `${Number(p.commission_sale_value).toLocaleString()}đ`}</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {profile?.role === 'shop_admin' && (
+                          <button onClick={() => handleEdit(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--text-secondary)' }}><Edit2 size={14} /></button>
+                        )}
+                        {profile?.role === 'shop_admin' && (
+                          <button onClick={() => handleToggleStatus(p)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: p.status === 'inactive' ? 'var(--success)' : 'var(--text-light)', border: '1px solid var(--border)', fontSize: '0.75rem' }}>
+                            {p.status === 'inactive' ? 'Bán lại' : 'Ngưng bán'}
+                          </button>
+                        )}
+                        {profile?.role === 'super_admin' && (
+                          <button onClick={() => handleHardDelete(p.id)} className="btn" style={{ padding: '0.4rem', background: 'transparent', color: 'var(--danger)' }} title="Xóa cứng (Super Admin)"><Trash2 size={14} /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {packages.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+                      Chưa có liệu trình nào
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
 
           <div className="mobile-only mobile-list-container" style={{ marginBottom: '1.5rem' }}>
@@ -383,8 +397,8 @@ const Packages = () => {
           </div>
           
           <div className="premium-card">
-            <div className="desktop-only table-responsive">
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="table-responsive">
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                 <thead>
                   <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem' }}>
                     <th style={{ padding: '1rem' }}>Khách hàng</th>
@@ -438,50 +452,6 @@ const Packages = () => {
                   )}
                 </tbody>
               </table>
-            </div>
-
-            <div className="mobile-only mobile-list-container" style={{ margin: '0 1rem 1rem 1rem' }}>
-              {customerPackages.filter(cp => {
-                const s = searchTerm.toLowerCase();
-                if (!s) return true;
-                const nameMatch = cp.customer_name ? cp.customer_name.toLowerCase().includes(s) : false;
-                const phoneMatch = cp.customer_phone ? cp.customer_phone.includes(s) : false;
-                const cardMatch = cp.card_code ? cp.card_code.toLowerCase().includes(s) : false;
-                return nameMatch || phoneMatch || cardMatch;
-              }).map(cp => (
-                <div key={cp.id} className="mobile-list-row" onClick={() => handleViewCustomerDetail(cp)}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                       <span style={{ fontWeight: '700', fontSize: '1.05rem', color: 'var(--text-main)' }}>{cp.customer_name || 'Khách lẻ'}</span>
-                       <span style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '0.85rem' }}>{cp.used_sessions}/{cp.total_sessions}</span>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                      <div>{cp.customer_phone || '---'}</div>
-                      <div style={{ fontWeight: '600', color: 'var(--text-main)', marginTop: '0.25rem' }}>Thẻ: {cp.card_code || '---'}</div>
-                    </div>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', color: cp.status === 'active' ? 'var(--success)' : 'var(--text-secondary)', fontWeight: '600' }}>
-                       <span style={{ fontSize: '10px' }}>●</span> {cp.status === 'active' ? 'Đang dùng' : 'Đã xong'}
-                    </span>
-                  </div>
-                  
-                  <div style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '0.25rem', color: 'var(--text-main)' }}>{cp.packages?.name}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                    <span>{Number(cp.sale_price).toLocaleString()}đ</span>
-                    <span>{new Date(cp.created_at).toLocaleDateString()}</span>
-                  </div>
-                  
-                  <div style={{ height: '6px', background: '#f3f4f6', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ width: `${(cp.used_sessions / cp.total_sessions) * 100}%`, height: '100%', background: 'var(--primary)' }}></div>
-                  </div>
-                </div>
-              ))}
-              {customerPackages.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
-                  Chưa có khách hàng nào mua liệu trình
-                </div>
-              )}
             </div>
           </div>
         </div>
