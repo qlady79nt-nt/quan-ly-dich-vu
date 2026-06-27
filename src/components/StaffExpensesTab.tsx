@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Camera, Loader2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -45,7 +45,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const { profile } = useAuth();
   const isShopAdmin = profile?.role === 'shop_admin' || profile?.role === 'super_admin';
 
-  const containerRef = useRef<HTMLDivElement>(null);
+
 
   if (!isShopAdmin) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Bạn không có quyền truy cập chức năng này.</div>;
@@ -63,10 +63,10 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, staffs!inner(position)')
+        .from('staffs')
+        .select('id, full_name')
         .eq('shop_id', shopId)
-        .eq('staffs.position', 'Kỹ thuật viên')
+        .eq('position', 'Kỹ thuật viên')
         .eq('status', 'active');
         
       if (!error && data) {
@@ -266,79 +266,75 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           Không tìm thấy Kỹ thuật viên nào đang hoạt động.
         </div>
       ) : (
-        <div className="premium-card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div ref={containerRef} className="table-responsive" style={{ flex: 1, overflow: 'auto', maxHeight: '500px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 'max-content' }}>
-              <thead style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-                <tr>
-                  <th style={{ position: 'sticky', left: 0, background: 'var(--bg-main)', padding: '1rem', borderBottom: '2px solid var(--border)', borderRight: '2px solid var(--border)', zIndex: 30, minWidth: '120px', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                    Khoản chi
+        <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-card)', borderRadius: '0.5rem', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <table style={{ display: 'table', width: '100%', borderCollapse: 'collapse', minWidth: 'max-content' }}>
+            <thead style={{ display: 'table-header-group', position: 'sticky', top: 0, zIndex: 20 }}>
+              <tr style={{ display: 'table-row' }}>
+                <th style={{ display: 'table-cell', position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '1rem', borderBottom: '2px solid var(--border)', borderRight: '2px solid var(--border)', zIndex: 30, minWidth: '120px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 'bold' }}>
+                  Khoản chi
+                </th>
+                {staffs.map(staff => (
+                  <th key={staff.id} style={{ display: 'table-cell', padding: '1rem', background: 'var(--bg-card)', borderBottom: '2px solid var(--border)', textAlign: 'center', minWidth: '130px', color: 'var(--primary)', fontWeight: 'bold' }}>
+                    {staff.full_name}
                   </th>
-                  {staffs.map(staff => (
-                    <th key={staff.id} style={{ padding: '1rem', background: 'var(--bg-main)', borderBottom: '2px solid var(--border)', textAlign: 'center', minWidth: '150px', color: 'var(--primary)', fontWeight: 'bold' }}>
-                      {staff.full_name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((cat, index) => (
-                  <tr key={cat.key} style={{ background: index % 2 === 0 ? 'transparent' : 'var(--bg-main)' }}>
-                    <td style={{ position: 'sticky', left: 0, background: index % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-main)', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-main)', zIndex: 10 }}>
-                      {cat.label}
-                    </td>
-                    {staffs.map(staff => (
-                      <td key={`${staff.id}-${cat.key}`} style={{ padding: '0.5rem', borderBottom: '1px solid var(--border)' }}>
-                        <input
-                          type="text"
-                          className="form-input"
-                          style={{ width: '100%', textAlign: 'right', fontWeight: 'bold' }}
-                          value={(expenses[staff.id]?.[cat.key] > 0) ? formatMoney(expenses[staff.id]?.[cat.key]) : ''}
-                          onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
-                          placeholder="0"
-                        />
-                      </td>
-                    ))}
-                  </tr>
                 ))}
-                
-                {/* Hàng tổng */}
-                <tr>
-                  <td style={{ position: 'sticky', left: 0, background: '#fee2e2', padding: '1rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: '900', color: '#dc2626', zIndex: 10, textTransform: 'uppercase' }}>
-                    Tổng chi cho NV
-                  </td>
-                  {staffs.map(staff => {
-                    const total = calculateTotal(staff.id);
-                    return (
-                      <td key={`total-${staff.id}`} style={{ padding: '1rem', background: '#fee2e2', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: '900', color: '#dc2626', fontSize: '1.1rem' }}>
-                        {formatMoney(total)}
-                      </td>
-                    );
-                  })}
-                </tr>
-
-                {/* Hàng nút xuất ảnh */}
-                <tr>
-                  <td style={{ position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '1rem', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-secondary)', zIndex: 10 }}>
-                    XUẤT DỮ LIỆU
+              </tr>
+            </thead>
+            <tbody style={{ display: 'table-row-group' }}>
+              {categories.map((cat, index) => (
+                <tr key={cat.key} style={{ display: 'table-row', background: index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)' }}>
+                  <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-main)', zIndex: 10 }}>
+                    {cat.label}
                   </td>
                   {staffs.map(staff => (
-                    <td key={`export-${staff.id}`} style={{ padding: '1rem', textAlign: 'center', background: 'var(--bg-card)' }}>
-                      <button
-                        onClick={() => exportJPG(staff.id, staff.full_name)}
-                        disabled={exportingId === staff.id}
-                        className="btn btn-primary"
-                        style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                      >
-                        {exportingId === staff.id ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-                        Xuất JPG
-                      </button>
+                    <td key={`${staff.id}-${cat.key}`} style={{ display: 'table-cell', padding: '0.5rem', borderBottom: '1px solid var(--border)' }}>
+                      <input
+                        type="number"
+                        style={{ width: '100%', textAlign: 'right', fontWeight: 'bold', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-main)' }}
+                        value={expenses[staff.id]?.[cat.key] || ''}
+                        onChange={(e) => handleInputChange(staff.id, cat.key, e.target.value)}
+                        placeholder="0"
+                      />
                     </td>
                   ))}
                 </tr>
-              </tbody>
-            </table>
-          </div>
+              ))}
+              
+              {/* Hàng tổng */}
+              <tr style={{ display: 'table-row' }}>
+                <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: '#fee2e2', padding: '1rem', borderBottom: '1px solid var(--border)', borderRight: '2px solid var(--border)', fontWeight: '900', color: '#dc2626', zIndex: 10, textTransform: 'uppercase' }}>
+                  Tổng chi cho NV
+                </td>
+                {staffs.map(staff => {
+                  const total = calculateTotal(staff.id);
+                  return (
+                    <td key={`total-${staff.id}`} style={{ display: 'table-cell', padding: '1rem', background: '#fee2e2', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: '900', color: '#dc2626', fontSize: '1.1rem' }}>
+                      {formatMoney(total)}
+                    </td>
+                  );
+                })}
+              </tr>
+
+              {/* Hàng nút xuất ảnh */}
+              <tr style={{ display: 'table-row' }}>
+                <td style={{ display: 'table-cell', position: 'sticky', left: 0, background: 'var(--bg-card)', padding: '1rem', borderRight: '2px solid var(--border)', fontWeight: 'bold', color: 'var(--text-secondary)', zIndex: 10 }}>
+                  XUẤT DỮ LIỆU
+                </td>
+                {staffs.map(staff => (
+                  <td key={`export-${staff.id}`} style={{ display: 'table-cell', padding: '1rem', textAlign: 'center', background: 'var(--bg-card)' }}>
+                    <button
+                      onClick={() => exportJPG(staff.id, staff.full_name)}
+                      disabled={exportingId === staff.id}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                      {exportingId === staff.id ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                      Xuất JPG
+                    </button>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
     </div>
