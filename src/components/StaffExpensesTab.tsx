@@ -18,10 +18,10 @@ interface ExpenseData {
   commission: number;
   tip: number;
   overtime: number;
-  extraTime: number;
   tour: number;
   meal: number;
   kpi: number;
+  support: number;
 }
 
 const DEFAULT_EXPENSE: ExpenseData = {
@@ -29,10 +29,10 @@ const DEFAULT_EXPENSE: ExpenseData = {
   commission: 0,
   tip: 0,
   overtime: 0,
-  extraTime: 0,
   tour: 0,
   meal: 0,
-  kpi: 0
+  kpi: 0,
+  support: 0
 };
 
 const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
@@ -133,16 +133,68 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     if (!shopId || !selectedDate || staffs.length === 0) return;
     const key = `staff_expenses_${shopId}_${selectedDate}`;
     const saved = localStorage.getItem(key);
+    let currentExpenses = { ...expenses };
     if (saved) {
       try {
-        setExpenses(JSON.parse(saved));
+        currentExpenses = JSON.parse(saved);
+        setExpenses(currentExpenses);
       } catch (e) {
-        console.error('Failed to parse saved expenses', e);
+        console.error('Error parsing saved expenses', e);
         initializeEmptyExpenses();
       }
     } else {
       initializeEmptyExpenses();
     }
+    
+    // Tự động lấy hoa hồng cho ngày hiện tại
+    const fetchCommissions = async () => {
+      try {
+        const dateObj = new Date(selectedDate);
+        const y = dateObj.getFullYear();
+        const m = dateObj.getMonth();
+        const firstDay = new Date(Date.UTC(y, m, 1, 0, 0, 0, 0));
+        const lastDay = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59, 999));
+
+        const startStr = firstDay.toISOString();
+        const endStr = lastDay.toISOString();
+
+        const { data } = await supabase
+          .from('commission_logs')
+          .select('staff_id, amount')
+          .eq('shop_id', shopId)
+          .neq('status', 'cancelled')
+          .gte('created_at', startStr)
+          .lte('created_at', endStr);
+
+        if (data) {
+          const commMap = new Map<string, number>();
+          data.forEach(c => {
+            commMap.set(c.staff_id, (commMap.get(c.staff_id) || 0) + Number(c.amount));
+          });
+          
+          setExpenses(prev => {
+            const next = { ...prev };
+            let hasChanges = false;
+            staffs.forEach(s => {
+              if (!next[s.id]) next[s.id] = { ...DEFAULT_EXPENSE };
+              const newComm = commMap.get(s.id) || 0;
+              if (next[s.id].commission !== newComm) {
+                next[s.id].commission = newComm;
+                hasChanges = true;
+              }
+            });
+            if (hasChanges) {
+              localStorage.setItem(key, JSON.stringify(next));
+            }
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching commissions:', err);
+      }
+    };
+    
+    fetchCommissions();
   };
 
   const initializeEmptyExpenses = () => {
@@ -279,10 +331,10 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     { key: 'commission', label: 'H.Hồng' },
     { key: 'tip', label: 'Tip' },
     { key: 'overtime', label: 'N.Giờ' },
-    { key: 'extraTime', label: 'Ngoài giờ' },
     { key: 'tour', label: 'T Tour' },
     { key: 'meal', label: 'T Ăn' },
-    { key: 'kpi', label: 'KPI' }
+    { key: 'kpi', label: 'KPI' },
+    { key: 'support', label: 'Hỗ trợ' }
   ];
 
   return (
