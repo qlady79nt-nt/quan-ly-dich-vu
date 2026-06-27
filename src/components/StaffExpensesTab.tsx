@@ -111,16 +111,14 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           });
         });
 
-        // Filter để component chạy tiếp (với đúng điều kiện gốc bị lỗi)
+        // Filter để component chạy tiếp (sửa thành technician)
         const filteredData = data.filter(s => 
-          s.position === 'Kỹ thuật viên' && 
+          s.position?.trim().toLowerCase() === 'technician' && 
           s.status === 'active'
         );
 
-        // 5. Log số record trước và sau filter
-        console.log("5. Số record:");
-        console.log("- Trước filter:", data.length);
-        console.log("- Sau filter:", filteredData.length);
+        console.log(`Before filter: ${data.length}`);
+        console.log(`After filter: ${filteredData.length}`);
 
         setStaffs(filteredData as any);
       }
