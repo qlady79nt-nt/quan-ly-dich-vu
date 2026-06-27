@@ -819,7 +819,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                     </span>
                   </div>
 
-                  <div className="desktop-only" style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                  <div style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px', textAlign: 'left' }}>
                       <thead>
                         <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
@@ -852,32 +852,6 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                  
-                  <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {expensesList.map(exp => (
-                      <div key={exp.id} style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '1rem', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', border: '1px solid var(--border)' }}>
-                        <div style={{ flex: 1, minWidth: '200px' }}>
-                          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                            {new Date(exp.expense_date).toLocaleDateString('vi-VN')} 
-                            {exp.is_recurring && <span style={{ marginLeft: '0.5rem', color: 'var(--primary)', background: 'var(--primary-light)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontSize: '0.7rem' }}>Cố định</span>}
-                          </div>
-                          <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.25rem' }}>{exp.expense_name}</div>
-                          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                            SL: {exp.quantity} × {exp.unit_price.toLocaleString()}đ
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
-                          <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--danger)' }}>
-                            - {exp.total_amount.toLocaleString()}đ
-                          </div>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button onClick={() => handleEditExpense(exp)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Sửa</button>
-                            <button onClick={() => handleDeleteExpense(exp.id)} className="btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}>Xoá</button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </>
               )}

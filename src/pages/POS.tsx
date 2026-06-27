@@ -596,45 +596,6 @@ const POS = () => {
     setIsPrinting(true);
   };
 
-  const handleTestPrintMinimal = () => {
-    const ua = navigator.userAgent;
-    let browserName = "Unknown";
-    if (ua.includes("Edg")) browserName = "Edge";
-    else if (ua.includes("Chrome")) browserName = "Chrome";
-    else if (ua.includes("Firefox")) browserName = "Firefox";
-    else if (ua.includes("Safari")) browserName = "Safari";
-    
-    console.log("=== TEST PRINT MINIMAL INFO ===");
-    console.log({
-      devicePixelRatio: window.devicePixelRatio,
-      userAgent: ua,
-      browserName: browserName,
-      printerSelected: "Trình duyệt bảo mật không cho phép đọc tên máy in từ hộp thoại in."
-    });
-
-    const div = document.createElement('div');
-    div.className = 'print-only';
-    div.style.position = 'absolute';
-    div.style.top = '0px';
-    div.style.left = '0px';
-    div.innerText = 'TOP MARK';
-    
-    document.body.appendChild(div);
-
-    alert("HƯỚNG DẪN TEST PRINT MINIMAL:\n\n1. Hãy lưu dạng PDF (Save as PDF) và kiểm tra khoảng trắng.\n2. In trực tiếp ra máy in nhiệt và kiểm tra.\n\n-> Nếu PDF chuẩn nhưng Giấy bị trắng: Do Driver máy in hoặc Setting giấy khổ in.\n-> Nếu PDF cũng trắng: Do lỗi CSS/Trình duyệt.");
-
-    const cleanup = () => {
-      if (document.body.contains(div)) {
-        document.body.removeChild(div);
-      }
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-
-    window.scrollTo(0, 0);
-    window.print();
-  };
-
   if (!shopId) {
     return (
       <div className="page-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -1239,20 +1200,6 @@ const POS = () => {
             {loading ? <Loader2 className="animate-spin" /> : 'Xếp chỗ ngay'}
           </button>
         </div>
-      )}
-
-      {/* Nút TEST PRINT MINIMAL */}
-      {createPortal(
-        <div className="no-print" style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 999999 }}>
-          <button 
-            onClick={handleTestPrintMinimal} 
-            style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', marginRight: '10px' }}
-          >
-            TEST PRINT MINIMAL
-          </button>
-
-        </div>,
-        document.body
       )}
     </div>
     </div>
