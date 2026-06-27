@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { X } from 'lucide-react';
 import Calculator from './Calculator';
+import StaffExpensesTab from './StaffExpensesTab';
 
 interface ReconciliationRecord {
   id: string;
@@ -32,7 +33,7 @@ interface Props {
 }
 
 const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'expenses' | 'expenses_history'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'expenses' | 'expenses_history' | 'staff_expenses'>('form');
   
   // Form State
   const [reconDate, setReconDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -458,10 +459,26 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
           >
             Lịch sử chi
           </button>
+          
+          <div style={{ minWidth: '4px', width: '4px', height: '2rem', background: 'var(--text-secondary)', margin: '0 1rem', borderRadius: '2px', opacity: 0.5, flexShrink: 0 }}></div>
+
+          <button 
+            style={{ flex: 1, minWidth: '150px', padding: '1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'staff_expenses' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'staff_expenses' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+            onClick={() => setActiveTab('staff_expenses')}
+          >
+            💰 Chi phí NV
+          </button>
         </div>
 
         {/* CONTENT */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', background: 'var(--bg-main)' }}>
+          
+          {activeTab === 'staff_expenses' && (
+            <div style={{ height: '100%' }}>
+              <StaffExpensesTab shopId={shopId} />
+            </div>
+          )}
+
           
           {/* FORM VIEW */}
           {activeTab === 'form' && (
