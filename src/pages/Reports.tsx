@@ -1327,6 +1327,7 @@ const Reports = () => {
                   <th style={{ textAlign: 'left' }}>Dịch vụ</th>
                   <th style={{ textAlign: 'right' }}>Thời gian (phút)</th>
                   <th style={{ textAlign: 'right' }}>Số cuốc</th>
+                  <th style={{ textAlign: 'right' }}>Tổng thời gian</th>
                 </tr>
               </thead>
               <tbody>
@@ -1336,7 +1337,7 @@ const Reports = () => {
                     : sessionsData;
                     
                   if (filteredSessions.length === 0) {
-                    return <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
+                    return <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
                   }
                   
                   const statsMap: Record<string, { count: number, duration: number }> = {};
@@ -1369,13 +1370,32 @@ const Reports = () => {
                     return a[0].localeCompare(b[0], 'vi', { numeric: true });
                   });
                   
-                  return sortedEntries.map(([name, stats]) => (
-                    <tr key={name}>
-                      <td style={{ fontWeight: '600' }}>{name}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '600', color: 'var(--secondary)' }}>{stats.duration > 0 ? stats.duration : '-'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>{stats.count}</td>
-                    </tr>
-                  ));
+                  let grandTotalCount = 0;
+                  let grandTotalMinutes = 0;
+                  
+                  return (
+                    <>
+                      {sortedEntries.map(([name, stats]) => {
+                        const totalDur = stats.duration > 0 ? stats.duration * stats.count : 0;
+                        grandTotalCount += stats.count;
+                        grandTotalMinutes += totalDur;
+                        return (
+                          <tr key={name}>
+                            <td style={{ fontWeight: '600' }}>{name}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '600', color: 'var(--secondary)' }}>{stats.duration > 0 ? stats.duration : '-'}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>{stats.count}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--text-main)' }}>{totalDur > 0 ? totalDur : '-'}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr style={{ background: 'var(--bg-secondary)' }}>
+                        <td style={{ fontWeight: '800', fontSize: '1.1rem' }}>TỔNG</td>
+                        <td></td>
+                        <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>{grandTotalCount} cuốc</td>
+                        <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--text-main)', fontSize: '1.1rem' }}>{grandTotalMinutes > 0 ? `${grandTotalMinutes} phút` : '-'}</td>
+                      </tr>
+                    </>
+                  );
                 })()}
               </tbody>
             </table>
