@@ -1341,14 +1341,8 @@ const Reports = () => {
                   });
                   
                   const sortedEntries = Object.entries(countMap).sort((a, b) => {
-                    const getMin = (str: string) => {
-                      const m = str.match(/(\d+)\s*phút/i);
-                      return m ? parseInt(m[1], 10) : 9999;
-                    };
-                    const minA = getMin(a[0]);
-                    const minB = getMin(b[0]);
-                    if (minA !== minB) return minA - minB;
-                    return a[0].localeCompare(b[0]);
+                    // Sắp xếp theo tên A-Z, và tự động hiểu các số 30, 60, 90 để xếp tăng dần
+                    return a[0].localeCompare(b[0], 'vi', { numeric: true });
                   });
                   
                   return sortedEntries.map(([name, count]) => (
