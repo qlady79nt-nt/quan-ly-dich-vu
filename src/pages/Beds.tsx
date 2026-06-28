@@ -554,7 +554,7 @@ const Beds = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
           {beds.map((bed) => {
             const isSelected = selectedBeds.includes(bed.id);
             return (
@@ -562,7 +562,7 @@ const Beds = () => {
               style={{ 
                 borderTop: `4px solid ${getStatusColor(bed.computed_status)}`, 
                 border: isSelected ? '2px solid var(--primary)' : undefined,
-                display: 'flex', flexDirection: 'column', padding: '1rem',
+                display: 'flex', flexDirection: 'column', padding: '0.5rem 0.75rem',
                 cursor: isMultiSelectMode && bed.computed_status === 'occupied' ? 'pointer' : 'default',
                 opacity: isMultiSelectMode && bed.computed_status !== 'occupied' ? 0.5 : 1
               }}
@@ -573,18 +573,18 @@ const Beds = () => {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: bed.sessions && bed.sessions.length > 0 ? '1rem' : '0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <div style={{ color: getStatusColor(bed.computed_status) }}>
-                    <BedDouble size={24} />
+                    <BedDouble size={20} />
                   </div>
-                  <h4 style={{ fontSize: '1rem', margin: 0, fontWeight: '800' }}>{bed.name}</h4>
+                  <h4 style={{ fontSize: '0.9rem', margin: 0, fontWeight: '800' }}>{bed.name}</h4>
                   {bed.comboGroup && (
-                    <span style={{ fontSize: '0.65rem', background: 'var(--warning)', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 'bold' }}>COMBO</span>
+                    <span style={{ fontSize: '0.6rem', background: 'var(--warning)', color: 'white', padding: '0.1rem 0.3rem', borderRadius: '4px', fontWeight: 'bold' }}>COMBO</span>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', color: getStatusColor(bed.computed_status), background: `${getStatusColor(bed.computed_status)}15`, padding: '0.25rem 0.5rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
-                    {bed.computed_status === 'available' ? 'Trống' : (bed.computed_status === 'occupied' ? 'Có khách' : 'Vệ sinh')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', color: getStatusColor(bed.computed_status), background: `${getStatusColor(bed.computed_status)}15`, padding: '0.2rem 0.4rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
+                    {bed.computed_status === 'available' ? 'Trống' : (bed.computed_status === 'occupied' ? 'Khách' : 'Dọn')}
                   </div>
                   {(profile?.role === 'shop_admin' || profile?.role === 'super_admin') && bed.computed_status === 'available' && !isMultiSelectMode && (
                     <button 
@@ -610,47 +610,47 @@ const Beds = () => {
                 const isOvertime = remainingMinutes < 0;
 
                 return (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '0.8rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-light)' }}>Khách:</span> <strong style={{ marginLeft: '0.5rem', textAlign: 'right' }}>{customerName}</strong>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-light)' }}>Khách:</span> <strong style={{ marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{customerName}</strong>
                   </div>
                   
                   {isCombo ? (
-                    <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.4rem', marginBottom: '0.5rem' }}>
                       {bed.sessions.map((sess: any) => (
-                        <div key={sess.id} style={{ marginBottom: '0.4rem', fontSize: '0.8rem' }}>
+                        <div key={sess.id} style={{ marginBottom: '0.3rem', fontSize: '0.75rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <strong style={{ color: 'var(--primary)' }}>{sess.services?.name}</strong>
+                            <strong style={{ color: 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sess.services?.name}</strong>
                           </div>
-                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>KTV: {sess.staffs?.full_name}</div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>KTV: {sess.staffs?.full_name}</div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <>
-                      <div style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-light)' }}>DV:</span> <strong style={{ color: 'var(--primary)', marginLeft: '0.5rem', textAlign: 'right' }}>{bed.sessions[0].services?.name}</strong>
+                      <div style={{ fontSize: '0.75rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-light)' }}>DV:</span> <strong style={{ color: 'var(--primary)', marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{bed.sessions[0].services?.name}</strong>
                       </div>
-                      <div style={{ fontSize: '0.8rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-light)' }}>KTV:</span> <strong style={{ marginLeft: '0.5rem', textAlign: 'right' }}>{bed.sessions[0].staffs?.full_name}</strong>
+                      <div style={{ fontSize: '0.75rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-light)' }}>KTV:</span> <strong style={{ marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bed.sessions[0].staffs?.full_name}</strong>
                       </div>
                     </>
                   )}
                   
-                  <div style={{ background: isOvertime ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', padding: '0.5rem', borderRadius: '0.5rem', marginBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                  <div style={{ background: isOvertime ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', padding: '0.4rem', borderRadius: '0.4rem', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '0.2rem' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Dự kiến: {expectedMinutes}p</span>
                       <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>Đã làm: {elapsedMinutes}p</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: isOvertime ? 'var(--danger)' : 'var(--warning)', fontWeight: '700', fontSize: '0.9rem' }}>
-                      <Clock size={14} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: isOvertime ? 'var(--danger)' : 'var(--warning)', fontWeight: '700', fontSize: '0.8rem' }}>
+                      <Clock size={12} />
                       {isOvertime ? `Quá giờ: +${Math.abs(remainingMinutes)}p` : `Còn: ${remainingMinutes}p`}
                     </div>
                   </div>
                   
                   <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
                     {!isMultiSelectMode && (
-                      <button onClick={(e) => { e.stopPropagation(); openCheckout(bed); }} className={`btn ${isPackage ? 'btn' : 'btn-primary'}`} style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', width: '100%', background: isPackage ? 'var(--success)' : (isCombo ? 'var(--warning)' : 'var(--primary)'), color: 'white', border: 'none', minHeight: '36px', boxShadow: isPackage ? '0 0 10px rgba(16, 185, 129, 0.4)' : (isCombo ? '0 0 10px rgba(245, 158, 11, 0.4)' : '0 0 10px rgba(109, 40, 217, 0.4)') }}>
+                      <button onClick={(e) => { e.stopPropagation(); openCheckout(bed); }} className={`btn ${isPackage ? 'btn' : 'btn-primary'}`} style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', width: '100%', background: isPackage ? 'var(--success)' : (isCombo ? 'var(--warning)' : 'var(--primary)'), color: 'white', border: 'none', minHeight: '30px', boxShadow: isPackage ? '0 0 10px rgba(16, 185, 129, 0.4)' : (isCombo ? '0 0 10px rgba(245, 158, 11, 0.4)' : '0 0 10px rgba(109, 40, 217, 0.4)') }}>
                         {isPackage ? 'TRỪ BUỔI' : (isCombo ? 'THANH TOÁN COMBO' : 'TÍNH TIỀN')}
                       </button>
                     )}
