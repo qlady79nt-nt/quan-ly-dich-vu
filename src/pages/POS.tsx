@@ -179,8 +179,22 @@ const POS = () => {
       error: svc.error
     });
 
-    setServices(svc.data || []);
-    setGroups(grps.data || []);
+    const rawServices = svc.data || [];
+    const groupsList = grps.data || [];
+    
+    rawServices.sort((a, b) => {
+      const idxA = groupsList.findIndex(g => g.id === a.service_group_id);
+      const idxB = groupsList.findIndex(g => g.id === b.service_group_id);
+      
+      const effectiveIdxA = idxA === -1 ? 9999 : idxA;
+      const effectiveIdxB = idxB === -1 ? 9999 : idxB;
+      
+      if (effectiveIdxA !== effectiveIdxB) return effectiveIdxA - effectiveIdxB;
+      return a.name.localeCompare(b.name);
+    });
+
+    setServices(rawServices);
+    setGroups(groupsList);
     setPackages(pkg.data || []);
     
     const staffData = stf.data || [];
