@@ -210,22 +210,26 @@ const Reports = () => {
           .lte('created_at', end)
           .eq('status', 'completed'),
         supabase.from('services')
-          .select('id, name')
+          .select('id, name, duration')
           .eq('shop_id', shopId)
       ]);
       
       const sessData = sessRes.data || [];
       const servicesData = servicesRes.data || [];
       
-      const serviceMap: Record<string, string> = {};
+      const serviceMap: Record<string, any> = {};
       servicesData.forEach(s => {
-        serviceMap[s.id] = s.name;
+        serviceMap[s.id] = s;
       });
       
-      const sessionsWithNames = sessData.map(s => ({
-        ...s,
-        service_name: serviceMap[s.service_id] || 'Dịch vụ lẻ / Không xác định'
-      }));
+      const sessionsWithNames = sessData.map(s => {
+        const svc = serviceMap[s.service_id];
+        return {
+          ...s,
+          service_name: svc?.name || 'Dịch vụ lẻ / Không xác định',
+          service_duration: svc?.duration || 0
+        };
+      });
       
       setSessionsData(sessionsWithNames);
 
@@ -1322,6 +1326,7 @@ const Reports = () => {
                 <tr>
                   <th style={{ textAlign: 'left' }}>Dịch vụ</th>
                   <th style={{ textAlign: 'right' }}>Số cuốc</th>
+                  <th style={{ textAlign: 'right' }}>Tổng phút</th>
                 </tr>
               </thead>
               <tbody>
@@ -1331,16 +1336,23 @@ const Reports = () => {
                     : sessionsData;
                     
                   if (filteredSessions.length === 0) {
-                    return <tr><td colSpan={2} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
+                    return <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
                   }
                   
-                  const countMap: Record<string, number> = {};
+                  const statsMap: Record<string, { count: number, totalDuration: number }> = {};
                   filteredSessions.forEach(s => {
                     const name = s.service_name || 'Dịch vụ lẻ / Không xác định';
-                    countMap[name] = (countMap[name] || 0) + 1;
+                    let dur = s.service_duration || 0;
+                    if (dur === 0) {
+                      const m = name.match(/(\d+)\s*(?:phút|phut|p\b)/i);
+                      if (m) dur = parseInt(m[1], 10);
+                    }
+                    if (!statsMap[name]) statsMap[name] = { count: 0, totalDuration: 0 };
+                    statsMap[name].count += 1;
+                    statsMap[name].totalDuration += dur;
                   });
                   
-                  const sortedEntries = Object.entries(countMap).sort((a, b) => {
+                  const sortedEntries = Object.entries(statsMap).sort((a, b) => {
                     const getMin = (str: string) => {
                       // Bắt các định dạng: "30 phút", "30 phut", "30p", "30 p"
                       const m = str.match(/(\d+)\s*(?:phút|phut|p\b)/i);
@@ -1358,10 +1370,11 @@ const Reports = () => {
                     return a[0].localeCompare(b[0], 'vi', { numeric: true });
                   });
                   
-                  return sortedEntries.map(([name, count]) => (
+                  return sortedEntries.map(([name, stats]) => (
                     <tr key={name}>
                       <td style={{ fontWeight: '600' }}>{name}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>{count}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>{stats.count}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '600', color: 'var(--secondary)' }}>{stats.totalDuration > 0 ? `${stats.totalDuration} phút` : '-'}</td>
                     </tr>
                   ));
                 })()}
