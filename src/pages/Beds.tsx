@@ -612,7 +612,7 @@ const Beds = () => {
                 return (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-main)', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '0.75rem', marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-light)' }}>Khách:</span> <strong style={{ marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{customerName}</strong>
+                    <span style={{ color: 'var(--text-light)', flexShrink: 0 }}>Khách:</span> <strong style={{ marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{customerName}</strong>
                   </div>
                   
                   {isCombo ? (
@@ -620,7 +620,7 @@ const Beds = () => {
                       {bed.sessions.map((sess: any) => (
                         <div key={sess.id} style={{ marginBottom: '0.3rem', fontSize: '0.75rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <strong style={{ color: 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sess.services?.name}</strong>
+                            <strong style={{ color: 'var(--primary)', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{sess.services?.name}</strong>
                           </div>
                           <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>KTV: {sess.staffs?.full_name}</div>
                         </div>
@@ -629,10 +629,10 @@ const Beds = () => {
                   ) : (
                     <>
                       <div style={{ fontSize: '0.75rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-light)' }}>DV:</span> <strong style={{ color: 'var(--primary)', marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{bed.sessions[0].services?.name}</strong>
+                        <span style={{ color: 'var(--text-light)', flexShrink: 0 }}>DV:</span> <strong style={{ color: 'var(--primary)', marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{bed.sessions[0].services?.name}</strong>
                       </div>
                       <div style={{ fontSize: '0.75rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-light)' }}>KTV:</span> <strong style={{ marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bed.sessions[0].staffs?.full_name}</strong>
+                        <span style={{ color: 'var(--text-light)', flexShrink: 0 }}>KTV:</span> <strong style={{ marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{bed.sessions[0].staffs?.full_name}</strong>
                       </div>
                     </>
                   )}

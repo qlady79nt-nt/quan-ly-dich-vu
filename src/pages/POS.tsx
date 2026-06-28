@@ -685,8 +685,8 @@ const POS = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '0.25rem' }}>
                   {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => (
                     <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.5rem', borderRadius: '8px', minWidth: 0 }}>
-                      <div style={{ overflow: 'hidden', minWidth: 0, flex: 1, paddingRight: '0.25rem' }}>
-                        <h4 style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', marginBottom: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</h4>
+                      <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem' }}>
+                        <h4 style={{ fontSize: isMobile ? (s.name.length > 20 ? '0.65rem' : '0.75rem') : (s.name.length > 20 ? '0.75rem' : '0.85rem'), marginBottom: '0.1rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{s.name}</h4>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <span style={{ color: 'var(--primary)', fontWeight: '700', fontSize: isMobile ? '0.75rem' : '0.85rem' }}>{Number(s.price).toLocaleString()}đ</span>
                           {s.duration_minutes ? <span style={{ fontSize: '0.65rem', color: 'var(--text-light)' }}>• {s.duration_minutes}p</span> : null}
@@ -763,8 +763,8 @@ const POS = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '0.25rem' }}>
                   {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => (
                     <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px dashed var(--warning)', padding: '0.4rem 0.5rem', borderRadius: '8px', minWidth: 0 }}>
-                      <div style={{ overflow: 'hidden', minWidth: 0, flex: 1, paddingRight: '0.25rem' }}>
-                        <h4 style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', marginBottom: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</h4>
+                      <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem' }}>
+                        <h4 style={{ fontSize: isMobile ? (s.name.length > 20 ? '0.65rem' : '0.75rem') : (s.name.length > 20 ? '0.75rem' : '0.85rem'), marginBottom: '0.1rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{s.name}</h4>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <span style={{ color: 'var(--primary)', fontWeight: '700', fontSize: isMobile ? '0.75rem' : '0.85rem' }}>{Number(s.price).toLocaleString()}đ</span>
                           {s.duration_minutes ? <span style={{ fontSize: '0.65rem', color: 'var(--text-light)' }}>• {s.duration_minutes}p</span> : null}
