@@ -192,14 +192,32 @@ const Reports = () => {
       const staffList = allStaffs || [];
       setAllStaffsList(staffList);
 
-      const { data: sessData } = await supabase.from('service_sessions')
-        .select('*, services(name)')
-        .eq('shop_id', shopId)
-        .gte('created_at', start)
-        .lte('created_at', end)
-        .eq('status', 'completed');
+      const [sessRes, servicesRes] = await Promise.all([
+        supabase.from('service_sessions')
+          .select('*')
+          .eq('shop_id', shopId)
+          .gte('created_at', start)
+          .lte('created_at', end)
+          .eq('status', 'completed'),
+        supabase.from('services')
+          .select('id, name')
+          .eq('shop_id', shopId)
+      ]);
       
-      setSessionsData(sessData || []);
+      const sessData = sessRes.data || [];
+      const servicesData = servicesRes.data || [];
+      
+      const serviceMap: Record<string, string> = {};
+      servicesData.forEach(s => {
+        serviceMap[s.id] = s.name;
+      });
+      
+      const sessionsWithNames = sessData.map(s => ({
+        ...s,
+        service_name: serviceMap[s.service_id] || 'Dịch vụ lẻ / Không xác định'
+      }));
+      
+      setSessionsData(sessionsWithNames);
 
 
 
@@ -1308,7 +1326,7 @@ const Reports = () => {
                   
                   const countMap: Record<string, number> = {};
                   filteredSessions.forEach(s => {
-                    const name = s.services?.name || 'Dịch vụ lẻ / Không xác định';
+                    const name = s.service_name || 'Dịch vụ lẻ / Không xác định';
                     countMap[name] = (countMap[name] || 0) + 1;
                   });
                   
