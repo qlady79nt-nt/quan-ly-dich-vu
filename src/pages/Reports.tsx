@@ -1341,7 +1341,20 @@ const Reports = () => {
                   });
                   
                   const sortedEntries = Object.entries(countMap).sort((a, b) => {
-                    // Sắp xếp theo tên A-Z, và tự động hiểu các số 30, 60, 90 để xếp tăng dần
+                    const getMin = (str: string) => {
+                      // Bắt các định dạng: "30 phút", "30 phut", "30p", "30 p"
+                      const m = str.match(/(\d+)\s*(?:phút|phut|p\b)/i);
+                      return m ? parseInt(m[1], 10) : 9999;
+                    };
+                    const minA = getMin(a[0]);
+                    const minB = getMin(b[0]);
+                    
+                    // Ưu tiên xếp theo số phút trước (30 < 60 < 90)
+                    if (minA !== minB) {
+                      return minA - minB;
+                    }
+                    
+                    // Nếu số phút bằng nhau (hoặc cùng không có phút), xếp theo tên A-Z
                     return a[0].localeCompare(b[0], 'vi', { numeric: true });
                   });
                   
