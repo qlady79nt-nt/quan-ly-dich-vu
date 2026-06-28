@@ -187,9 +187,19 @@ const Reports = () => {
         }
       }
 
-      // Lấy toàn bộ danh sách nhân viên của shop để map đủ cả những người không có commission_logs
-      const { data: allStaffs } = await supabase.from('staffs').select('id, full_name').eq('shop_id', shopId);
+      const { data: allStaffs } = await supabase.from('staffs').select('id, full_name, position').eq('shop_id', shopId);
       const staffList = allStaffs || [];
+      
+      // Ưu tiên KTV lên trước
+      staffList.sort((a, b) => {
+        const isATech = (a.position === 'technician' || a.position === 'staff') ? 1 : 0;
+        const isBTech = (b.position === 'technician' || b.position === 'staff') ? 1 : 0;
+        if (isATech !== isBTech) {
+          return isBTech - isATech;
+        }
+        return (a.full_name || '').localeCompare(b.full_name || '');
+      });
+      
       setAllStaffsList(staffList);
 
       const [sessRes, servicesRes] = await Promise.all([
