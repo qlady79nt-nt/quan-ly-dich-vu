@@ -202,7 +202,7 @@ const Reports = () => {
       
       setAllStaffsList(staffList);
 
-      const [sessRes, servicesRes] = await Promise.all([
+      const [sessRes, servicesRes, groupsRes] = await Promise.all([
         supabase.from('service_sessions')
           .select('*')
           .eq('shop_id', shopId)
@@ -210,12 +210,21 @@ const Reports = () => {
           .lte('created_at', end)
           .eq('status', 'completed'),
         supabase.from('services')
-          .select('id, name, duration_minutes')
+          .select('id, name, duration_minutes, service_group_id')
+          .eq('shop_id', shopId),
+        supabase.from('service_groups')
+          .select('id, name')
           .eq('shop_id', shopId)
       ]);
       
       const sessData = sessRes.data || [];
       const servicesData = servicesRes.data || [];
+      const groupsData = groupsRes.data || [];
+      
+      const groupMap: Record<string, string> = {};
+      groupsData.forEach(g => {
+        groupMap[g.id] = g.name;
+      });
       
       const serviceMap: Record<string, any> = {};
       servicesData.forEach(s => {
@@ -224,10 +233,15 @@ const Reports = () => {
       
       const sessionsWithNames = sessData.map(s => {
         const svc = serviceMap[s.service_id];
+        const groupName = svc?.service_group_id ? groupMap[svc.service_group_id] : '';
+        const lowerGName = groupName?.toLowerCase() || '';
+        const lowerSName = svc?.name?.toLowerCase() || '';
+        const isMassage = lowerGName.includes('massage') || lowerSName.includes('massage') || lowerSName.startsWith('ms ');
         return {
           ...s,
           service_name: svc?.name || 'Dịch vụ lẻ / Không xác định',
-          service_duration: svc?.duration_minutes || 0
+          service_duration: svc?.duration_minutes || 0,
+          isMassage
         };
       });
       
@@ -1333,8 +1347,8 @@ const Reports = () => {
               <tbody>
                 {(() => {
                   const filteredSessions = reportStaffId 
-                    ? sessionsData.filter(s => s.staff_id === reportStaffId)
-                    : sessionsData;
+                    ? sessionsData.filter(s => s.staff_id === reportStaffId && s.isMassage)
+                    : sessionsData.filter(s => s.isMassage);
                     
                   if (filteredSessions.length === 0) {
                     return <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
