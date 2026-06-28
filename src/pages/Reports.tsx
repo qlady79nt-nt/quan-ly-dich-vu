@@ -1340,7 +1340,16 @@ const Reports = () => {
                     countMap[name] = (countMap[name] || 0) + 1;
                   });
                   
-                  const sortedEntries = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+                  const sortedEntries = Object.entries(countMap).sort((a, b) => {
+                    const getMin = (str: string) => {
+                      const m = str.match(/(\d+)\s*phút/i);
+                      return m ? parseInt(m[1], 10) : 9999;
+                    };
+                    const minA = getMin(a[0]);
+                    const minB = getMin(b[0]);
+                    if (minA !== minB) return minA - minB;
+                    return a[0].localeCompare(b[0]);
+                  });
                   
                   return sortedEntries.map(([name, count]) => (
                     <tr key={name}>
