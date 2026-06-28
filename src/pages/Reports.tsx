@@ -210,26 +210,22 @@ const Reports = () => {
           .lte('created_at', end)
           .eq('status', 'completed'),
         supabase.from('services')
-          .select('id, name, duration')
+          .select('id, name')
           .eq('shop_id', shopId)
       ]);
       
       const sessData = sessRes.data || [];
       const servicesData = servicesRes.data || [];
       
-      const serviceMap: Record<string, any> = {};
+      const serviceMap: Record<string, string> = {};
       servicesData.forEach(s => {
-        serviceMap[s.id] = s;
+        serviceMap[s.id] = s.name;
       });
       
-      const sessionsWithNames = sessData.map(s => {
-        const svc = serviceMap[s.service_id];
-        return {
-          ...s,
-          service_name: svc?.name || 'Dịch vụ lẻ / Không xác định',
-          service_duration: svc?.duration || 0
-        };
-      });
+      const sessionsWithNames = sessData.map(s => ({
+        ...s,
+        service_name: serviceMap[s.service_id] || 'Dịch vụ lẻ / Không xác định'
+      }));
       
       setSessionsData(sessionsWithNames);
 
@@ -1325,7 +1321,6 @@ const Reports = () => {
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left' }}>Dịch vụ</th>
-                  <th style={{ textAlign: 'right' }}>Thời gian (phút)</th>
                   <th style={{ textAlign: 'right' }}>Số cuốc</th>
                 </tr>
               </thead>
@@ -1336,22 +1331,16 @@ const Reports = () => {
                     : sessionsData;
                     
                   if (filteredSessions.length === 0) {
-                    return <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
+                    return <tr><td colSpan={2} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
                   }
                   
-                  const statsMap: Record<string, { count: number, duration: number }> = {};
+                  const countMap: Record<string, number> = {};
                   filteredSessions.forEach(s => {
                     const name = s.service_name || 'Dịch vụ lẻ / Không xác định';
-                    let dur = s.service_duration || 0;
-                    if (dur === 0) {
-                      const m = name.match(/(\d+)\s*(?:phút|phut|p\b)/i);
-                      if (m) dur = parseInt(m[1], 10);
-                    }
-                    if (!statsMap[name]) statsMap[name] = { count: 0, duration: dur };
-                    statsMap[name].count += 1;
+                    countMap[name] = (countMap[name] || 0) + 1;
                   });
                   
-                  const sortedEntries = Object.entries(statsMap).sort((a, b) => {
+                  const sortedEntries = Object.entries(countMap).sort((a, b) => {
                     const getMin = (str: string) => {
                       // Bắt các định dạng: "30 phút", "30 phut", "30p", "30 p"
                       const m = str.match(/(\d+)\s*(?:phút|phut|p\b)/i);
@@ -1369,11 +1358,10 @@ const Reports = () => {
                     return a[0].localeCompare(b[0], 'vi', { numeric: true });
                   });
                   
-                  return sortedEntries.map(([name, stats]) => (
+                  return sortedEntries.map(([name, count]) => (
                     <tr key={name}>
                       <td style={{ fontWeight: '600' }}>{name}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '600', color: 'var(--secondary)' }}>{stats.duration > 0 ? stats.duration : '-'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>{stats.count}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>{count}</td>
                     </tr>
                   ));
                 })()}
