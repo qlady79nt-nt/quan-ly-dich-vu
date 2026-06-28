@@ -38,7 +38,10 @@ const Reports = () => {
   const isStaff = profile?.role === 'staff';
   
   // Mặc định luôn là revenue, Staff cũng xem revenue (KPI ảo/thật) nhưng bị ẩn các tab chuyển
-  const [view, setView] = useState<'revenue' | 'commission' | 'staff'>('revenue');
+  const [view, setView] = useState<'revenue' | 'commission' | 'staff' | 'service_sessions'>('revenue');
+  const [sessionsData, setSessionsData] = useState<any[]>([]);
+  const [allStaffsList, setAllStaffsList] = useState<any[]>([]);
+  const [reportStaffId, setReportStaffId] = useState<string>('');
   const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'combo' | 'package_sale' | 'package_session'>('all');
   const [revenueDisplayCount, setRevenueDisplayCount] = useState(10);
   const [detailModal, setDetailModal] = useState<any>(null);
@@ -187,6 +190,16 @@ const Reports = () => {
       // Lấy toàn bộ danh sách nhân viên của shop để map đủ cả những người không có commission_logs
       const { data: allStaffs } = await supabase.from('staffs').select('id, full_name').eq('shop_id', shopId);
       const staffList = allStaffs || [];
+      setAllStaffsList(staffList);
+
+      const { data: sessData } = await supabase.from('service_sessions')
+        .select('*, services(name)')
+        .eq('shop_id', shopId)
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .eq('status', 'completed');
+      
+      setSessionsData(sessData || []);
 
 
 
@@ -693,6 +706,9 @@ const Reports = () => {
           </button>
           <button onClick={() => setView('staff')} className="btn mobile-tab" style={{ background: view === 'staff' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'staff' ? 'white' : 'inherit' }}>
             <Briefcase size={18} /> Báo cáo nhân viên
+          </button>
+          <button onClick={() => setView('service_sessions')} className="btn mobile-tab" style={{ background: view === 'service_sessions' ? 'var(--primary)' : 'var(--bg-main)', color: view === 'service_sessions' ? 'white' : 'inherit' }}>
+            <FileText size={18} /> Chi tiết cuốc
           </button>
         </div>
       )}
@@ -1258,6 +1274,58 @@ const Reports = () => {
           </div>
         </div>
       , document.body)}
+
+      {view === 'service_sessions' && (
+        <div className="premium-card animate-fade" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Chi tiết cuốc dịch vụ đã thực hiện</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Kỹ thuật viên:</span>
+              <select className="form-select" value={reportStaffId} onChange={e => setReportStaffId(e.target.value)}>
+                <option value="">-- Toàn bộ cửa hàng --</option>
+                {allStaffsList.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+              </select>
+            </div>
+          </div>
+          
+          <div className="table-responsive">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Dịch vụ</th>
+                  <th style={{ textAlign: 'right' }}>Số cuốc</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const filteredSessions = reportStaffId 
+                    ? sessionsData.filter(s => s.staff_id === reportStaffId)
+                    : sessionsData;
+                    
+                  if (filteredSessions.length === 0) {
+                    return <tr><td colSpan={2} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
+                  }
+                  
+                  const countMap: Record<string, number> = {};
+                  filteredSessions.forEach(s => {
+                    const name = s.services?.name || 'Dịch vụ lẻ / Không xác định';
+                    countMap[name] = (countMap[name] || 0) + 1;
+                  });
+                  
+                  const sortedEntries = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+                  
+                  return sortedEntries.map(([name, count]) => (
+                    <tr key={name}>
+                      <td style={{ fontWeight: '600' }}>{name}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>{count}</td>
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {showReconciliation && createPortal(
         <>
