@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Loader2, BedDouble, CheckCircle2, Clock, X, Printer, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -31,14 +31,33 @@ const Beds = () => {
   const [selectedBeds, setSelectedBeds] = useState<string[]>([]);
   const [multiCheckoutSession, setMultiCheckoutSession] = useState<any[] | null>(null);
 
+  const timeOffsetRef = useRef<number>(0);
+
   useEffect(() => {
     if (shopId) {
       fetchBedsAndSessions();
     } else if (profile?.role === 'super_admin') {
       setLoading(false);
     }
-    // Cập nhật biến now mỗi giây để đồng hồ nhảy phút chính xác và mượt mà hơn
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    
+    const fetchTimeOffset = async () => {
+      try {
+        const res = await fetch('https://worldtimeapi.org/api/timezone/Asia/Ho_Chi_Minh');
+        const data = await res.json();
+        if (data && data.unixtime) {
+          const trueTimeMs = data.unixtime * 1000;
+          const localTimeMs = Date.now();
+          timeOffsetRef.current = trueTimeMs - localTimeMs;
+        }
+      } catch (err) {
+        console.error('Không thể đồng bộ thời gian chuẩn:', err);
+      }
+    };
+    fetchTimeOffset();
+
+    const timer = setInterval(() => {
+      setNow(new Date(Date.now() + timeOffsetRef.current));
+    }, 1000);
 
     const handleAfterPrint = () => {
       setIsPrinting(false);
@@ -604,8 +623,14 @@ const Beds = () => {
                 const isPackage = !isCombo && !!bed.sessions[0].customer_package_id;
                 
                 // For timer, just use the first session's time
+                const parseStartTime = (timeStr: string) => {
+                  if (timeStr.includes('Z') || timeStr.includes('+')) return new Date(timeStr).getTime();
+                  return new Date(timeStr + "+07:00").getTime(); // Fallback to VN time
+                };
+                
                 const expectedMinutes = isCombo ? Math.max(...bed.sessions.map((s:any) => s.services?.duration_minutes || 60)) : (bed.sessions[0].services?.duration_minutes || 60);
-                const elapsedMinutes = bed.sessions[0].start_time ? Math.floor((now.getTime() - new Date(bed.sessions[0].start_time).getTime()) / 60000) : 0;
+                const startTimeMs = bed.sessions[0].start_time ? parseStartTime(bed.sessions[0].start_time) : now.getTime();
+                const elapsedMinutes = Math.floor((now.getTime() - startTimeMs) / 60000);
                 const remainingMinutes = expectedMinutes - elapsedMinutes;
                 const isOvertime = remainingMinutes < 0;
 
