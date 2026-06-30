@@ -130,10 +130,16 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({
                 <span>{item.price === '-' ? '-' : Number(item.price).toLocaleString()}</span>
               </div>
               {item.discount > 0 && (
-                <div className="receipt-item" style={{ fontSize: '11px', fontStyle: 'italic', marginTop: '-2px', color: '#555' }}>
-                  <span style={{ maxWidth: '60%' }}>↳ Giảm giá:</span>
-                  <span>-{Number(item.discount).toLocaleString()}</span>
-                </div>
+                <>
+                  <div className="receipt-item" style={{ fontSize: '11px', fontStyle: 'italic', marginTop: '-2px', color: '#555' }}>
+                    <span style={{ maxWidth: '60%' }}>↳ Giảm giá:</span>
+                    <span>-{Number(item.discount).toLocaleString()}</span>
+                  </div>
+                  <div className="receipt-item" style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '2px' }}>
+                    <span style={{ maxWidth: '60%' }}>↳ Còn lại:</span>
+                    <span>{Number(item.price - item.discount).toLocaleString()}</span>
+                  </div>
+                </>
               )}
             </div>
           ))}

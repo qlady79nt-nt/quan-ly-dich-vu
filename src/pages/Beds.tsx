@@ -621,6 +621,7 @@ const Beds = () => {
                         <div key={sess.id} style={{ marginBottom: '0.3rem', fontSize: '0.75rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <strong style={{ color: 'var(--primary)', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{sess.services?.name}</strong>
+                            <strong style={{ color: '#ef4444' }}>{Number(sess.service_price || sess.services?.price || 0).toLocaleString()}đ</strong>
                           </div>
                           <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>KTV: {sess.staffs?.full_name}</div>
                         </div>
@@ -628,8 +629,12 @@ const Beds = () => {
                     </div>
                   ) : (
                     <>
-                      <div style={{ fontSize: '0.75rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-light)', flexShrink: 0 }}>DV:</span> <strong style={{ color: 'var(--primary)', marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{bed.sessions[0].services?.name}</strong>
+                      <div style={{ fontSize: '0.75rem', marginBottom: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <span style={{ color: 'var(--text-light)', flexShrink: 0 }}>DV:</span> 
+                        <div style={{ textAlign: 'right' }}>
+                          <strong style={{ color: 'var(--primary)', marginLeft: '0.4rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2', display: 'block' }}>{bed.sessions[0].services?.name}</strong>
+                          <strong style={{ color: '#ef4444' }}>{Number(bed.sessions[0].service_price || bed.sessions[0].services?.price || 0).toLocaleString()}đ</strong>
+                        </div>
                       </div>
                       <div style={{ fontSize: '0.75rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: 'var(--text-light)', flexShrink: 0 }}>KTV:</span> <strong style={{ marginLeft: '0.4rem', textAlign: 'right', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>{bed.sessions[0].staffs?.full_name}</strong>
