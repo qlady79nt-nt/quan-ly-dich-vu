@@ -713,12 +713,10 @@ const POS = () => {
                     const color = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--primary)';
                     return (
                     <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.5rem', borderRadius: '8px', minWidth: 0, borderLeft: `4px solid ${color}` }}>
-                      <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem' }}>
-                        <h4 style={{ fontSize: isMobile ? (s.name.length > 20 ? '0.65rem' : '0.75rem') : (s.name.length > 20 ? '0.75rem' : '0.85rem'), marginBottom: '0.1rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2', color: color }}>{s.name}</h4>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <span style={{ color: color, fontWeight: '700', fontSize: isMobile ? '0.75rem' : '0.85rem' }}>{Number(s.price).toLocaleString()}đ</span>
-                          {s.duration_minutes ? <span style={{ fontSize: '0.65rem', color: 'var(--text-light)' }}>• {s.duration_minutes}p</span> : null}
-                        </div>
+                      <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <h4 style={{ fontSize: isMobile ? (s.name.length > 20 ? '0.7rem' : '0.8rem') : (s.name.length > 20 ? '0.8rem' : '0.9rem'), margin: 0, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2', color: color, fontWeight: '700' }}>{s.name}</h4>
+                        {s.duration_minutes ? <div style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '600' }}>⏱ {s.duration_minutes} phút</div> : null}
+                        <div style={{ color: '#ef4444', fontWeight: '800', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>💰 {Number(s.price).toLocaleString()}đ</div>
                       </div>
                       <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Plus size={14} color={color} />
@@ -794,12 +792,10 @@ const POS = () => {
                     const color = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--warning)';
                     return (
                     <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px dashed ${color}`, padding: '0.4rem 0.5rem', borderRadius: '8px', minWidth: 0, borderLeft: `4px solid ${color}` }}>
-                      <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem' }}>
-                        <h4 style={{ fontSize: isMobile ? (s.name.length > 20 ? '0.65rem' : '0.75rem') : (s.name.length > 20 ? '0.75rem' : '0.85rem'), marginBottom: '0.1rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2', color: color }}>{s.name}</h4>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <span style={{ color: color, fontWeight: '700', fontSize: isMobile ? '0.75rem' : '0.85rem' }}>{Number(s.price).toLocaleString()}đ</span>
-                          {s.duration_minutes ? <span style={{ fontSize: '0.65rem', color: 'var(--text-light)' }}>• {s.duration_minutes}p</span> : null}
-                        </div>
+                      <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <h4 style={{ fontSize: isMobile ? (s.name.length > 20 ? '0.7rem' : '0.8rem') : (s.name.length > 20 ? '0.8rem' : '0.9rem'), margin: 0, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2', color: color, fontWeight: '700' }}>{s.name}</h4>
+                        {s.duration_minutes ? <div style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '600' }}>⏱ {s.duration_minutes} phút</div> : null}
+                        <div style={{ color: '#ef4444', fontWeight: '800', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>💰 {Number(s.price).toLocaleString()}đ</div>
                       </div>
                       <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Plus size={14} color={color} />
