@@ -1106,7 +1106,7 @@ const POS = () => {
             profile={profile}
             invoice={completedInvoice}
             config={{
-              shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
+              shop_name: profile?.shop?.name || 'SPA & POS',
               paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
               footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
             }}

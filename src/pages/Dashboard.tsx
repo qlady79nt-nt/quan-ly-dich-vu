@@ -1,10 +1,28 @@
-import { Users, Scissors, Package, ShoppingCart, ArrowRight, LayoutGrid } from 'lucide-react';
+import { Users, Scissors, Package, ShoppingCart, ArrowRight, LayoutGrid, Edit2, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 const Dashboard = () => {
   const { profile } = useAuth();
   const isSuperAdmin = profile?.role === 'super_admin';
+  const [shopName, setShopName] = useState(profile?.shop?.name || '');
+  const [isEditingShop, setIsEditingShop] = useState(false);
+  const [savingShop, setSavingShop] = useState(false);
+
+  const handleUpdateShopName = async () => {
+    if (!profile?.shop_id || !shopName.trim()) return;
+    setSavingShop(true);
+    const { error } = await supabase.from('shops').update({ name: shopName.trim() }).eq('id', profile.shop_id);
+    if (!error) {
+      alert('Cập nhật tên cửa hàng thành công! Vui lòng F5 tải lại trang để thông tin mới hiển thị trên hóa đơn.');
+      setIsEditingShop(false);
+    } else {
+      alert('Lỗi: ' + error.message);
+    }
+    setSavingShop(false);
+  };
 
   const quickActions = isSuperAdmin ? [
     { label: 'Danh sách Cửa hàng', icon: LayoutGrid, path: '/app/shops', color: 'var(--primary)' }
@@ -39,6 +57,44 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-2">
+        {!isSuperAdmin && (
+          <div className="premium-card" style={{ gridColumn: 'span 2', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>Cấu hình Cửa hàng</h3>
+              {!isEditingShop ? (
+                <button onClick={() => setIsEditingShop(true)} className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}>
+                  <Edit2 size={16} /> Sửa tên Shop
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => { setIsEditingShop(false); setShopName(profile?.shop?.name || ''); }} className="btn" style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}>Hủy</button>
+                  <button onClick={handleUpdateShopName} disabled={savingShop} className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem' }}>
+                    <Save size={16} /> {savingShop ? 'Đang lưu...' : 'Lưu lại'}
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {isEditingShop ? (
+              <div>
+                <label className="form-label">Tên cửa hàng (Sẽ in trực tiếp trên Hóa đơn)</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={shopName} 
+                  onChange={(e) => setShopName(e.target.value)} 
+                  style={{ maxWidth: '400px' }}
+                />
+              </div>
+            ) : (
+              <div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Tên cửa hàng in trên hóa đơn:</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>{profile?.shop?.name || 'Chưa cập nhật'}</div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="premium-card">
           <h3 style={{ marginBottom: '1.5rem' }}>{isSuperAdmin ? 'Lưu ý Quản trị Hệ thống' : 'Lưu ý vận hành'}</h3>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>

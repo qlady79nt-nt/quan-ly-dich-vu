@@ -711,8 +711,8 @@ const Beds = () => {
           <ReceiptTemplate
             invoice={completedInvoice}
             config={{
-              shop_name: 'SPA & POS', // Tương lai lấy từ db: profile.shop_settings.shop_name
-              paper_size: '80mm', // Tương lai lấy từ db: profile.shop_settings.paper_size
+              shop_name: profile?.shop?.name || 'SPA & POS',
+              paper_size: '80mm',
               footer_message: 'Cảm ơn quý khách! Hẹn gặp lại.'
             }}
             printSettings={printSettings}
