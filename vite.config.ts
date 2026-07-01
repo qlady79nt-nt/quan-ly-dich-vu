@@ -10,4 +10,15 @@ export default defineConfig({
       ignored: ['**/.env*', '**/node_modules/**'],
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        }
+      }
+    }
+  }
 })
