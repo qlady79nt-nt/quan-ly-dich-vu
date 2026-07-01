@@ -41,7 +41,15 @@ const Shops = () => {
       .select('*, plans(id, name, price, max_users, max_staffs)')
       .order('created_at', { ascending: false });
 
-    if (!error) setShops(data || []);
+    if (!error) {
+      const sortedData = (data || []).sort((a: any, b: any) => {
+        const priceA = a.plans?.price || 0;
+        const priceB = b.plans?.price || 0;
+        if (priceB !== priceA) return priceB - priceA; // Giá cao xếp trước
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // Cùng giá thì xếp theo thời gian tạo mới nhất
+      });
+      setShops(sortedData);
+    }
     setLoading(false);
   };
 
@@ -125,6 +133,15 @@ const Shops = () => {
     }
   };
 
+  const getPlanBadgeStyle = (plan: any) => {
+    if (!plan) return { background: '#f3f4f6', color: '#6b7280' };
+    const name = plan.name.toLowerCase();
+    if (name.includes('vip') || name.includes('đặc biệt') || plan.price >= 1000000) return { background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }; // Đỏ cho VIP
+    if (name.includes('pro') || name.includes('premium') || plan.price > 500000) return { background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }; // Vàng cam cho Pro
+    if (name.includes('basic') || name.includes('cơ bản') || plan.price > 0) return { background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }; // Xanh dương cho Basic
+    return { background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }; // Xanh lá cho Free
+  };
+
   return (
     <div className="animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -193,7 +210,7 @@ const Shops = () => {
                     )}
                   </td>
                   <td>
-                    <span className="badge" style={{ background: 'rgba(109, 40, 217, 0.1)', color: 'var(--primary)', fontWeight: '600' }}>
+                    <span className="badge" style={{ ...getPlanBadgeStyle(shop.plans), fontWeight: '700' }}>
                       {shop.plans?.name || 'Chưa có gói'}
                     </span>
                   </td>
