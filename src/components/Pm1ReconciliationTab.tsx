@@ -37,15 +37,53 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
       }
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const existing = loadedRecords.find(r => r.date === today);
-    if (existing) {
-      setPm1Revenue(existing.pm1Revenue);
-      setCash(existing.cash);
-      setTransfer(existing.transfer);
-      setActualTip(existing.actualTip);
+    const todayStr = new Date().toISOString().split('T')[0];
+    let oldestDateStr = todayStr;
+
+    if (loadedRecords.length > 0) {
+      const oldestTime = Math.min(...loadedRecords.map(r => new Date(r.date).getTime()));
+      oldestDateStr = new Date(oldestTime).toISOString().split('T')[0];
     } else {
-      fetchDailyTip(today);
+      const d = new Date();
+      d.setDate(1);
+      oldestDateStr = d.toISOString().split('T')[0];
+    }
+
+    const start = new Date(oldestDateStr);
+    const end = new Date(todayStr);
+    let changed = false;
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      if (!loadedRecords.find(r => r.date === dateStr)) {
+        loadedRecords.push({
+          id: `auto-${dateStr}`,
+          date: dateStr,
+          pm1Revenue: '',
+          cash: '',
+          transfer: '',
+          tipCalc: 0,
+          actualTip: '',
+          finalDiff: 0
+        });
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      loadedRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setRecords([...loadedRecords]);
+      localStorage.setItem(`pm1_recon_${shopId}`, JSON.stringify(loadedRecords));
+    }
+
+    const existingToday = loadedRecords.find(r => r.date === todayStr);
+    if (existingToday) {
+      setPm1Revenue(existingToday.pm1Revenue);
+      setCash(existingToday.cash);
+      setTransfer(existingToday.transfer);
+      setActualTip(existingToday.actualTip);
+    } else {
+      fetchDailyTip(todayStr);
     }
   }, [shopId]);
 
@@ -144,13 +182,19 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
     setPm1Revenue(record.pm1Revenue);
     setCash(record.cash);
     setTransfer(record.transfer);
-    setActualTip(record.actualTip);
+    
+    if (record.actualTip === '') {
+      fetchDailyTip(record.date);
+    } else {
+      setActualTip(record.actualTip);
+    }
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div style={{ padding: '1rem', background: 'var(--bg-main)', height: '100%', overflowY: 'auto' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Nhập Đối chiếu PM1</h3>
         <form onSubmit={handleSave}>
           <div className="table-responsive" style={{ overflowX: 'auto', paddingBottom: '1rem', marginBottom: '1rem' }}>
@@ -202,7 +246,7 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
       </div>
 
       {records.length > 0 && (
-        <div style={{ maxWidth: '1000px', margin: '2rem auto 0', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+        <div style={{ maxWidth: '1000px', margin: '2rem auto 0' }}>
           <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Lịch sử đối chiếu PM1</h3>
           <div className="table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
