@@ -38,18 +38,20 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
-    let oldestDateStr = todayStr;
+    
+    // Luôn quét ít nhất từ đầu tháng hiện tại
+    const d = new Date();
+    d.setDate(1);
+    let startLimit = d.getTime();
 
     if (loadedRecords.length > 0) {
       const oldestTime = Math.min(...loadedRecords.map(r => new Date(r.date).getTime()));
-      oldestDateStr = new Date(oldestTime).toISOString().split('T')[0];
-    } else {
-      const d = new Date();
-      d.setDate(1);
-      oldestDateStr = d.toISOString().split('T')[0];
+      if (oldestTime < startLimit) {
+        startLimit = oldestTime;
+      }
     }
 
-    const start = new Date(oldestDateStr);
+    const start = new Date(startLimit);
     const end = new Date(todayStr);
     let changed = false;
 
