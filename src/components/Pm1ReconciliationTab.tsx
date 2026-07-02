@@ -143,7 +143,8 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
               />
             </div>
           </div>
-
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Tip thực tế (điền tay)</label>
               <input 
@@ -155,6 +156,7 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
                 placeholder="Nhập Tip thực tế"
               />
             </div>
+            <div></div>
           </div>
 
           <div style={{ padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
