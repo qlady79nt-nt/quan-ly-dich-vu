@@ -11,7 +11,9 @@ interface Pm1Record {
   pm1Revenue: number;
   cash: number;
   transfer: number;
-  difference: number;
+  tipCalc: number;
+  actualTip: number;
+  finalDiff: number;
 }
 
 const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
@@ -19,6 +21,7 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
   const [pm1Revenue, setPm1Revenue] = useState<number | ''>('');
   const [cash, setCash] = useState<number | ''>('');
   const [transfer, setTransfer] = useState<number | ''>('');
+  const [actualTip, setActualTip] = useState<number | ''>('');
   const [records, setRecords] = useState<Pm1Record[]>([]);
 
   useEffect(() => {
@@ -37,11 +40,12 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
     localStorage.setItem(`pm1_recon_${shopId}`, JSON.stringify(newRecords));
   };
 
-  const currentDiff = (Number(cash) + Number(transfer)) - Number(pm1Revenue);
+  const tipCalc = (Number(cash) + Number(transfer)) - Number(pm1Revenue);
+  const finalDiff = tipCalc - Number(actualTip);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pm1Revenue === '' || cash === '' || transfer === '') {
+    if (pm1Revenue === '' || cash === '' || transfer === '' || actualTip === '') {
       alert('Vui lòng nhập đầy đủ các số liệu!');
       return;
     }
@@ -52,7 +56,9 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
       pm1Revenue: Number(pm1Revenue),
       cash: Number(cash),
       transfer: Number(transfer),
-      difference: currentDiff
+      tipCalc,
+      actualTip: Number(actualTip),
+      finalDiff
     };
 
     const existingIndex = records.findIndex(r => r.date === date);
@@ -73,6 +79,7 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
     setPm1Revenue('');
     setCash('');
     setTransfer('');
+    setActualTip('');
     alert('Đã lưu thành công!');
   };
 
@@ -137,14 +144,33 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
             </div>
           </div>
 
-          <div style={{ padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' }}>
-              <span style={{ fontWeight: '600' }}>Chênh lệch = (Tiền mặt + CK) - Doanh thu PM1:</span>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Tip thực tế (điền tay)</label>
+              <input 
+                type="number" 
+                value={actualTip} 
+                onChange={e => setActualTip(e.target.value ? Number(e.target.value) : '')} 
+                className="form-input" 
+                style={{ width: '100%' }}
+                placeholder="Nhập Tip thực tế"
+              />
+            </div>
+          </div>
+
+          <div style={{ padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: 'var(--text-secondary)' }}>
+              <span>Tip (Tiền mặt + CK - DT PM1):</span>
+              <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>
+                {tipCalc > 0 ? '+' : ''}{tipCalc.toLocaleString()}đ
+              </span>
+            </div>
+            <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' }}>
+              <span style={{ fontWeight: '600' }}>Chênh lệch = Tip - Tip thực tế:</span>
               <span style={{ 
                 fontWeight: '800', 
-                color: currentDiff === 0 ? 'var(--success)' : currentDiff > 0 ? 'var(--warning)' : 'var(--danger)' 
+                color: finalDiff === 0 ? 'var(--success)' : finalDiff > 0 ? 'var(--warning)' : 'var(--danger)' 
               }}>
-                {currentDiff > 0 ? '+' : ''}{currentDiff.toLocaleString()}đ
+                {finalDiff > 0 ? '+' : ''}{finalDiff.toLocaleString()}đ
               </span>
             </div>
           </div>
@@ -159,14 +185,16 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
         <div style={{ maxWidth: '800px', margin: '2rem auto 0', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
           <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Lịch sử đối chiếu PM1</h3>
           <div className="table-responsive">
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '1rem' }}>Ngày</th>
                   <th style={{ padding: '1rem', textAlign: 'right' }}>DT PM1</th>
                   <th style={{ padding: '1rem', textAlign: 'right' }}>Tiền mặt + CK</th>
+                  <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--primary)' }}>Tip</th>
+                  <th style={{ padding: '1rem', textAlign: 'right', color: 'var(--warning)' }}>Tip thực tế</th>
                   <th style={{ padding: '1rem', textAlign: 'right' }}>Chênh lệch</th>
-                  <th style={{ padding: '1rem', width: '50px' }}></th>
+                  <th style={{ padding: '1rem', width: '40px' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -175,11 +203,17 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
                     <td style={{ padding: '1rem', fontWeight: '600' }}>{new Date(r.date).toLocaleDateString('vi-VN')}</td>
                     <td style={{ padding: '1rem', textAlign: 'right' }}>{r.pm1Revenue.toLocaleString()}đ</td>
                     <td style={{ padding: '1rem', textAlign: 'right' }}>{(r.cash + r.transfer).toLocaleString()}đ</td>
+                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--primary)' }}>
+                      {r.tipCalc > 0 ? '+' : ''}{r.tipCalc.toLocaleString()}đ
+                    </td>
+                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--warning)' }}>
+                      {r.actualTip.toLocaleString()}đ
+                    </td>
                     <td style={{ 
                       padding: '1rem', textAlign: 'right', fontWeight: '800',
-                      color: r.difference === 0 ? 'var(--success)' : r.difference > 0 ? 'var(--warning)' : 'var(--danger)'
+                      color: r.finalDiff === 0 ? 'var(--success)' : r.finalDiff > 0 ? 'var(--warning)' : 'var(--danger)'
                     }}>
-                      {r.difference > 0 ? '+' : ''}{r.difference.toLocaleString()}đ
+                      {r.finalDiff > 0 ? '+' : ''}{r.finalDiff.toLocaleString()}đ
                     </td>
                     <td style={{ padding: '1rem', textAlign: 'center' }}>
                       <button onClick={() => handleDelete(r.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Xoá">
