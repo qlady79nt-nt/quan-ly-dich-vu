@@ -392,9 +392,10 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             Dữ liệu được lưu trữ độc lập trên thiết bị này theo khoảng thời gian.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.25rem' }}>
           <button
             className="btn btn-secondary"
+            style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', whiteSpace: 'nowrap', minHeight: 'auto' }}
             onClick={() => {
               const d = new Date();
               setStartDate(new Date(d.getFullYear(), d.getMonth() - 1, 1).toISOString().split('T')[0]);
@@ -405,6 +406,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           </button>
           <button
             className="btn btn-primary"
+            style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', whiteSpace: 'nowrap', minHeight: 'auto' }}
             onClick={() => {
               const d = new Date();
               setStartDate(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]);
@@ -418,15 +420,15 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             className="form-input" 
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            style={{ fontWeight: 'bold' }}
+            style={{ fontWeight: 'bold', padding: '0.3rem', fontSize: '0.75rem', minHeight: 'auto', width: 'auto' }}
           />
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>đến</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>đến</span>
           <input 
             type="date" 
             className="form-input" 
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            style={{ fontWeight: 'bold' }}
+            style={{ fontWeight: 'bold', padding: '0.3rem', fontSize: '0.75rem', minHeight: 'auto', width: 'auto' }}
           />
         </div>
       </div>
