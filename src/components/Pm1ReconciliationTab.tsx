@@ -92,81 +92,45 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
 
   return (
     <div style={{ padding: '1rem', background: 'var(--bg-main)', height: '100%', overflowY: 'auto' }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
         <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Nhập Đối chiếu PM1</h3>
         <form onSubmit={handleSave}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Ngày</label>
-              <input 
-                type="date" 
-                value={date} 
-                onChange={e => setDate(e.target.value)} 
-                className="form-input" 
-                style={{ width: '100%' }}
-              />
+          <div className="table-responsive" style={{ overflowX: 'auto', paddingBottom: '1rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', minWidth: '800px', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', whiteSpace: 'nowrap' }}>Ngày</label>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input" style={{ width: '100%', padding: '0.5rem' }} />
+              </div>
+              <div style={{ flex: 1.2 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', whiteSpace: 'nowrap' }}>DT PM1</label>
+                <input type="number" value={pm1Revenue} onChange={e => setPm1Revenue(e.target.value ? Number(e.target.value) : '')} className="form-input" style={{ width: '100%', padding: '0.5rem' }} placeholder="0" />
+              </div>
+              <div style={{ flex: 1.2 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', whiteSpace: 'nowrap' }}>Tiền mặt</label>
+                <input type="number" value={cash} onChange={e => setCash(e.target.value ? Number(e.target.value) : '')} className="form-input" style={{ width: '100%', padding: '0.5rem' }} placeholder="0" />
+              </div>
+              <div style={{ flex: 1.2 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', whiteSpace: 'nowrap' }}>CK</label>
+                <input type="number" value={transfer} onChange={e => setTransfer(e.target.value ? Number(e.target.value) : '')} className="form-input" style={{ width: '100%', padding: '0.5rem' }} placeholder="0" />
+              </div>
+              <div style={{ flex: 1.2 }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', whiteSpace: 'nowrap' }}>Tip thực tế</label>
+                <input type="number" value={actualTip} onChange={e => setActualTip(e.target.value ? Number(e.target.value) : '')} className="form-input" style={{ width: '100%', padding: '0.5rem' }} placeholder="0" />
+              </div>
+              <div>
+                <button type="submit" className="btn btn-primary" style={{ whiteSpace: 'nowrap', padding: '0.5rem 1.5rem', height: '42px' }}>Lưu lại</button>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Doanh thu PM1</label>
-              <input 
-                type="number" 
-                value={pm1Revenue} 
-                onChange={e => setPm1Revenue(e.target.value ? Number(e.target.value) : '')} 
-                className="form-input" 
-                style={{ width: '100%' }}
-                placeholder="Nhập doanh thu phần mềm"
-              />
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Tiền mặt</label>
-              <input 
-                type="number" 
-                value={cash} 
-                onChange={e => setCash(e.target.value ? Number(e.target.value) : '')} 
-                className="form-input" 
-                style={{ width: '100%' }}
-                placeholder="Nhập số tiền mặt"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Chuyển khoản (CK)</label>
-              <input 
-                type="number" 
-                value={transfer} 
-                onChange={e => setTransfer(e.target.value ? Number(e.target.value) : '')} 
-                className="form-input" 
-                style={{ width: '100%' }}
-                placeholder="Nhập số tiền CK"
-              />
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Tip thực tế (điền tay)</label>
-              <input 
-                type="number" 
-                value={actualTip} 
-                onChange={e => setActualTip(e.target.value ? Number(e.target.value) : '')} 
-                className="form-input" 
-                style={{ width: '100%' }}
-                placeholder="Nhập Tip thực tế"
-              />
-            </div>
-            <div></div>
           </div>
 
-          <div style={{ padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', color: 'var(--text-secondary)' }}>
-              <span>Tip (Tiền mặt + CK - DT PM1):</span>
+          <div style={{ padding: '1rem 1.5rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+              <span>Tip tính toán (Tiền mặt + CK - DT PM1):</span>
               <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>
                 {tipCalc > 0 ? '+' : ''}{tipCalc.toLocaleString()}đ
               </span>
             </div>
-            <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem' }}>
               <span style={{ fontWeight: '600' }}>Chênh lệch = Tip - Tip thực tế:</span>
               <span style={{ 
                 fontWeight: '800', 
@@ -176,15 +140,11 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
               </span>
             </div>
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className="btn btn-primary">Lưu lại</button>
-          </div>
         </form>
       </div>
 
       {records.length > 0 && (
-        <div style={{ maxWidth: '800px', margin: '2rem auto 0', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+        <div style={{ maxWidth: '1000px', margin: '2rem auto 0', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
           <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Lịch sử đối chiếu PM1</h3>
           <div className="table-responsive">
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
