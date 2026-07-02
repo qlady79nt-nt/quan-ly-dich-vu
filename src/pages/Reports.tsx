@@ -1324,7 +1324,7 @@ const Reports = () => {
       {view === 'service_sessions' && (
         <div className="premium-card animate-fade" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Chi tiết cuốc dịch vụ đã thực hiện</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Chi tiết cuốc Massage đã thực hiện</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Kỹ thuật viên:</span>
               <select className="form-select" value={reportStaffId} onChange={e => setReportStaffId(e.target.value)}>
