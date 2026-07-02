@@ -239,11 +239,16 @@ const Reports = () => {
         const lowerGName = groupName?.toLowerCase() || '';
         const lowerSName = svc?.name?.toLowerCase() || '';
         const isMassage = lowerGName.includes('massage') || lowerSName.includes('massage') || lowerSName.startsWith('ms ');
+        
+        const sessionComms = commLog.filter(c => c.service_session_id === s.id && (c.type === 'service_execution' || c.type === 'execution'));
+        const commission_amount = sessionComms.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+
         return {
           ...s,
           service_name: svc?.name || 'Dịch vụ lẻ / Không xác định',
           service_duration: svc?.duration_minutes || 0,
-          isMassage
+          isMassage,
+          commission_amount
         };
       });
       
@@ -1369,6 +1374,7 @@ const Reports = () => {
                   <th style={{ textAlign: 'right' }}>Thời gian (phút)</th>
                   <th style={{ textAlign: 'right' }}>Số cuốc</th>
                   <th style={{ textAlign: 'right' }}>Tổng thời gian</th>
+                  <th style={{ textAlign: 'right' }}>Hoa hồng</th>
                 </tr>
               </thead>
               <tbody>
@@ -1381,7 +1387,7 @@ const Reports = () => {
                     return <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
                   }
                   
-                  const statsMap: Record<string, { count: number, duration: number }> = {};
+                  const statsMap: Record<string, { count: number, duration: number, commission: number }> = {};
                   filteredSessions.forEach(s => {
                     const name = s.service_name || 'Dịch vụ lẻ / Không xác định';
                     let dur = s.service_duration || 0;
@@ -1389,8 +1395,9 @@ const Reports = () => {
                       const m = name.match(/(\d+)\s*(?:phút|phut|p\b)/i);
                       if (m) dur = parseInt(m[1], 10);
                     }
-                    if (!statsMap[name]) statsMap[name] = { count: 0, duration: dur };
+                    if (!statsMap[name]) statsMap[name] = { count: 0, duration: dur, commission: 0 };
                     statsMap[name].count += 1;
+                    statsMap[name].commission += (s.commission_amount || 0);
                   });
                   
                   const sortedEntries = Object.entries(statsMap).sort((a, b) => {
@@ -1413,6 +1420,7 @@ const Reports = () => {
                   
                   let grandTotalCount = 0;
                   let grandTotalMinutes = 0;
+                  let grandTotalCommission = 0;
                   
                   return (
                     <>
@@ -1420,12 +1428,14 @@ const Reports = () => {
                         const totalDur = stats.duration > 0 ? stats.duration * stats.count : 0;
                         grandTotalCount += stats.count;
                         grandTotalMinutes += totalDur;
+                        grandTotalCommission += stats.commission;
                         return (
                           <tr key={name}>
                             <td style={{ fontWeight: '600' }}>{name}</td>
                             <td style={{ textAlign: 'right', fontWeight: '600', color: 'var(--secondary)' }}>{stats.duration > 0 ? stats.duration : '-'}</td>
                             <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--primary)' }}>{stats.count}</td>
                             <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--text-main)' }}>{totalDur > 0 ? totalDur : '-'}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>{stats.commission > 0 ? stats.commission.toLocaleString('vi-VN') + 'đ' : '-'}</td>
                           </tr>
                         );
                       })}
@@ -1434,11 +1444,12 @@ const Reports = () => {
                         <td></td>
                         <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>{grandTotalCount} cuốc</td>
                         <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--text-main)', fontSize: '1.1rem' }}>{grandTotalMinutes > 0 ? `${grandTotalMinutes} phút` : '-'}</td>
+                        <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--warning)', fontSize: '1.1rem' }}>{grandTotalCommission > 0 ? `${grandTotalCommission.toLocaleString('vi-VN')}đ` : '-'}</td>
                       </tr>
                       {grandTotalMinutes > 0 && (
                         <tr style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}>
                           <td style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--success)' }}>Tổng quy đổi</td>
-                          <td colSpan={3} style={{ textAlign: 'right', fontWeight: '800', color: 'var(--success)', fontSize: '1.1rem' }}>
+                          <td colSpan={4} style={{ textAlign: 'right', fontWeight: '800', color: 'var(--success)', fontSize: '1.1rem' }}>
                             {Math.round(grandTotalMinutes * 65000 / 60).toLocaleString('vi-VN')}đ
                           </td>
                         </tr>
