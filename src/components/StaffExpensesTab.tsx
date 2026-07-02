@@ -38,7 +38,14 @@ const DEFAULT_EXPENSE: ExpenseData = {
 };
 
 const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState<string>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+  });
   const [staffs, setStaffs] = useState<StaffData[]>([]);
   const [expenses, setExpenses] = useState<Record<string, ExpenseData>>({});
   const [loading, setLoading] = useState(false);
@@ -60,7 +67,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
 
   useEffect(() => {
     loadSavedData();
-  }, [shopId, selectedDate, staffs]);
+  }, [shopId, startDate, endDate, staffs]);
 
   const fetchStaffs = async () => {
     setLoading(true);
@@ -133,8 +140,8 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   };
 
   const loadSavedData = () => {
-    if (!shopId || !selectedDate || staffs.length === 0) return;
-    const key = `staff_expenses_${shopId}_${selectedDate}`;
+    if (!shopId || !startDate || !endDate || staffs.length === 0) return;
+    const key = `staff_expenses_${shopId}_${startDate}_${endDate}`;
     const saved = localStorage.getItem(key);
     let currentExpenses = { ...expenses };
     if (saved) {
@@ -149,17 +156,13 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
       initializeEmptyExpenses();
     }
     
-    // Tự động lấy hoa hồng và thu nhập KTV cho tháng hiện tại
+    // Tự động lấy hoa hồng và thu nhập KTV cho khoảng thời gian
     const fetchData = async () => {
       try {
-        const dateObj = new Date(selectedDate);
-        const y = dateObj.getFullYear();
-        const m = dateObj.getMonth();
-        const firstDay = new Date(Date.UTC(y, m, 1, 0, 0, 0, 0));
-        const lastDay = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59, 999));
-
-        const startStr = firstDay.toISOString();
-        const endStr = lastDay.toISOString();
+        const sdObj = new Date(`${startDate}T00:00:00`);
+        const edObj = new Date(`${endDate}T23:59:59.999`);
+        const startStr = sdObj.toISOString();
+        const endStr = edObj.toISOString();
 
         // 1. Fetch commission_logs
         const { data: commData } = await supabase
@@ -242,7 +245,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     setExpenses(newExpenses);
     
     // Auto save to local storage
-    const key = `staff_expenses_${shopId}_${selectedDate}`;
+    const key = `staff_expenses_${shopId}_${startDate}_${endDate}`;
     localStorage.setItem(key, JSON.stringify(newExpenses));
   };
 
@@ -286,8 +289,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
       
       const data = expenses[staffId] || DEFAULT_EXPENSE;
       const total = calculateTotal(staffId);
-      const [y, m, d] = selectedDate.split('-');
-      const formattedDate = `${d}/${m}/${y}`;
+      const formattedDate = `${startDate.split('-').reverse().join('/')} - ${endDate.split('-').reverse().join('/')}`;
 
       tempDiv.innerHTML = `
         <div style="text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 15px; margin-bottom: 15px;">
@@ -356,7 +358,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
       const image = canvas.toDataURL('image/jpeg', 0.9);
       const link = document.createElement('a');
       link.href = image;
-      link.download = `chi-tra-nhan-vien-${staffName.replace(/\s+/g, '-').toLowerCase()}-${selectedDate}.jpg`;
+      link.download = `chi-tra-nhan-vien-${staffName.replace(/\s+/g, '-').toLowerCase()}-${startDate}-to-${endDate}.jpg`;
       link.click();
 
     } catch (err) {
@@ -387,15 +389,43 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <span>💰</span> Chi phí nhân viên
           </h3>
           <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            Dữ liệu được lưu trữ độc lập trên thiết bị này theo từng ngày.
+            Dữ liệu được lưu trữ độc lập trên thiết bị này theo khoảng thời gian.
           </p>
         </div>
-        <div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              const d = new Date();
+              setStartDate(new Date(d.getFullYear(), d.getMonth() - 1, 1).toISOString().split('T')[0]);
+              setEndDate(new Date(d.getFullYear(), d.getMonth(), 0).toISOString().split('T')[0]);
+            }}
+          >
+            Tháng trước
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              const d = new Date();
+              setStartDate(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]);
+              setEndDate(new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]);
+            }}
+          >
+            Tháng này
+          </button>
           <input 
             type="date" 
             className="form-input" 
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{ fontWeight: 'bold' }}
+          />
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>đến</span>
+          <input 
+            type="date" 
+            className="form-input" 
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
             style={{ fontWeight: 'bold' }}
           />
         </div>
