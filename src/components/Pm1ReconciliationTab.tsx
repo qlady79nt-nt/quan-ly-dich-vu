@@ -8,11 +8,11 @@ interface Props {
 interface Pm1Record {
   id: string;
   date: string;
-  pm1Revenue: number;
-  cash: number;
-  transfer: number;
+  pm1Revenue: number | '';
+  cash: number | '';
+  transfer: number | '';
   tipCalc: number;
-  actualTip: number;
+  actualTip: number | '';
   finalDiff: number;
 }
 
@@ -45,19 +45,15 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pm1Revenue === '' || cash === '' || transfer === '' || actualTip === '') {
-      alert('Vui lòng nhập đầy đủ các số liệu!');
-      return;
-    }
     
     const newRecord: Pm1Record = {
       id: Date.now().toString(),
       date,
-      pm1Revenue: Number(pm1Revenue),
-      cash: Number(cash),
-      transfer: Number(transfer),
+      pm1Revenue: pm1Revenue === '' ? '' : Number(pm1Revenue),
+      cash: cash === '' ? '' : Number(cash),
+      transfer: transfer === '' ? '' : Number(transfer),
       tipCalc,
-      actualTip: Number(actualTip),
+      actualTip: actualTip === '' ? '' : Number(actualTip),
       finalDiff
     };
 
@@ -160,30 +156,39 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
                 </tr>
               </thead>
               <tbody>
-                {records.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '1rem', fontWeight: '600' }}>{new Date(r.date).toLocaleDateString('vi-VN')}</td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>{r.pm1Revenue.toLocaleString()}đ</td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>{(r.cash + r.transfer).toLocaleString()}đ</td>
-                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--primary)' }}>
-                      {r.tipCalc > 0 ? '+' : ''}{r.tipCalc.toLocaleString()}đ
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--warning)' }}>
-                      {r.actualTip.toLocaleString()}đ
-                    </td>
-                    <td style={{ 
-                      padding: '1rem', textAlign: 'right', fontWeight: '800',
-                      color: r.finalDiff === 0 ? 'var(--success)' : r.finalDiff > 0 ? 'var(--warning)' : 'var(--danger)'
-                    }}>
-                      {r.finalDiff > 0 ? '+' : ''}{r.finalDiff.toLocaleString()}đ
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'center' }}>
-                      <button onClick={() => handleDelete(r.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Xoá">
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {records.map(r => {
+                  const isComplete = r.pm1Revenue !== '' && r.cash !== '' && r.transfer !== '' && r.actualTip !== '';
+                  const rowBg = isComplete ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+                  
+                  return (
+                    <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', backgroundColor: rowBg }}>
+                      <td style={{ padding: '1rem', fontWeight: '600' }}>
+                        {new Date(r.date).toLocaleDateString('vi-VN')}
+                        {!isComplete && <div style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 'normal', marginTop: '0.25rem' }}>Chưa đầy đủ</div>}
+                        {isComplete && <div style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 'normal', marginTop: '0.25rem' }}>Đã đầy đủ</div>}
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'right' }}>{r.pm1Revenue === '' ? '-' : Number(r.pm1Revenue).toLocaleString() + 'đ'}</td>
+                      <td style={{ padding: '1rem', textAlign: 'right' }}>{(r.cash === '' && r.transfer === '') ? '-' : (Number(r.cash) + Number(r.transfer)).toLocaleString() + 'đ'}</td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--primary)' }}>
+                        {r.tipCalc > 0 ? '+' : ''}{r.tipCalc.toLocaleString()}đ
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: 'var(--warning)' }}>
+                        {r.actualTip === '' ? '-' : Number(r.actualTip).toLocaleString() + 'đ'}
+                      </td>
+                      <td style={{ 
+                        padding: '1rem', textAlign: 'right', fontWeight: '800',
+                        color: r.finalDiff === 0 ? 'var(--success)' : r.finalDiff > 0 ? 'var(--warning)' : 'var(--danger)'
+                      }}>
+                        {r.finalDiff > 0 ? '+' : ''}{r.finalDiff.toLocaleString()}đ
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <button onClick={() => handleDelete(r.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Xoá">
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
