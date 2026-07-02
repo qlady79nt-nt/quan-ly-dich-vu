@@ -43,6 +43,7 @@ const Reports = () => {
   const [sessionSubTab, setSessionSubTab] = useState<'massage' | 'other'>('massage');
   const [allStaffsList, setAllStaffsList] = useState<any[]>([]);
   const [reportStaffId, setReportStaffId] = useState<string>('');
+  const [commissionStaffId, setCommissionStaffId] = useState<string>('');
   const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'combo' | 'package_sale' | 'package_session'>('all');
   const [revenueDisplayCount, setRevenueDisplayCount] = useState(10);
   const [detailModal, setDetailModal] = useState<any>(null);
@@ -907,14 +908,23 @@ const Reports = () => {
               </div>
 
               <div className="premium-card">
-                <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}><Users size={20} /> Chi tiết Hoa hồng Nhân viên</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}><Users size={20} /> Chi tiết Hoa hồng Nhân viên</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Nhân viên:</span>
+                    <select className="form-select" value={commissionStaffId} onChange={e => setCommissionStaffId(e.target.value)}>
+                      <option value="">-- Tất cả --</option>
+                      {staffData.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                  {staffData.length === 0 ? (
+                  {staffData.filter(s => commissionStaffId ? s.id === commissionStaffId : true).length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)', background: 'var(--bg-main)', borderRadius: '1rem' }}>
                       Không có dữ liệu hoa hồng trong khoảng thời gian này
                     </div>
                   ) : (
-                    staffData.map(s => (
+                    staffData.filter(s => commissionStaffId ? s.id === commissionStaffId : true).map(s => (
                       <div key={s.id} style={{ background: 'var(--bg-main)', borderRadius: '0.75rem', padding: '1.5rem', border: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
                           <div>
