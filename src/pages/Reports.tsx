@@ -1449,9 +1449,11 @@ const Reports = () => {
                       {grandTotalMinutes > 0 && (
                         <tr style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)' }}>
                           <td style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--success)' }}>Tổng quy đổi</td>
-                          <td colSpan={4} style={{ textAlign: 'right', fontWeight: '800', color: 'var(--success)', fontSize: '1.1rem' }}>
+                          <td colSpan={2}></td>
+                          <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--success)', fontSize: '1.1rem' }}>
                             {Math.round(grandTotalMinutes * 65000 / 60).toLocaleString('vi-VN')}đ
                           </td>
+                          <td></td>
                         </tr>
                       )}
                     </>
