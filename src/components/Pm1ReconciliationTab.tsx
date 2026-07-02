@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   shopId: string;
@@ -26,14 +27,66 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
 
   useEffect(() => {
     const saved = localStorage.getItem(`pm1_recon_${shopId}`);
+    let loadedRecords: Pm1Record[] = [];
     if (saved) {
       try {
-        setRecords(JSON.parse(saved));
+        loadedRecords = JSON.parse(saved);
+        setRecords(loadedRecords);
       } catch (e) {
         console.error(e);
       }
     }
+
+    const today = new Date().toISOString().split('T')[0];
+    const existing = loadedRecords.find(r => r.date === today);
+    if (existing) {
+      setPm1Revenue(existing.pm1Revenue);
+      setCash(existing.cash);
+      setTransfer(existing.transfer);
+      setActualTip(existing.actualTip);
+    } else {
+      fetchDailyTip(today);
+    }
   }, [shopId]);
+
+  const fetchDailyTip = async (targetDate: string) => {
+    try {
+      const [y, m, d] = targetDate.split('-').map(Number);
+      const startObj = new Date(y, m - 1, d, 0, 0, 0);
+      const endObj = new Date(y, m - 1, d, 23, 59, 59, 999);
+      
+      const { data, error } = await supabase
+        .from('staff_daily_income')
+        .select('tip_amount')
+        .eq('shop_id', shopId)
+        .gte('created_at', startObj.toISOString())
+        .lte('created_at', endObj.toISOString());
+        
+      if (!error && data) {
+        const totalTip = data.reduce((sum, item) => sum + (Number(item.tip_amount) || 0), 0);
+        setActualTip(totalTip > 0 ? totalTip : '');
+      }
+    } catch (e) {
+      console.error('Error fetching tip:', e);
+    }
+  };
+
+  const handleDateChange = (newDate: string) => {
+    setDate(newDate);
+    const existing = records.find(r => r.date === newDate);
+    if (existing) {
+      setPm1Revenue(existing.pm1Revenue);
+      setCash(existing.cash);
+      setTransfer(existing.transfer);
+      setActualTip(existing.actualTip);
+    } else {
+      setPm1Revenue('');
+      setCash('');
+      setTransfer('');
+      setActualTip('');
+      fetchDailyTip(newDate);
+    }
+  };
 
   const saveRecords = (newRecords: Pm1Record[]) => {
     setRecords(newRecords);
@@ -86,6 +139,15 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
     }
   };
 
+  const handleEdit = (record: Pm1Record) => {
+    setDate(record.date);
+    setPm1Revenue(record.pm1Revenue);
+    setCash(record.cash);
+    setTransfer(record.transfer);
+    setActualTip(record.actualTip);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div style={{ padding: '1rem', background: 'var(--bg-main)', height: '100%', overflowY: 'auto' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto', background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
@@ -95,7 +157,7 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
             <div style={{ display: 'flex', gap: '0.75rem', minWidth: '800px', alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', whiteSpace: 'nowrap' }}>Ngày</label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input" style={{ width: '100%', padding: '0.5rem' }} />
+                <input type="date" value={date} onChange={e => handleDateChange(e.target.value)} className="form-input" style={{ width: '100%', padding: '0.5rem' }} />
               </div>
               <div style={{ flex: 1.2 }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', whiteSpace: 'nowrap' }}>DT PM1</label>
@@ -111,7 +173,7 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
               </div>
               <div style={{ flex: 1.2 }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', whiteSpace: 'nowrap' }}>Tip thực tế</label>
-                <input type="number" value={actualTip} onChange={e => setActualTip(e.target.value ? Number(e.target.value) : '')} className="form-input" style={{ width: '100%', padding: '0.5rem' }} placeholder="0" />
+                <input type="number" value={actualTip} onChange={e => setActualTip(e.target.value ? Number(e.target.value) : '')} className="form-input" style={{ width: '100%', padding: '0.5rem' }} placeholder="Tự động tính..." />
               </div>
               <div>
                 <button type="submit" className="btn btn-primary" style={{ whiteSpace: 'nowrap', padding: '0.5rem 1.5rem', height: '42px' }}>Lưu lại</button>
@@ -181,7 +243,10 @@ const Pm1ReconciliationTab: React.FC<Props> = ({ shopId }) => {
                       }}>
                         {r.finalDiff > 0 ? '+' : ''}{r.finalDiff.toLocaleString()}đ
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                      <td style={{ padding: '1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <button onClick={() => handleEdit(r)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', marginRight: '0.75rem' }} title="Chỉnh sửa">
+                          <Pencil size={16} />
+                        </button>
                         <button onClick={() => handleDelete(r.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Xoá">
                           <Trash2 size={16} />
                         </button>
