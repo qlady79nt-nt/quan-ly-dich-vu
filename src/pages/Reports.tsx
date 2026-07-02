@@ -40,6 +40,7 @@ const Reports = () => {
   // Mặc định luôn là revenue, Staff cũng xem revenue (KPI ảo/thật) nhưng bị ẩn các tab chuyển
   const [view, setView] = useState<'revenue' | 'commission' | 'staff' | 'service_sessions'>('revenue');
   const [sessionsData, setSessionsData] = useState<any[]>([]);
+  const [sessionSubTab, setSessionSubTab] = useState<'massage' | 'other'>('massage');
   const [allStaffsList, setAllStaffsList] = useState<any[]>([]);
   const [reportStaffId, setReportStaffId] = useState<string>('');
   const [revenueTab, setRevenueTab] = useState<'all' | 'retail' | 'combo' | 'package_sale' | 'package_session'>('all');
@@ -1323,8 +1324,24 @@ const Reports = () => {
 
       {view === 'service_sessions' && (
         <div className="premium-card animate-fade" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+            <button 
+              className={`btn ${sessionSubTab === 'massage' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setSessionSubTab('massage')}
+            >
+              Cuốc Massage
+            </button>
+            <button 
+              className={`btn ${sessionSubTab === 'other' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setSessionSubTab('other')}
+            >
+              Cuốc Dịch vụ khác
+            </button>
+          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Chi tiết cuốc Massage đã thực hiện</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
+              {sessionSubTab === 'massage' ? 'Chi tiết cuốc Massage đã thực hiện' : 'Chi tiết cuốc các dịch vụ khác'}
+            </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Kỹ thuật viên:</span>
               <select className="form-select" value={reportStaffId} onChange={e => setReportStaffId(e.target.value)}>
@@ -1347,8 +1364,8 @@ const Reports = () => {
               <tbody>
                 {(() => {
                   const filteredSessions = reportStaffId 
-                    ? sessionsData.filter(s => s.staff_id === reportStaffId && s.isMassage)
-                    : sessionsData.filter(s => s.isMassage);
+                    ? sessionsData.filter(s => s.staff_id === reportStaffId && (sessionSubTab === 'massage' ? s.isMassage : !s.isMassage))
+                    : sessionsData.filter(s => (sessionSubTab === 'massage' ? s.isMassage : !s.isMassage));
                     
                   if (filteredSessions.length === 0) {
                     return <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Không có cuốc dịch vụ nào được thực hiện.</td></tr>;
