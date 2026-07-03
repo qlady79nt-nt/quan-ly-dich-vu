@@ -151,6 +151,43 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     }
   };
 
+  const saveToSupabase = async (newExpenses: Record<string, ExpenseData>) => {
+    if (!shopId || !startDate || !endDate) return;
+    const upsertData = staffs.map(staff => {
+      const e = newExpenses[staff.id] || DEFAULT_EXPENSE;
+      return {
+        shop_id: shopId,
+        staff_id: staff.id,
+        period_start: startDate,
+        period_end: endDate,
+        salary: e.salary,
+        commission: e.commission,
+        bonus: e.bonus,
+        tip: e.tip,
+        bonus_tip: e.bonusTip,
+        overtime: e.overtime,
+        overtime_money: e.overtimeMoney,
+        bonus_overtime: e.bonusOvertime,
+        tour: e.tour,
+        bonus_tour: e.bonusTour,
+        meal: e.meal,
+        bonus_meal: e.bonusMeal,
+        kpi: e.kpi,
+        support: e.support,
+        updated_at: new Date().toISOString()
+      };
+    });
+    
+    try {
+      const { error } = await supabase.from('staff_expenses').upsert(upsertData, {
+        onConflict: 'shop_id, staff_id, period_start, period_end'
+      });
+      if (error) console.error("Error saving to supabase:", error);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const loadSavedData = () => {
     if (!shopId || !startDate || !endDate || staffs.length === 0) return;
     const key = `staff_expenses_${shopId}_${startDate}_${endDate}`;
@@ -187,6 +224,14 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
         const dbMap = new Map<string, any>();
         if (dbExpenses) {
           dbExpenses.forEach(e => dbMap.set(e.staff_id, e));
+        }
+
+        // -- One-time sync for legacy local storage --
+        if (dbMap.size === 0 && saved) {
+          try {
+            const parsedSaved = JSON.parse(saved);
+            saveToSupabase(parsedSaved);
+          } catch(e) {}
         }
 
         // 1. Fetch commission_logs
@@ -277,43 +322,6 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
       initial[s.id] = { ...DEFAULT_EXPENSE };
     });
     setExpenses(initial);
-  };
-
-  const saveToSupabase = async (newExpenses: Record<string, ExpenseData>) => {
-    if (!shopId || !startDate || !endDate) return;
-    const upsertData = staffs.map(staff => {
-      const e = newExpenses[staff.id] || DEFAULT_EXPENSE;
-      return {
-        shop_id: shopId,
-        staff_id: staff.id,
-        period_start: startDate,
-        period_end: endDate,
-        salary: e.salary,
-        commission: e.commission,
-        bonus: e.bonus,
-        tip: e.tip,
-        bonus_tip: e.bonusTip,
-        overtime: e.overtime,
-        overtime_money: e.overtimeMoney,
-        bonus_overtime: e.bonusOvertime,
-        tour: e.tour,
-        bonus_tour: e.bonusTour,
-        meal: e.meal,
-        bonus_meal: e.bonusMeal,
-        kpi: e.kpi,
-        support: e.support,
-        updated_at: new Date().toISOString()
-      };
-    });
-    
-    try {
-      const { error } = await supabase.from('staff_expenses').upsert(upsertData, {
-        onConflict: 'shop_id, staff_id, period_start, period_end'
-      });
-      if (error) console.error("Error saving to supabase:", error);
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   const handleInputChange = (staffId: string, field: keyof ExpenseData, value: string) => {
