@@ -496,8 +496,13 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             </thead>
             <tbody style={{ display: 'table-row-group' }}>
               {categories.map((cat, index) => {
-                const isOvertimeRow = cat.key === 'overtime' || cat.key === 'overtimeMoney';
-                const rowBg = isOvertimeRow ? '#fef3c7' : (index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)');
+                let rowBg = index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)';
+                if (['commission', 'bonus'].includes(cat.key)) rowBg = 'rgba(236, 72, 153, 0.05)';
+                if (['tip', 'bonusTip'].includes(cat.key)) rowBg = 'rgba(34, 197, 94, 0.05)';
+                if (['overtime', 'overtimeMoney', 'bonusOvertime'].includes(cat.key)) rowBg = 'rgba(234, 179, 8, 0.1)';
+                if (['tour', 'bonusTour'].includes(cat.key)) rowBg = 'rgba(59, 130, 246, 0.05)';
+                if (['meal', 'bonusMeal'].includes(cat.key)) rowBg = 'rgba(249, 115, 22, 0.05)';
+                
                 const isAuto = ['commission', 'tip', 'tour', 'overtime', 'overtimeMoney', 'meal'].includes(cat.key);
                 return (
                 <tr key={cat.key} style={{ display: 'table-row', background: rowBg }}>
