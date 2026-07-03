@@ -497,11 +497,11 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <tbody style={{ display: 'table-row-group' }}>
               {categories.map((cat, index) => {
                 let rowBg = index % 2 === 0 ? 'var(--bg-main)' : 'var(--bg-card)';
-                if (['commission', 'bonus'].includes(cat.key)) rowBg = 'rgba(236, 72, 153, 0.05)';
-                if (['tip', 'bonusTip'].includes(cat.key)) rowBg = 'rgba(34, 197, 94, 0.05)';
-                if (['overtime', 'overtimeMoney', 'bonusOvertime'].includes(cat.key)) rowBg = 'rgba(234, 179, 8, 0.1)';
-                if (['tour', 'bonusTour'].includes(cat.key)) rowBg = 'rgba(59, 130, 246, 0.05)';
-                if (['meal', 'bonusMeal'].includes(cat.key)) rowBg = 'rgba(249, 115, 22, 0.05)';
+                if (['commission', 'bonus'].includes(cat.key)) rowBg = 'rgba(236, 72, 153, 0.15)'; // pink
+                if (['tip', 'bonusTip'].includes(cat.key)) rowBg = 'rgba(34, 197, 94, 0.15)'; // green
+                if (['overtime', 'overtimeMoney', 'bonusOvertime'].includes(cat.key)) rowBg = 'rgba(234, 179, 8, 0.25)'; // yellow
+                if (['tour', 'bonusTour'].includes(cat.key)) rowBg = 'rgba(59, 130, 246, 0.15)'; // blue
+                if (['meal', 'bonusMeal'].includes(cat.key)) rowBg = 'rgba(249, 115, 22, 0.15)'; // orange
                 
                 const isAuto = ['commission', 'tip', 'tour', 'overtime', 'overtimeMoney', 'meal'].includes(cat.key);
                 return (
