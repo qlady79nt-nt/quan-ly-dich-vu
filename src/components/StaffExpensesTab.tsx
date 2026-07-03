@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Camera, Loader2, Plus, Unlock } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -61,6 +61,8 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const [loading, setLoading] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [unlockedRows, setUnlockedRows] = useState<Record<string, boolean>>({});
+
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { profile } = useAuth();
   const isShopAdmin = profile?.role === 'shop_admin' || profile?.role === 'super_admin';
@@ -174,6 +176,19 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
         const startStr = sdObj.toISOString();
         const endStr = edObj.toISOString();
 
+        // 0. Fetch from staff_expenses DB
+        const { data: dbExpenses } = await supabase
+          .from('staff_expenses')
+          .select('*')
+          .eq('shop_id', shopId)
+          .eq('period_start', startDate)
+          .eq('period_end', endDate);
+
+        const dbMap = new Map<string, any>();
+        if (dbExpenses) {
+          dbExpenses.forEach(e => dbMap.set(e.staff_id, e));
+        }
+
         // 1. Fetch commission_logs
         const { data: commData } = await supabase
           .from('commission_logs')
@@ -211,6 +226,27 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           let hasChanges = false;
           staffs.forEach(s => {
             if (!next[s.id]) next[s.id] = { ...DEFAULT_EXPENSE };
+
+            // Sync with DB
+            const dbE = dbMap.get(s.id);
+            if (dbE) {
+              next[s.id].salary = Number(dbE.salary) || 0;
+              next[s.id].commission = Number(dbE.commission) || 0;
+              next[s.id].bonus = Number(dbE.bonus) || 0;
+              next[s.id].tip = Number(dbE.tip) || 0;
+              next[s.id].bonusTip = Number(dbE.bonus_tip) || 0;
+              next[s.id].overtime = Number(dbE.overtime) || 0;
+              next[s.id].overtimeMoney = Number(dbE.overtime_money) || 0;
+              next[s.id].bonusOvertime = Number(dbE.bonus_overtime) || 0;
+              next[s.id].tour = Number(dbE.tour) || 0;
+              next[s.id].bonusTour = Number(dbE.bonus_tour) || 0;
+              next[s.id].meal = Number(dbE.meal) || 0;
+              next[s.id].bonusMeal = Number(dbE.bonus_meal) || 0;
+              next[s.id].kpi = Number(dbE.kpi) || 0;
+              next[s.id].support = Number(dbE.support) || 0;
+              hasChanges = true;
+            }
+
             const newComm = commMap.get(s.id) || 0;
             const staffInc = incomeMap.get(s.full_name) || { tip: 0, tour: 0, overtime: 0, meal: 0 };
 
@@ -243,6 +279,43 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     setExpenses(initial);
   };
 
+  const saveToSupabase = async (newExpenses: Record<string, ExpenseData>) => {
+    if (!shopId || !startDate || !endDate) return;
+    const upsertData = staffs.map(staff => {
+      const e = newExpenses[staff.id] || DEFAULT_EXPENSE;
+      return {
+        shop_id: shopId,
+        staff_id: staff.id,
+        period_start: startDate,
+        period_end: endDate,
+        salary: e.salary,
+        commission: e.commission,
+        bonus: e.bonus,
+        tip: e.tip,
+        bonus_tip: e.bonusTip,
+        overtime: e.overtime,
+        overtime_money: e.overtimeMoney,
+        bonus_overtime: e.bonusOvertime,
+        tour: e.tour,
+        bonus_tour: e.bonusTour,
+        meal: e.meal,
+        bonus_meal: e.bonusMeal,
+        kpi: e.kpi,
+        support: e.support,
+        updated_at: new Date().toISOString()
+      };
+    });
+    
+    try {
+      const { error } = await supabase.from('staff_expenses').upsert(upsertData, {
+        onConflict: 'shop_id, staff_id, period_start, period_end'
+      });
+      if (error) console.error("Error saving to supabase:", error);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleInputChange = (staffId: string, field: keyof ExpenseData, value: string) => {
     const numValue = Number(value.replace(/\D/g, '')) || 0;
     const newExpenses = {
@@ -257,6 +330,12 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     // Auto save to local storage
     const key = `staff_expenses_${shopId}_${startDate}_${endDate}`;
     localStorage.setItem(key, JSON.stringify(newExpenses));
+
+    // Debounce save to Supabase
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      saveToSupabase(newExpenses);
+    }, 1500);
   };
 
   const formatMoney = (amount: number) => {
