@@ -59,6 +59,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const [staffs, setStaffs] = useState<StaffData[]>([]);
   const [expenses, setExpenses] = useState<Record<string, ExpenseData>>({});
   const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [unlockedRows, setUnlockedRows] = useState<Record<string, boolean>>({});
 
@@ -186,6 +187,13 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const handleManualSave = async () => {
+    setIsSaving(true);
+    await saveToSupabase(expenses);
+    setIsSaving(false);
+    alert('Đã đồng bộ toàn bộ dữ liệu lên Cloud thành công!');
   };
 
   const loadSavedData = () => {
@@ -515,6 +523,14 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+          <button
+            className="btn btn-primary"
+            style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', whiteSpace: 'nowrap', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#10b981', borderColor: '#10b981' }}
+            onClick={handleManualSave}
+            disabled={isSaving}
+          >
+            {isSaving ? <Loader2 className="animate-spin" size={14} /> : <span>💾 Lưu Cloud</span>}
+          </button>
           <button
             className="btn btn-secondary"
             style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', whiteSpace: 'nowrap', minHeight: 'auto' }}
