@@ -16,6 +16,7 @@ interface StaffData {
 interface ExpenseData {
   salary: number;
   commission: number;
+  bonus: number;
   tip: number;
   overtime: number;
   overtimeMoney: number;
@@ -28,6 +29,7 @@ interface ExpenseData {
 const DEFAULT_EXPENSE: ExpenseData = {
   salary: 0,
   commission: 0,
+  bonus: 0,
   tip: 0,
   overtime: 0,
   overtimeMoney: 0,
@@ -310,6 +312,10 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.commission)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px 0; color: #555;">Thưởng:</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.bonus)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">Tip:</td>
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.tip)}</td>
           </tr>
@@ -372,6 +378,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const categories: { key: keyof ExpenseData; label: string }[] = [
     { key: 'salary', label: 'Lương' },
     { key: 'commission', label: 'H.Hồng' },
+    { key: 'bonus', label: 'Thưởng' },
     { key: 'tip', label: 'Tip' },
     { key: 'overtime', label: 'N.Giờ (phút)' },
     { key: 'overtimeMoney', label: 'Tiền N.Giờ' },
