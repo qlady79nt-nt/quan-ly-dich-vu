@@ -18,10 +18,14 @@ interface ExpenseData {
   commission: number;
   bonus: number;
   tip: number;
+  bonusTip: number;
   overtime: number;
   overtimeMoney: number;
+  bonusOvertime: number;
   tour: number;
+  bonusTour: number;
   meal: number;
+  bonusMeal: number;
   kpi: number;
   support: number;
 }
@@ -31,10 +35,14 @@ const DEFAULT_EXPENSE: ExpenseData = {
   commission: 0,
   bonus: 0,
   tip: 0,
+  bonusTip: 0,
   overtime: 0,
   overtimeMoney: 0,
+  bonusOvertime: 0,
   tour: 0,
+  bonusTour: 0,
   meal: 0,
+  bonusMeal: 0,
   kpi: 0,
   support: 0
 };
@@ -312,12 +320,16 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.commission)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px 0; color: #555;">Thưởng:</td>
+            <td style="padding: 10px 0; color: #555;">&nbsp;</td>
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.bonus)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">Tip:</td>
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.tip)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px 0; color: #555;">&nbsp;</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.bonusTip)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">N.Giờ (phút):</td>
@@ -328,12 +340,24 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.overtimeMoney)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px 0; color: #555;">&nbsp;</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.bonusOvertime)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">Tiền Tour:</td>
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.tour)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px 0; color: #555;">&nbsp;</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.bonusTour)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">Tiền Ăn:</td>
             <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.meal)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px 0; color: #555;">&nbsp;</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold;">${formatMoney(data.bonusMeal)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #555;">KPI:</td>
@@ -378,12 +402,16 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const categories: { key: keyof ExpenseData; label: string }[] = [
     { key: 'salary', label: 'Lương' },
     { key: 'commission', label: 'H.Hồng' },
-    { key: 'bonus', label: 'Thưởng' },
+    { key: 'bonus', label: ' ' },
     { key: 'tip', label: 'Tip' },
+    { key: 'bonusTip', label: ' ' },
     { key: 'overtime', label: 'N.Giờ (phút)' },
     { key: 'overtimeMoney', label: 'Tiền N.Giờ' },
+    { key: 'bonusOvertime', label: ' ' },
     { key: 'tour', label: 'T Tour' },
+    { key: 'bonusTour', label: ' ' },
     { key: 'meal', label: 'T Ăn' },
+    { key: 'bonusMeal', label: ' ' },
     { key: 'kpi', label: 'KPI' },
     { key: 'support', label: 'Hỗ trợ' }
   ];
