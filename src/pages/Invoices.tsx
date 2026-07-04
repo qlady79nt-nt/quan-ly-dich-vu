@@ -955,11 +955,14 @@ const Invoices = () => {
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                  <div className="financial-cell" style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--primary)' }}>
+                  <div className="financial-cell" style={{ fontSize: '1.15rem', fontWeight: '800', color: inv.status === 'cancelled' ? 'var(--text-light)' : 'var(--primary)', textDecoration: inv.status === 'cancelled' ? 'line-through' : 'none' }}>
                     {Number(inv.final_amount).toLocaleString()}đ
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
-                    {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {inv.real_staff_name || 'HT'} • {inv.status === 'paid' ? 'Đã TT' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ TT'}
+                    {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {inv.real_staff_name || 'HT'} • 
+                    <span style={{ color: inv.status === 'paid' ? 'var(--success)' : inv.status === 'cancelled' ? 'var(--danger)' : 'var(--warning)', fontWeight: 'bold', marginLeft: '4px' }}>
+                      {inv.status === 'paid' ? 'Đã TT' : inv.status === 'cancelled' ? 'Đã huỷ' : 'Chờ TT'}
+                    </span>
                   </div>
                 </div>
               </div>
