@@ -12,6 +12,7 @@ interface ReconciliationRecord {
   software_revenue: number;
   actual_cash: number;
   actual_transfer: number;
+  kiot_amount?: number;
   difference: number;
   note: string;
   is_missing?: boolean;
@@ -41,10 +42,11 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
   const [softwareRevenue, setSoftwareRevenue] = useState(0);
   const [actualCash, setActualCash] = useState<number | ''>('');
   const [actualTransfer, setActualTransfer] = useState<number | ''>('');
+  const [kiotAmount, setKiotAmount] = useState<number | ''>('');
   const [note, setNote] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   
-  const [activeCalcField, setActiveCalcField] = useState<'cash' | 'transfer' | null>(null);
+  const [activeCalcField, setActiveCalcField] = useState<'cash' | 'transfer' | 'kiot' | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // History State
@@ -241,8 +243,9 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
     setIsSaving(true);
     const cashVal = Number(actualCash) || 0;
     const transferVal = Number(actualTransfer) || 0;
+    const kiotVal = Number(kiotAmount) || 0;
     const totalActual = cashVal + transferVal;
-    const difference = totalActual - softwareRevenue;
+    const difference = (softwareRevenue + kiotVal) - totalActual;
 
     const payload = {
       shop_id: shopId,
@@ -250,6 +253,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
       software_revenue: softwareRevenue,
       actual_cash: cashVal,
       actual_transfer: transferVal,
+      kiot_amount: kiotVal,
       difference,
       note,
       created_by: userId,
@@ -271,6 +275,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
       setEditingId(null);
       setActualCash('');
       setActualTransfer('');
+      setKiotAmount('');
       setNote('');
       setActiveTab('history');
     } catch (err: any) {
@@ -286,6 +291,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
     setSoftwareRevenue(record.software_revenue);
     setActualCash(record.actual_cash);
     setActualTransfer(record.actual_transfer);
+    setKiotAmount(record.kiot_amount || '');
     setNote(record.note || '');
     setActiveTab('form');
   };
@@ -417,7 +423,8 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
   };
 
   const totalActual = (Number(actualCash) || 0) + (Number(actualTransfer) || 0);
-  const currentDiff = totalActual - softwareRevenue;
+  const kiotVal = Number(kiotAmount) || 0;
+  const currentDiff = (softwareRevenue + kiotVal) - totalActual;
 
   return createPortal(
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999999, display: 'flex', flexDirection: 'column' }}>
@@ -545,6 +552,17 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                   </div>
                 </div>
 
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Kiot</label>
+                  <div 
+                    onClick={() => setActiveCalcField('kiot')}
+                    className="form-input" 
+                    style={{ width: '100%', fontWeight: 'bold', cursor: 'pointer', background: 'white', minHeight: '42px', display: 'flex', alignItems: 'center' }} 
+                  >
+                    {kiotAmount === '' ? '0' : Number(kiotAmount).toLocaleString()}
+                  </div>
+                </div>
+
                 <div style={{ padding: '1.5rem', background: 'var(--bg-main)', borderRadius: '0.75rem', border: '1px solid var(--border)', marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '1.1rem' }}>
                     <span style={{ fontWeight: '600' }}>Tổng thực thu:</span>
@@ -554,7 +572,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                     <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
                     <span style={{ 
                       fontWeight: '800', 
-                      color: currentDiff === 0 ? 'var(--success)' : currentDiff > 0 ? 'var(--warning)' : 'var(--danger)' 
+                      color: currentDiff === 0 ? 'var(--success)' : currentDiff > 0 ? 'var(--danger)' : 'var(--warning)' 
                     }}>
                       {currentDiff > 0 ? '+' : ''}{currentDiff.toLocaleString()}đ
                     </span>
@@ -611,9 +629,10 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                         <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
                           <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ngày</th>
                           <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>DT phần mềm<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(1)</span></th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tiền mặt<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(2)</span></th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chuyển khoản<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(3)</span></th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(1) - [(2)+(3)]</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Kiot<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(2)</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tiền mặt<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(3)</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chuyển khoản<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(4)</span></th>
+                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(3)+(4)</span></th>
                           <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch</th>
                           <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ghi chú</th>
                           <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
@@ -629,18 +648,19 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                             <tr key={record.id} style={{ borderBottom: index === history.length - 1 ? 'none' : '1px solid var(--border)', background: isMissing ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
                               <td style={{ padding: '1rem', fontWeight: 'bold', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{new Date(record.reconciliation_date).toLocaleDateString('vi-VN')}</td>
                               <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', verticalAlign: 'top' }}>{record.software_revenue.toLocaleString()}đ</td>
+                              <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{(record.kiot_amount || 0).toLocaleString()}đ</td>
                               <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{record.actual_cash.toLocaleString()}đ</td>
                               <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{record.actual_transfer.toLocaleString()}đ</td>
                               <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', verticalAlign: 'top', color: isMissing ? 'var(--danger)' : 'inherit' }}>{totalAct.toLocaleString()}đ</td>
                               <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top' }}>
-                                <div style={{ fontWeight: 'bold', color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)' }}>
+                                <div style={{ fontWeight: 'bold', color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--danger)' : 'var(--warning)' }}>
                                   {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
                                 </div>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                                   Tip: {dailyTipAmount.toLocaleString()}đ
                                 </div>
                                 <div style={{ borderTop: '1px solid var(--border)', margin: '0.25rem 0', opacity: 0.5 }}></div>
-                                <div style={{ fontWeight: 'bold', color: diffMinusTip === 0 ? 'var(--success)' : diffMinusTip > 0 ? 'var(--warning)' : 'var(--danger)' }}>
+                                <div style={{ fontWeight: 'bold', color: diffMinusTip === 0 ? 'var(--success)' : diffMinusTip > 0 ? 'var(--danger)' : 'var(--warning)' }}>
                                   {diffMinusTip > 0 ? '+' : ''}{diffMinusTip.toLocaleString()}đ
                                 </div>
                               </td>
@@ -689,25 +709,29 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                             <span style={{ fontWeight: '600' }}>{record.software_revenue.toLocaleString()}đ</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Tiền mặt <span style={{fontSize: '0.7rem'}}>(2)</span>:</span>
+                            <span style={{ color: 'var(--text-secondary)' }}>Kiot <span style={{fontSize: '0.7rem'}}>(2)</span>:</span>
+                            <span style={{ color: isMissing ? 'var(--danger)' : 'inherit' }}>{(record.kiot_amount || 0).toLocaleString()}đ</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Tiền mặt <span style={{fontSize: '0.7rem'}}>(3)</span>:</span>
                             <span style={{ color: isMissing ? 'var(--danger)' : 'inherit' }}>{record.actual_cash.toLocaleString()}đ</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Chuyển khoản <span style={{fontSize: '0.7rem'}}>(3)</span>:</span>
+                            <span style={{ color: 'var(--text-secondary)' }}>Chuyển khoản <span style={{fontSize: '0.7rem'}}>(4)</span>:</span>
                             <span style={{ color: isMissing ? 'var(--danger)' : 'inherit' }}>{record.actual_transfer.toLocaleString()}đ</span>
                           </div>
                           
                           <div style={{ borderTop: isMissing ? '1px dashed rgba(239, 68, 68, 0.2)' : '1px dashed var(--border)', margin: '0.5rem 0' }}></div>
                           
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
-                            <span style={{ fontWeight: '600' }}>Tổng thực thu <span style={{fontSize: '0.7rem'}}>(1)-[(2)+(3)]</span>:</span>
+                            <span style={{ fontWeight: '600' }}>Tổng thực thu <span style={{fontSize: '0.7rem'}}>(3)+(4)</span>:</span>
                             <span style={{ fontWeight: 'bold', color: isMissing ? 'var(--danger)' : 'inherit' }}>{totalAct.toLocaleString()}đ</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
                             <span style={{ fontWeight: '600' }}>Chênh lệch:</span>
                             <span style={{ 
                               fontWeight: 'bold', 
-                              color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--warning)' : 'var(--danger)'
+                              color: record.difference === 0 ? 'var(--success)' : record.difference > 0 ? 'var(--danger)' : 'var(--warning)'
                             }}>
                               {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
                             </span>
@@ -720,7 +744,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                             <span style={{ fontWeight: '600' }}>Thực Chênh (sau Tip):</span>
                             <span style={{ 
                               fontWeight: 'bold', 
-                              color: diffMinusTip === 0 ? 'var(--success)' : diffMinusTip > 0 ? 'var(--warning)' : 'var(--danger)'
+                              color: diffMinusTip === 0 ? 'var(--success)' : diffMinusTip > 0 ? 'var(--danger)' : 'var(--warning)'
                             }}>
                               {diffMinusTip > 0 ? '+' : ''}{diffMinusTip.toLocaleString()}đ
                             </span>
@@ -907,6 +931,14 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
           onConfirm={(val) => { setActualTransfer(val); setActiveCalcField(null); }} 
           onClose={() => setActiveCalcField(null)} 
           title="Tính Chuyển khoản thực tế" 
+        />
+      )}
+      {activeCalcField === 'kiot' && (
+        <Calculator 
+          initialValue={Number(kiotAmount) || 0} 
+          onConfirm={(val) => { setKiotAmount(val); setActiveCalcField(null); }} 
+          onClose={() => setActiveCalcField(null)} 
+          title="Tính Kiot" 
         />
       )}
     </div>,
