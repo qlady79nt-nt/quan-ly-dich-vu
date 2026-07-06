@@ -643,7 +643,6 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                         {history.slice(0, visibleCount).map((record, index) => {
                           const totalAct = record.actual_cash + record.actual_transfer;
                           const dailyTipAmount = dailyTips[record.reconciliation_date] || 0;
-                          const diffMinusTip = record.difference - dailyTipAmount;
                           const isMissing = record.is_missing;
                           return (
                             <tr key={record.id} style={{ borderBottom: index === history.length - 1 ? 'none' : '1px solid var(--border)', background: isMissing ? 'rgba(239, 68, 68, 0.05)' : 'transparent' }}>
@@ -685,7 +684,6 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                     {history.slice(0, visibleCount).map(record => {
                       const totalAct = record.actual_cash + record.actual_transfer;
                       const dailyTipAmount = dailyTips[record.reconciliation_date] || 0;
-                      const diffMinusTip = record.difference - dailyTipAmount;
                       const isMissing = record.is_missing;
                       return (
                         <div key={record.id} style={{ background: isMissing ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-card)', padding: '1rem', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', border: isMissing ? '1px solid var(--danger)' : '1px solid var(--border)' }}>
