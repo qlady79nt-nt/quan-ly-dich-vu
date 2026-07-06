@@ -635,7 +635,6 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                           <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tổng thực thu<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(5)=(3)+(4)</span></th>
                           <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Chênh lệch<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(5)-[(1)+(2)]</span></th>
                           <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Tip NV</th>
-                          <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Thực chênh<br/><span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-light)' }}>(sau Tip)</span></th>
                           <th style={{ padding: '1rem', fontWeight: 'bold' }}>Ghi chú</th>
                           <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>Thao tác</th>
                         </tr>
@@ -659,13 +658,8 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                                   {record.difference > 0 ? '+' : ''}{record.difference.toLocaleString()}đ
                                 </div>
                               </td>
-                              <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                              <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top', color: 'var(--danger)', fontWeight: '600' }}>
                                 {dailyTipAmount.toLocaleString()}đ
-                              </td>
-                              <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'top' }}>
-                                <div style={{ fontWeight: 'bold', color: diffMinusTip === 0 ? 'var(--success)' : diffMinusTip > 0 ? 'var(--warning)' : 'var(--danger)' }}>
-                                  {diffMinusTip > 0 ? '+' : ''}{diffMinusTip.toLocaleString()}đ
-                                </div>
                               </td>
                               <td style={{ padding: '1rem', fontSize: '0.875rem', color: isMissing ? 'var(--danger)' : 'var(--text-secondary)', maxWidth: '200px', verticalAlign: 'top' }}>{record.note || '-'}</td>
                               <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'top' }}>
@@ -741,16 +735,7 @@ const ReconciliationModal: React.FC<Props> = ({ shopId, userId, onClose }) => {
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
                             <span style={{ color: 'var(--text-secondary)' }}>Tip NV:</span>
-                            <span style={{ fontWeight: '600' }}>{dailyTipAmount.toLocaleString()}đ</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem', fontSize: '0.85rem' }}>
-                            <span style={{ fontWeight: '600' }}>Thực Chênh (sau Tip):</span>
-                            <span style={{ 
-                              fontWeight: 'bold', 
-                              color: diffMinusTip === 0 ? 'var(--success)' : diffMinusTip > 0 ? 'var(--warning)' : 'var(--danger)'
-                            }}>
-                              {diffMinusTip > 0 ? '+' : ''}{diffMinusTip.toLocaleString()}đ
-                            </span>
+                            <span style={{ fontWeight: '600', color: 'var(--danger)' }}>{dailyTipAmount.toLocaleString()}đ</span>
                           </div>
 
                           {record.note && (
