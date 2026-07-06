@@ -247,9 +247,9 @@ const MainLayout = () => {
           <ShoppingCart size={24} />
           <span style={{ fontWeight: '700' }}>Bán hàng</span>
         </Link>
-        <Link to="/app/customers" className={`mobile-nav-item ${location.pathname.includes('/customers') ? 'active' : ''}`}>
-          <UserCircle size={24} />
-          <span>Khách hàng</span>
+        <Link to="/app/beds" className={`mobile-nav-item ${location.pathname.includes('/beds') ? 'active' : ''}`}>
+          <LayoutGrid size={24} />
+          <span>Quản lý chỗ</span>
         </Link>
         <button onClick={() => setIsMobileMenuOpen(true)} className="mobile-nav-item" style={{ background: 'transparent', border: 'none' }}>
           <MoreHorizontal size={24} />

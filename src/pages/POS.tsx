@@ -41,6 +41,14 @@ const GROUP_COLORS = [
   '#ec4899', // pink
 ];
 
+const getDurationColor = (duration: number | null | undefined, fallback: string) => {
+  if (!duration) return fallback;
+  if (duration === 30) return '#10b981'; // emerald
+  if (duration === 60) return '#3b82f6'; // blue
+  if (duration === 90) return '#f59e0b'; // amber
+  return fallback;
+};
+
 const DebugReceiptTemplate = (props: any) => {
   console.log({
     role: props.profile?.role,
@@ -710,7 +718,8 @@ const POS = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '0.25rem' }}>
                   {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => {
                     const groupIdx = groups.findIndex(g => g.id === s.service_group_id);
-                    const color = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--primary)';
+                    const baseColor = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--primary)';
+                    const color = getDurationColor(s.duration_minutes, baseColor);
                     return (
                     <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.5rem', borderRadius: '8px', minWidth: 0, borderLeft: `4px solid ${color}` }}>
                       <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -789,7 +798,8 @@ const POS = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '0.25rem' }}>
                   {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => {
                     const groupIdx = groups.findIndex(g => g.id === s.service_group_id);
-                    const color = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--warning)';
+                    const baseColor = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--warning)';
+                    const color = getDurationColor(s.duration_minutes, baseColor);
                     return (
                     <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px dashed ${color}`, padding: '0.4rem 0.5rem', borderRadius: '8px', minWidth: 0, borderLeft: `4px solid ${color}` }}>
                       <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
