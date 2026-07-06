@@ -41,11 +41,12 @@ const GROUP_COLORS = [
   '#ec4899', // pink
 ];
 
-const getDurationColor = (duration: number | null | undefined, fallback: string) => {
+const getDurationColor = (duration: any, fallback: string) => {
   if (!duration) return fallback;
-  if (duration === 30) return '#10b981'; // emerald
-  if (duration === 60) return '#3b82f6'; // blue
-  if (duration === 90) return '#f59e0b'; // amber
+  const mins = Number(duration);
+  if (mins === 30) return '#10b981'; // emerald
+  if (mins === 60) return '#3b82f6'; // blue
+  if (mins === 90) return '#f59e0b'; // amber
   return fallback;
 };
 
@@ -718,13 +719,12 @@ const POS = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '0.25rem' }}>
                   {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(retailSearchTerm.toLowerCase())).map(s => {
                     const groupIdx = groups.findIndex(g => g.id === s.service_group_id);
-                    const baseColor = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--primary)';
-                    const color = getDurationColor(s.duration_minutes, baseColor);
+                    const color = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--primary)';
                     return (
                     <div key={s.id} onClick={() => addToCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.5rem', borderRadius: '8px', minWidth: 0, borderLeft: `4px solid ${color}` }}>
                       <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         <h4 style={{ fontSize: isMobile ? (s.name.length > 20 ? '0.7rem' : '0.8rem') : (s.name.length > 20 ? '0.8rem' : '0.9rem'), margin: 0, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2', color: color, fontWeight: '700' }}>{s.name}</h4>
-                        {s.duration_minutes ? <div style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '600' }}>⏱ {s.duration_minutes} phút</div> : null}
+                        {s.duration_minutes ? <div style={{ fontSize: '0.75rem', color: getDurationColor(s.duration_minutes, '#8b5cf6'), fontWeight: '600' }}>⏱ {s.duration_minutes} phút</div> : null}
                         <div style={{ color: '#ef4444', fontWeight: '800', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>💰 {Number(s.price).toLocaleString()}đ</div>
                       </div>
                       <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -798,13 +798,12 @@ const POS = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '0.25rem' }}>
                   {services.filter(s => (!activeGroupId || s.service_group_id === activeGroupId) && s.name.toLowerCase().includes(comboSearchTerm.toLowerCase())).map(s => {
                     const groupIdx = groups.findIndex(g => g.id === s.service_group_id);
-                    const baseColor = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--warning)';
-                    const color = getDurationColor(s.duration_minutes, baseColor);
+                    const color = groupIdx !== -1 ? GROUP_COLORS[groupIdx % GROUP_COLORS.length] : 'var(--warning)';
                     return (
                     <div key={s.id} onClick={() => addToComboCart(s)} className="premium-card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px dashed ${color}`, padding: '0.4rem 0.5rem', borderRadius: '8px', minWidth: 0, borderLeft: `4px solid ${color}` }}>
                       <div style={{ minWidth: 0, flex: 1, paddingRight: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         <h4 style={{ fontSize: isMobile ? (s.name.length > 20 ? '0.7rem' : '0.8rem') : (s.name.length > 20 ? '0.8rem' : '0.9rem'), margin: 0, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2', color: color, fontWeight: '700' }}>{s.name}</h4>
-                        {s.duration_minutes ? <div style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '600' }}>⏱ {s.duration_minutes} phút</div> : null}
+                        {s.duration_minutes ? <div style={{ fontSize: '0.75rem', color: getDurationColor(s.duration_minutes, '#8b5cf6'), fontWeight: '600' }}>⏱ {s.duration_minutes} phút</div> : null}
                         <div style={{ color: '#ef4444', fontWeight: '800', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>💰 {Number(s.price).toLocaleString()}đ</div>
                       </div>
                       <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
