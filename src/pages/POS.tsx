@@ -41,11 +41,12 @@ const GROUP_COLORS = [
   '#ec4899', // pink
 ];
 
-const getDurationColor = (duration: number | null | undefined, fallback: string) => {
+const getDurationColor = (duration: any, fallback: string) => {
   if (!duration) return fallback;
-  if (duration === 30) return '#10b981'; // emerald
-  if (duration === 60) return '#3b82f6'; // blue
-  if (duration === 90) return '#f59e0b'; // amber
+  const mins = Number(duration);
+  if (mins === 30) return '#10b981'; // emerald
+  if (mins === 60) return '#3b82f6'; // blue
+  if (mins === 90) return '#f59e0b'; // amber
   return fallback;
 };
 
