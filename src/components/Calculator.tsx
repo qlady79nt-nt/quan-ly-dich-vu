@@ -24,7 +24,11 @@ const Calculator: React.FC<CalculatorProps> = ({ initialValue, onConfirm, onClos
   };
 
   const handleOp = (op: string) => {
-    setEquation(display + ' ' + op + ' ');
+    if (isNewNumber && equation) {
+      setEquation(equation.slice(0, -3) + ' ' + op + ' ');
+      return;
+    }
+    setEquation(equation + display + ' ' + op + ' ');
     setIsNewNumber(true);
   };
 
