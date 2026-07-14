@@ -22,7 +22,8 @@ const StaffIncome = () => {
     tour_amount: '',
     overtime_minutes: '',
     meal_amount: '',
-    note: ''
+    note: '',
+    record_date: new Date().toISOString().split('T')[0]
   });
 
   // Filter State
@@ -104,7 +105,7 @@ const StaffIncome = () => {
   const resetForm = () => {
     setEditingId(null);
     setFormData({
-      staff_name: '', tip_amount: '', tour_amount: '', overtime_minutes: '', meal_amount: '', note: ''
+      staff_name: '', tip_amount: '', tour_amount: '', overtime_minutes: '', meal_amount: '', note: '', record_date: new Date().toISOString().split('T')[0]
     });
   };
 
@@ -116,7 +117,8 @@ const StaffIncome = () => {
       tour_amount: item.tour_amount?.toString() || '',
       overtime_minutes: item.overtime_minutes?.toString() || '',
       meal_amount: item.meal_amount?.toString() || '',
-      note: item.note || ''
+      note: item.note || '',
+      record_date: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -139,7 +141,7 @@ const StaffIncome = () => {
     if (!formData.staff_name) return alert('Vui lòng chọn hoặc nhập tên nhân viên.');
 
     setSaving(true);
-    const payload = {
+    const payload: any = {
       shop_id: shopId,
       staff_name: formData.staff_name,
       tip_amount: Number(formData.tip_amount) || 0,
@@ -149,10 +151,18 @@ const StaffIncome = () => {
       note: formData.note
     };
 
-    if (!editingId) {
-      // Kiểm tra xem nhân viên đã có bản ghi trong ngày hôm nay chưa
+    if (isShopAdmin && formData.record_date) {
+      const d = new Date(formData.record_date);
       const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      d.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      payload.created_at = d.toISOString();
+    }
+
+    if (!editingId) {
+      // Kiểm tra xem nhân viên đã có bản ghi trong ngày hôm nay/ngày được chọn chưa
+      const selectedDate = (isShopAdmin && formData.record_date) ? new Date(formData.record_date) : new Date();
+      const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).toISOString();
+      const endOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59, 999).toISOString();
       
       const { data: existing, error: checkErr } = await supabase
         .from('staff_daily_income')
@@ -160,6 +170,7 @@ const StaffIncome = () => {
         .eq('shop_id', shopId)
         .eq('staff_name', formData.staff_name)
         .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay)
         .limit(1);
         
       if (checkErr) {
@@ -255,6 +266,20 @@ const StaffIncome = () => {
               ))}
             </select>
           </div>
+
+          {isShopAdmin && (
+            <div>
+              <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Calendar size={16} /> Ngày ghi nhận
+              </label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={formData.record_date}
+                onChange={(e) => setFormData({...formData, record_date: e.target.value})}
+              />
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div>
