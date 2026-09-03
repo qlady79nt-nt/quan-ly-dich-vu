@@ -47,18 +47,26 @@ const DEFAULT_EXPENSE: ExpenseData = {
   support: 0
 };
 
+const formatLocalDate = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+    return formatLocalDate(new Date(d.getFullYear(), d.getMonth(), 1));
   });
   const [endDate, setEndDate] = useState<string>(() => {
     const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+    return formatLocalDate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
   });
   const [staffs, setStaffs] = useState<StaffData[]>([]);
   const [expenses, setExpenses] = useState<Record<string, ExpenseData>>({});
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [unlockedRows, setUnlockedRows] = useState<Record<string, boolean>>({});
@@ -67,8 +75,6 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
 
   const { profile } = useAuth();
   const isShopAdmin = profile?.role === 'shop_admin' || profile?.role === 'super_admin';
-
-
 
   if (!isShopAdmin) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Bạn không có quyền truy cập chức năng này.</div>;
@@ -85,63 +91,22 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
   const fetchStaffs = async () => {
     setLoading(true);
     try {
-      // 8. Log chính xác query Supabase đang chạy
-      console.log(`
-      QUERY ĐANG SỬ DỤNG ĐỂ DEBUG:
-      supabase
-        .from('staffs')
-        .select('*')
-        .eq('shop_id', '${shopId}')
-      `);
-
-      // 7. Log current shop_id
-      console.log("7. Current shop_id:", shopId);
-
-      // 8. Log current user role
-      console.log("8. Current user role:", profile?.role);
-
-      // KHÔNG SỬ DỤNG điều kiện position === 'Kỹ thuật viên'
       const { data, error } = await supabase
         .from('staffs')
         .select('*')
         .eq('shop_id', shopId);
         
       if (!error && data) {
-        // 1. Log toàn bộ record trả về từ bảng staffs
-        console.log("1. Toàn bộ record trả về từ bảng staffs:", data);
+        const isTechnician = (pos?: string) => {
+          if (!pos) return true; // nếu chưa set position thì mặc định hiển thị
+          const p = pos.trim().toLowerCase();
+          return p === 'technician' || p === 'ktv' || p === 'kỹ thuật viên' || p === 'tour' || p === 'staff';
+        };
 
-        // 2. Log toàn bộ giá trị position duy nhất
-        const uniquePositions = [...new Set(data.map(s => s.position))];
-        console.log("2. Toàn bộ giá trị position duy nhất:", uniquePositions);
-
-        // 3. Log toàn bộ giá trị status duy nhất
-        const uniqueStatuses = [...new Set(data.map(s => s.status))];
-        console.log("3. Toàn bộ giá trị status duy nhất:", uniqueStatuses);
-
-        // 4. Log toàn bộ giá trị is_active duy nhất
-        const uniqueIsActive = [...new Set(data.map(s => s.is_active))];
-        console.log("4. Toàn bộ giá trị is_active duy nhất:", uniqueIsActive);
-
-        // 9. Log kết quả của position, position.trim(), position.toLowerCase()
-        console.log("9. Kết quả xử lý chuỗi position:");
-        data.forEach(s => {
-          console.log({
-            id: s.id,
-            name: s.full_name,
-            position: s.position,
-            trimmed: s.position ? s.position.trim() : null,
-            lower: s.position ? s.position.toLowerCase() : null
-          });
-        });
-
-        // Filter để component chạy tiếp (sửa thành technician)
         const filteredData = data.filter(s => 
-          s.position?.trim().toLowerCase() === 'technician' && 
-          s.status === 'active'
+          isTechnician(s.position) && 
+          (s.status === 'active' || s.is_active === true || (!s.status && s.is_active !== false))
         );
-
-        console.log(`Before filter: ${data.length}`);
-        console.log(`After filter: ${filteredData.length}`);
 
         setStaffs(filteredData as any);
       }
@@ -152,8 +117,14 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     }
   };
 
-  const saveToSupabase = async (newExpenses: Record<string, ExpenseData>) => {
-    if (!shopId || !startDate || !endDate) return;
+  const saveToSupabase = async (newExpenses: Record<string, ExpenseData>): Promise<{ success: boolean; error?: string }> => {
+    if (!shopId || !startDate || !endDate) {
+      return { success: false, error: 'Thiếu thông tin cửa hàng hoặc ngày' };
+    }
+    if (staffs.length === 0) {
+      return { success: true };
+    }
+
     const upsertData = staffs.map(staff => {
       const e = newExpenses[staff.id] || DEFAULT_EXPENSE;
       return {
@@ -161,88 +132,127 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
         staff_id: staff.id,
         period_start: startDate,
         period_end: endDate,
-        salary: e.salary,
-        commission: e.commission,
-        bonus: e.bonus,
-        tip: e.tip,
-        bonus_tip: e.bonusTip,
-        overtime: e.overtime,
-        overtime_money: e.overtimeMoney,
-        bonus_overtime: e.bonusOvertime,
-        tour: e.tour,
-        bonus_tour: e.bonusTour,
-        meal: e.meal,
-        bonus_meal: e.bonusMeal,
-        kpi: e.kpi,
-        support: e.support,
+        salary: Number(e.salary) || 0,
+        commission: Number(e.commission) || 0,
+        bonus: Number(e.bonus) || 0,
+        tip: Number(e.tip) || 0,
+        bonus_tip: Number(e.bonusTip) || 0,
+        overtime: Number(e.overtime) || 0,
+        overtime_money: Number(e.overtimeMoney) || 0,
+        bonus_overtime: Number(e.bonusOvertime) || 0,
+        tour: Number(e.tour) || 0,
+        bonus_tour: Number(e.bonusTour) || 0,
+        meal: Number(e.meal) || 0,
+        bonus_meal: Number(e.bonusMeal) || 0,
+        kpi: Number(e.kpi) || 0,
+        support: Number(e.support) || 0,
         updated_at: new Date().toISOString()
       };
     });
     
     try {
-      const { error } = await supabase.from('staff_expenses').upsert(upsertData, {
-        onConflict: 'shop_id, staff_id, period_start, period_end'
+      // 1. Thử upsert chuẩn (không có khoảng trắng trong onConflict)
+      const { error: upsertError } = await supabase.from('staff_expenses').upsert(upsertData, {
+        onConflict: 'shop_id,staff_id,period_start,period_end'
       });
-      if (error) console.error("Error saving to supabase:", error);
-    } catch (e) {
-      console.error(e);
+      
+      if (!upsertError) {
+        return { success: true };
+      }
+
+      console.warn("Upsert failed, trying delete + insert fallback:", upsertError);
+
+      // 2. Fallback nếu DB thiếu ràng buộc unique hoặc xung đột:
+      // Xoá bản ghi cũ trong khoảng thời gian này rồi insert lại
+      const { error: delError } = await supabase
+        .from('staff_expenses')
+        .delete()
+        .eq('shop_id', shopId)
+        .eq('period_start', startDate)
+        .eq('period_end', endDate);
+
+      if (delError) {
+        console.error("Fallback delete error:", delError);
+        return { success: false, error: upsertError.message || delError.message };
+      }
+
+      const { error: insertError } = await supabase
+        .from('staff_expenses')
+        .insert(upsertData);
+
+      if (insertError) {
+        console.error("Fallback insert error:", insertError);
+        return { success: false, error: insertError.message };
+      }
+
+      return { success: true };
+    } catch (e: any) {
+      console.error("Exception saving to supabase:", e);
+      return { success: false, error: e?.message || 'Lỗi không xác định' };
     }
   };
 
   const handleManualSave = async () => {
     setIsSaving(true);
-    await saveToSupabase(expenses);
-    setIsSaving(false);
-    alert('Đã đồng bộ toàn bộ dữ liệu lên Cloud thành công!');
+    try {
+      const res = await saveToSupabase(expenses);
+      if (res.success) {
+        alert('Đã đồng bộ toàn bộ dữ liệu lên Cloud thành công!');
+      } else {
+        alert('Lỗi khi lưu lên Cloud: ' + (res.error || 'Vui lòng kiểm tra lại'));
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối khi lưu: ' + (err?.message || err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const loadSavedData = () => {
     if (!shopId || !startDate || !endDate || staffs.length === 0) return;
     const key = `staff_expenses_${shopId}_${startDate}_${endDate}`;
     const saved = localStorage.getItem(key);
-    let currentExpenses = { ...expenses };
+    let parsedSaved: Record<string, ExpenseData> | null = null;
     if (saved) {
       try {
-        currentExpenses = JSON.parse(saved);
-        setExpenses(currentExpenses);
+        parsedSaved = JSON.parse(saved);
+        setExpenses(parsedSaved!);
       } catch (e) {
         console.error('Error parsing saved expenses', e);
-        initializeEmptyExpenses();
       }
-    } else {
-      initializeEmptyExpenses();
     }
-    
-    // Tự động lấy hoa hồng và thu nhập KTV cho khoảng thời gian
+
     const fetchData = async () => {
+      setDataLoading(true);
       try {
         const sdObj = new Date(`${startDate}T00:00:00`);
         const edObj = new Date(`${endDate}T23:59:59.999`);
         const startStr = sdObj.toISOString();
         const endStr = edObj.toISOString();
 
-        // 0. Fetch from staff_expenses DB
-        const { data: dbExpenses } = await supabase
+        // 0. Lấy dữ liệu đã lưu từ Cloud
+        const { data: dbExpenses, error: dbError } = await supabase
           .from('staff_expenses')
           .select('*')
           .eq('shop_id', shopId)
           .eq('period_start', startDate)
           .eq('period_end', endDate);
 
+        if (dbError) {
+          console.error("Error fetching staff_expenses:", dbError);
+        }
+
         const dbMap = new Map<string, any>();
-        if (dbExpenses) {
+        if (dbExpenses && dbExpenses.length > 0) {
           dbExpenses.forEach(e => dbMap.set(e.staff_id, e));
         }
 
-        // -- One-time sync for legacy local storage --
-        if (dbMap.size === 0 && saved) {
-          try {
-            const parsedSaved = JSON.parse(saved);
-            saveToSupabase(parsedSaved);
-          } catch(e) {}
+        // Tự động đẩy dữ liệu từ localStorage lên Cloud nếu Cloud chưa có
+        if (dbMap.size === 0 && parsedSaved && Object.keys(parsedSaved).length > 0) {
+          saveToSupabase(parsedSaved);
         }
 
-        // 1. Fetch commission_logs
+        // 1. Lấy hoa hồng từ commission_logs
         const { data: commData } = await supabase
           .from('commission_logs')
           .select('staff_id, amount')
@@ -256,7 +266,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           commMap.set(c.staff_id, (commMap.get(c.staff_id) || 0) + Number(c.amount));
         });
 
-        // 2. Fetch staff_daily_income
+        // 2. Lấy thu nhập KTV từ staff_daily_income
         const { data: incData } = await supabase
           .from('staff_daily_income')
           .select('staff_name, tip_amount, tour_amount, overtime_minutes, meal_amount')
@@ -273,51 +283,73 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
           current.meal += Number(inc.meal_amount) || 0;
           incomeMap.set(inc.staff_name, current);
         });
-        
-        setExpenses(prev => {
-          const next = { ...prev };
-          let hasChanges = false;
-          staffs.forEach(s => {
-            if (!next[s.id]) next[s.id] = { ...DEFAULT_EXPENSE };
 
-            // Sync with DB
-            const dbE = dbMap.get(s.id);
-            if (dbE) {
-              next[s.id].salary = Number(dbE.salary) || 0;
-              next[s.id].commission = Number(dbE.commission) || 0;
-              next[s.id].bonus = Number(dbE.bonus) || 0;
-              next[s.id].tip = Number(dbE.tip) || 0;
-              next[s.id].bonusTip = Number(dbE.bonus_tip) || 0;
-              next[s.id].overtime = Number(dbE.overtime) || 0;
-              next[s.id].overtimeMoney = Number(dbE.overtime_money) || 0;
-              next[s.id].bonusOvertime = Number(dbE.bonus_overtime) || 0;
-              next[s.id].tour = Number(dbE.tour) || 0;
-              next[s.id].bonusTour = Number(dbE.bonus_tour) || 0;
-              next[s.id].meal = Number(dbE.meal) || 0;
-              next[s.id].bonusMeal = Number(dbE.bonus_meal) || 0;
-              next[s.id].kpi = Number(dbE.kpi) || 0;
-              next[s.id].support = Number(dbE.support) || 0;
-              hasChanges = true;
-            }
+        // Hợp nhất dữ liệu: Ưu tiên Cloud (nếu đã lưu) -> LocalStorage -> Tính tự động từ Logs
+        const next: Record<string, ExpenseData> = {};
 
-            const newComm = commMap.get(s.id) || 0;
-            const staffInc = incomeMap.get(s.full_name) || { tip: 0, tour: 0, overtime: 0, meal: 0 };
+        staffs.forEach(s => {
+          const dbE = dbMap.get(s.id);
+          const localE = parsedSaved?.[s.id];
+          const newComm = commMap.get(s.id) || 0;
+          const staffInc = incomeMap.get(s.full_name) || { tip: 0, tour: 0, overtime: 0, meal: 0 };
+          const calcOvertimeMoney = Math.round((staffInc.overtime / 60) * 25000);
 
-            if (next[s.id].commission !== newComm) { next[s.id].commission = newComm; hasChanges = true; }
-            if (next[s.id].tip !== staffInc.tip) { next[s.id].tip = staffInc.tip; hasChanges = true; }
-            if (next[s.id].tour !== staffInc.tour) { next[s.id].tour = staffInc.tour; hasChanges = true; }
-            if (next[s.id].overtime !== staffInc.overtime) { next[s.id].overtime = staffInc.overtime; hasChanges = true; }
-            const calcOvertimeMoney = Math.round((staffInc.overtime / 60) * 25000);
-            if (next[s.id].overtimeMoney !== calcOvertimeMoney) { next[s.id].overtimeMoney = calcOvertimeMoney; hasChanges = true; }
-            if (next[s.id].meal !== staffInc.meal) { next[s.id].meal = staffInc.meal; hasChanges = true; }
-          });
-          if (hasChanges) {
-            localStorage.setItem(key, JSON.stringify(next));
+          if (dbE) {
+            // Khi Cloud đã có dữ liệu, dùng 100% dữ liệu đã lưu trên Cloud (không bị Logs ghi đè)
+            next[s.id] = {
+              salary: Number(dbE.salary) || 0,
+              commission: Number(dbE.commission) || 0,
+              bonus: Number(dbE.bonus) || 0,
+              tip: Number(dbE.tip) || 0,
+              bonusTip: Number(dbE.bonus_tip) || 0,
+              overtime: Number(dbE.overtime) || 0,
+              overtimeMoney: Number(dbE.overtime_money) || 0,
+              bonusOvertime: Number(dbE.bonus_overtime) || 0,
+              tour: Number(dbE.tour) || 0,
+              bonusTour: Number(dbE.bonus_tour) || 0,
+              meal: Number(dbE.meal) || 0,
+              bonusMeal: Number(dbE.bonus_meal) || 0,
+              kpi: Number(dbE.kpi) || 0,
+              support: Number(dbE.support) || 0
+            };
+          } else if (localE) {
+            // Chưa có trên Cloud nhưng thiết bị có lưu local
+            next[s.id] = {
+              salary: Number(localE.salary) || 0,
+              commission: localE.commission !== undefined ? Number(localE.commission) : newComm,
+              bonus: Number(localE.bonus) || 0,
+              tip: localE.tip !== undefined ? Number(localE.tip) : staffInc.tip,
+              bonusTip: Number(localE.bonusTip) || 0,
+              overtime: localE.overtime !== undefined ? Number(localE.overtime) : staffInc.overtime,
+              overtimeMoney: localE.overtimeMoney !== undefined ? Number(localE.overtimeMoney) : calcOvertimeMoney,
+              bonusOvertime: Number(localE.bonusOvertime) || 0,
+              tour: localE.tour !== undefined ? Number(localE.tour) : staffInc.tour,
+              bonusTour: Number(localE.bonusTour) || 0,
+              meal: localE.meal !== undefined ? Number(localE.meal) : staffInc.meal,
+              bonusMeal: Number(localE.bonusMeal) || 0,
+              kpi: Number(localE.kpi) || 0,
+              support: Number(localE.support) || 0
+            };
+          } else {
+            // Mở lần đầu trên thiết bị mới (chưa có Cloud và Local): Khởi tạo tự động từ log hoa hồng & thu nhập
+            next[s.id] = {
+              ...DEFAULT_EXPENSE,
+              commission: newComm,
+              tip: staffInc.tip,
+              tour: staffInc.tour,
+              overtime: staffInc.overtime,
+              overtimeMoney: calcOvertimeMoney,
+              meal: staffInc.meal
+            };
           }
-          return next;
         });
+
+        setExpenses(next);
+        localStorage.setItem(key, JSON.stringify(next));
       } catch (err) {
         console.error('Error fetching data:', err);
+      } finally {
+        setDataLoading(false);
       }
     };
     
@@ -519,7 +551,7 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             <span>💰</span> Chi phí nhân viên
           </h3>
           <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            Dữ liệu được lưu trữ độc lập trên thiết bị này theo khoảng thời gian.
+            Dữ liệu chi phí được đồng bộ Cloud theo khoảng thời gian giữa các thiết bị.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '0.25rem' }}>
@@ -532,23 +564,25 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
             {isSaving ? <Loader2 className="animate-spin" size={14} /> : <span>💾 Lưu Cloud</span>}
           </button>
           <button
+            type="button"
             className="btn btn-secondary"
             style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', whiteSpace: 'nowrap', minHeight: 'auto' }}
             onClick={() => {
               const d = new Date();
-              setStartDate(new Date(d.getFullYear(), d.getMonth() - 1, 1).toISOString().split('T')[0]);
-              setEndDate(new Date(d.getFullYear(), d.getMonth(), 0).toISOString().split('T')[0]);
+              setStartDate(formatLocalDate(new Date(d.getFullYear(), d.getMonth() - 1, 1)));
+              setEndDate(formatLocalDate(new Date(d.getFullYear(), d.getMonth(), 0)));
             }}
           >
             Tháng trước
           </button>
           <button
+            type="button"
             className="btn btn-primary"
             style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', whiteSpace: 'nowrap', minHeight: 'auto' }}
             onClick={() => {
               const d = new Date();
-              setStartDate(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]);
-              setEndDate(new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]);
+              setStartDate(formatLocalDate(new Date(d.getFullYear(), d.getMonth(), 1)));
+              setEndDate(formatLocalDate(new Date(d.getFullYear(), d.getMonth() + 1, 0)));
             }}
           >
             Tháng này
@@ -571,9 +605,10 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
         </div>
       </div>
 
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '3rem' }}>
+      {loading || dataLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', padding: '3rem' }}>
           <Loader2 className="animate-spin text-primary" size={32} />
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Đang tải dữ liệu từ Cloud...</span>
         </div>
       ) : staffs.length === 0 ? (
         <div style={{ padding: '3rem', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '1rem', color: 'var(--text-secondary)' }}>

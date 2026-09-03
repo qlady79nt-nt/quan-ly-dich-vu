@@ -43,7 +43,8 @@ ALTER TABLE public.staff_expenses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS data_isolation_staff_expenses ON public.staff_expenses;
 CREATE POLICY data_isolation_staff_expenses 
 ON public.staff_expenses FOR ALL 
-USING (shop_id = auth_user_shop_id() OR is_super_admin());
+USING (shop_id = auth_user_shop_id() OR is_super_admin())
+WITH CHECK (shop_id = auth_user_shop_id() OR is_super_admin());
 
 -- Index để truy vấn nhanh hơn theo khoảng thời gian
 CREATE INDEX IF NOT EXISTS idx_staff_expenses_period 
