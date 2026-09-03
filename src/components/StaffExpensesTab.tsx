@@ -356,14 +356,6 @@ const StaffExpensesTab: React.FC<Props> = ({ shopId }) => {
     fetchData();
   };
 
-  const initializeEmptyExpenses = () => {
-    const initial: Record<string, ExpenseData> = {};
-    staffs.forEach(s => {
-      initial[s.id] = { ...DEFAULT_EXPENSE };
-    });
-    setExpenses(initial);
-  };
-
   const handleInputChange = (staffId: string, field: keyof ExpenseData, value: string) => {
     const numValue = Number(value.replace(/\D/g, '')) || 0;
     const newExpenses = {
