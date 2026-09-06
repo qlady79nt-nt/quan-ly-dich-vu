@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { initPosaZoom } from './lib/posaZoom';
 import { 
   Users, 
   Scissors, 
@@ -273,6 +274,10 @@ const IndexRedirect = () => {
 };
 
 function App() {
+  useEffect(() => {
+    return initPosaZoom();
+  }, []);
+
   return (
     <AuthProvider>
       <Router>
