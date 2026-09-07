@@ -19,6 +19,7 @@ import ReconciliationModal from '../components/ReconciliationModal';
 import FakeRevenueConfigModal from '../components/FakeRevenueConfigModal';
 import { fetchFakeRevenueForRange, getTodayVNString } from '../lib/fakeRevenueService';
 import { exportReportToExcel } from '../lib/exportExcel';
+import { isPosaDesktop } from '../lib/posaZoom';
 
 const Reports = () => {
   const { hasPermission, profile, user } = useAuth();
@@ -621,16 +622,19 @@ const Reports = () => {
         };
       });
 
-      const mappedToday = todayRealRevLog.map(r => ({
-        date: todayStr,
-        technician: 'Kỹ thuật viên',
-        service: r.type === 'package_sale' ? 'Bán thẻ liệu trình' : r.type === 'package_session' ? 'Trừ buổi liệu trình' : 'Dịch vụ lẻ',
-        quantity: 1,
-        unitPrice: r.amount,
-        amount: r.amount,
-        type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
-        code: r.mapped_invoice_code || r.mapped_session_code || ''
-      }));
+      const mappedToday = todayRealRevLog.map((r, idx) => {
+        const dateCode = todayStr.replace(/-/g, '').slice(2);
+        return {
+          date: todayStr,
+          technician: r.staff_name || 'Kỹ thuật viên',
+          service: r.service_name || (r.type === 'package_sale' ? 'Bán thẻ liệu trình' : r.type === 'package_session' ? 'Trừ buổi liệu trình' : 'Dịch vụ lẻ'),
+          quantity: r.quantity || 1,
+          unitPrice: r.unit_price || r.amount,
+          amount: r.amount,
+          type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
+          code: r.mapped_invoice_code || r.mapped_session_code || `HD${dateCode}-${String(idx + 1).padStart(2, '0')}`
+        };
+      });
 
       finalExportItems = [...mappedToday, ...mappedFake];
     } else {
@@ -659,6 +663,55 @@ const Reports = () => {
         type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
         code: r.mapped_invoice_code || r.mapped_session_code || ''
       }));
+    }
+
+    // Nếu chạy trên POSA Desktop: Lưu trực tiếp file Excel vào C:\Program Files\POSA\data
+    if (isPosaDesktop() && window.__posa_native?.saveDailyReport) {
+      try {
+        const dateGroups = new Map<string, any[]>();
+        finalExportItems.forEach(it => {
+          let itemDate = it.date;
+          if (itemDate && itemDate.includes('/')) {
+            const parts = itemDate.split('/');
+            if (parts.length === 3) {
+              itemDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          }
+          if (!itemDate || itemDate === '---') {
+            itemDate = todayStr;
+          }
+          const list = dateGroups.get(itemDate) || [];
+          list.push(it);
+          dateGroups.set(itemDate, list);
+        });
+
+        const savedFiles: string[] = [];
+        for (const [dStr, items] of dateGroups.entries()) {
+          const dateCode = dStr.replace(/-/g, '').slice(2);
+          const payload = {
+            date: dStr,
+            shop_name: profile?.shop?.name || 'SPA',
+            items: items.map((it, idx) => ({
+              date: dStr,
+              technician: it.technician || 'Kỹ thuật viên',
+              service: it.service || 'Dịch vụ',
+              code: (it.code && it.code !== '---') ? it.code : `HD${dateCode}-${String(idx + 1).padStart(2, '0')}`,
+              quantity: Number(it.quantity || 1),
+              unit_price: Number(it.unitPrice || it.amount || 0),
+              amount: Number(it.amount || 0)
+            }))
+          };
+          await window.__posa_native.saveDailyReport(payload);
+          savedFiles.push(`DoanhThu_${dStr}.xlsx`);
+        }
+
+        if (savedFiles.length > 0) {
+          alert(`Đã lưu thành công file vào thư mục data:\nC:\\Program Files\\POSA\\data\\\n(${savedFiles.join(', ')})`);
+        }
+      } catch (err: any) {
+        console.error('[POSA Export] Lỗi ghi file vào folder data:', err);
+        alert(`Không thể lưu vào thư mục data: ${err?.message || err}\nVui lòng chạy POSA bằng chuột phải -> "Run as administrator".`);
+      }
     }
 
     exportReportToExcel(finalExportItems, profile?.shop?.name || 'SPA', startDate, endDate);
