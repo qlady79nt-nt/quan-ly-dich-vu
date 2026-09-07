@@ -28,6 +28,12 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "installerHooks": "hooks.nsh"
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

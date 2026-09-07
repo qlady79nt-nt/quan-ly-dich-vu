@@ -7,5 +7,8 @@
   ],
   "permissions": [
     "core:default"
-  ]
+  ],
+  "remote": {
+    "urls": ["https://posspa.dichvupro.net"]
+  }
 }

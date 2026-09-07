@@ -1,9 +1,12 @@
-// === POSA DESKTOP GLOBAL ZOOM HANDLER (100% / 90% / 80%) ===
-const ZOOM_BRIDGE_SCRIPT: &str = r#"
-(function() {
-  if (window.__posa_zoom_initialized) return;
-  window.__posa_zoom_initialized = true;
+pub mod commands;
 
+// === POSA DESKTOP GLOBAL ZOOM & NATIVE BRIDGE SCRIPT ===
+const ZOOM_AND_BRIDGE_SCRIPT: &str = r#"
+(function() {
+  if (window.__posa_bridge_initialized) return;
+  window.__posa_bridge_initialized = true;
+
+  // 1. GLOBAL ZOOM HANDLER (100% / 90% / 80%)
   var KEY = 'posa_zoom_level';
   var saved = localStorage.getItem(KEY);
   var currentZoom = saved ? parseFloat(saved) : 1.0;
@@ -37,27 +40,47 @@ const ZOOM_BRIDGE_SCRIPT: &str = r#"
       }
     }
   });
+
+  // 2. POSA NATIVE BRIDGE FOR EXCEL SYNC
+  window.__posa_native = {
+    checkExistingReports: async function() {
+      if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
+        return await window.__TAURI_INTERNALS__.invoke('check_existing_posa_reports');
+      }
+      return [];
+    },
+    saveDailyReport: async function(payload) {
+      if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
+        return await window.__TAURI_INTERNALS__.invoke('save_posa_daily_report', { payload: payload });
+      }
+      throw new Error('Chỉ hỗ trợ lưu tự động trên POSA Desktop.');
+    }
+  };
 })();
 "#;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
-    .on_page_load(|webview, payload| {
-      if payload.event() == tauri::webview::PageLoadEvent::Finished {
-        let _ = webview.eval(ZOOM_BRIDGE_SCRIPT);
-      }
-    })
-    .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-      }
-      Ok(())
-    })
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            commands::check_existing_posa_reports,
+            commands::save_posa_daily_report
+        ])
+        .on_page_load(|webview, payload| {
+            if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                let _ = webview.eval(ZOOM_AND_BRIDGE_SCRIPT);
+            }
+        })
+        .setup(|app| {
+            if cfg!(debug_assertions) {
+                app.handle().plugin(
+                    tauri_plugin_log::Builder::default()
+                        .level(log::LevelFilter::Info)
+                        .build(),
+                )?;
+            }
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }

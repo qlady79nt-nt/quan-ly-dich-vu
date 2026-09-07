@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { initPosaZoom } from './lib/posaZoom';
+import { initPosaAutoSync } from './lib/posaAutoSyncService';
 import { 
   Users, 
   Scissors, 
@@ -48,6 +49,12 @@ const MainLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (profile?.shop_id) {
+      return initPosaAutoSync(profile.shop_id, profile.shop?.name || 'SPA');
+    }
+  }, [profile?.shop_id, profile?.shop?.name]);
 
   let menuItems = [];
 

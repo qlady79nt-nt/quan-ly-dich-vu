@@ -6,7 +6,8 @@ import {
   Lock,
   Search,
   Info,
-  Briefcase
+  Briefcase,
+  Download
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -14,6 +15,8 @@ import { TableSkeleton } from '../components/Skeleton';
 import { createPortal } from 'react-dom';
 import ReportsStaff from '../components/ReportsStaff';
 import ReconciliationModal from '../components/ReconciliationModal';
+import { fetchFakeRevenueForRange, getTodayVNString } from '../lib/fakeRevenueService';
+import { exportReportToExcel } from '../lib/exportExcel';
 
 const Reports = () => {
   const { hasPermission, profile, user } = useAuth();
@@ -27,6 +30,7 @@ const Reports = () => {
   };
 
   const today = getLocalDateString(new Date());
+  const todayVN = getTodayVNString();
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
 
@@ -92,6 +96,7 @@ const Reports = () => {
   }, [shopId]);
 
   const fetchReportData = async () => {
+    if (!shopId) return;
     setLoading(true);
     try {
       // Check Permissions before fetching
@@ -109,58 +114,92 @@ const Reports = () => {
       const start = startObj.toISOString();
       const end = endObj.toISOString();
 
-      let useFakeRevenue = false;
       if (isStaff) {
-        const sDate = new Date(startObj);
-        const todayDate = new Date();
-        todayDate.setHours(0, 0, 0, 0);
-        sDate.setHours(0, 0, 0, 0);
-        
-        // Nếu sDate cũ hơn (today - 2 ngày), tức là chứa ngày cũ hơn 3 ngày
-        const diffTime = todayDate.getTime() - sDate.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays > 2) {
-           useFakeRevenue = true;
-        }
-      }
+        const todayStr = getTodayVNString();
+        let fakeRecords: any[] = [];
+        let todayRealRevLog: any[] = [];
 
-      if (useFakeRevenue) {
-        // Sinh fake revenue bằng RPC
-        const currentM = new Date(startObj.getFullYear(), startObj.getMonth(), 1);
-        while (currentM <= endObj) {
-           const yyyy = currentM.getFullYear();
-           const mm = String(currentM.getMonth() + 1).padStart(2, '0');
-           await supabase.rpc('sp_generate_fake_revenue_month', { 
-             p_shop_id: shopId, 
-             p_target_date: `${yyyy}-${mm}-01` 
-           });
-           currentM.setMonth(currentM.getMonth() + 1);
+        // 1. Nếu khoảng ngày có chứa ngày quá khứ (< todayStr)
+        if (startDate < todayStr) {
+          const fakeEnd = endDate < todayStr ? endDate : (() => {
+            const t = new Date();
+            t.setDate(t.getDate() - 1);
+            const y = t.getFullYear();
+            const m = String(t.getMonth() + 1).padStart(2, '0');
+            const d = String(t.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+          })();
+
+          fakeRecords = await fetchFakeRevenueForRange(shopId, startDate, fakeEnd);
         }
 
-        const { data: fakeData } = await supabase.from('staff_fake_revenue')
-           .select('fake_amount')
-           .eq('shop_id', shopId)
-           .gte('revenue_date', start.split('T')[0])
-           .lte('revenue_date', end.split('T')[0]);
-           
-        const fakeTotal = fakeData?.reduce((acc: number, row: any) => acc + Number(row.fake_amount), 0) || 0;
+        // 2. Nếu khoảng ngày có chứa ngày hôm nay (todayStr)
+        if (startDate <= todayStr && endDate >= todayStr) {
+          const [ty, tm, td] = todayStr.split('-').map(Number);
+          const tStart = new Date(ty, tm - 1, td, 0, 0, 0).toISOString();
+          const tEnd = new Date(ty, tm - 1, td, 23, 59, 59, 999).toISOString();
+
+          const { data: todayData } = await supabase
+            .from('revenue_logs')
+            .select('*')
+            .eq('shop_id', shopId)
+            .gte('recorded_at', tStart)
+            .lte('recorded_at', tEnd)
+            .neq('status', 'cancelled')
+            .order('recorded_at', { ascending: false });
+
+          todayRealRevLog = todayData || [];
+        }
+
+        // Tính tổng tiền
+        const fakeTotal = fakeRecords.reduce((acc, r) => acc + Number(r.amount || 0), 0);
+        const todayRealTotal = todayRealRevLog.reduce((acc, r) => acc + Number(r.amount || 0), 0);
+        const combinedTotal = fakeTotal + todayRealTotal;
 
         setStats({
-          totalRevenue: fakeTotal,
-          totalProfit: fakeTotal, 
+          totalRevenue: combinedTotal,
+          totalProfit: combinedTotal,
           totalComm: 0,
-          totalCashFlow: fakeTotal,
-          retailRev: fakeTotal,
+          totalCashFlow: combinedTotal,
+          retailRev: combinedTotal,
           packageSaleCash: 0,
           totalUnrealizedValue: 0,
           totalUnrealizedSessions: 0
         });
-        
-        setRevenueData([]);
+
+        // Chuẩn hóa danh sách chi tiết cho Staff
+        const mappedFake = fakeRecords.map(r => ({
+          id: r.id,
+          is_fake: true,
+          type: 'retail',
+          amount: r.amount,
+          recorded_at: `${r.revenue_date}T10:00:00.000Z`,
+          customer_name: 'Khách lẻ',
+          service_name: r.service_name_snapshot,
+          technician_name: r.technician_name_snapshot,
+          quantity: r.quantity,
+          unit_price: r.unit_price,
+          revenue_date: r.revenue_date,
+          mapped_invoice_code: 'F-' + r.revenue_date.replace(/-/g, '').slice(2)
+        }));
+
+        const mappedToday = todayRealRevLog.map(r => ({
+          ...r,
+          is_fake: false,
+          customer_name: 'Khách lẻ',
+          service_name: r.type === 'package_sale' ? 'Bán liệu trình' : 'Dịch vụ lẻ',
+          technician_name: 'Kỹ thuật viên'
+        }));
+
+        const allDisplayRecords = [...mappedToday, ...mappedFake].sort(
+          (a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
+        );
+
+        setRevenueData(allDisplayRecords);
         setStaffData([]);
         setMissingStaffData([]);
         setLoading(false);
-        return; // Dừng, không fetch dữ liệu thật
+        return; // Dừng luồng Staff ở đây
       }
 
       if (canViewRevenue) {
@@ -527,7 +566,117 @@ const Reports = () => {
     setLoading(false);
   };
 
+  const handleExportExcel = async () => {
+    if (!shopId) return;
+    const todayStr = getTodayVNString();
+    let finalExportItems: any[] = [];
+
+    if (isStaff) {
+      let fakeRecords: any[] = [];
+      let todayRealRevLog: any[] = [];
+
+      // 1. Nếu có ngày quá khứ (< todayStr)
+      if (startDate < todayStr) {
+        const fakeEnd = endDate < todayStr ? endDate : (() => {
+          const t = new Date();
+          t.setDate(t.getDate() - 1);
+          const y = t.getFullYear();
+          const m = String(t.getMonth() + 1).padStart(2, '0');
+          const d = String(t.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        })();
+        fakeRecords = await fetchFakeRevenueForRange(shopId, startDate, fakeEnd);
+      }
+
+      // 2. Nếu có ngày hôm nay (todayStr): fetch REAL mới nhất tại thời điểm bấm
+      if (startDate <= todayStr && endDate >= todayStr) {
+        const [ty, tm, td] = todayStr.split('-').map(Number);
+        const tStart = new Date(ty, tm - 1, td, 0, 0, 0).toISOString();
+        const tEnd = new Date(ty, tm - 1, td, 23, 59, 59, 999).toISOString();
+
+        const { data: todayFresh } = await supabase
+          .from('revenue_logs')
+          .select('*')
+          .eq('shop_id', shopId)
+          .gte('recorded_at', tStart)
+          .lte('recorded_at', tEnd)
+          .neq('status', 'cancelled')
+          .order('recorded_at', { ascending: false });
+        todayRealRevLog = todayFresh || [];
+      }
+
+      const mappedFake = fakeRecords.map(r => ({
+        date: r.revenue_date,
+        technician: r.technician_name_snapshot || 'Kỹ thuật viên',
+        service: r.service_name_snapshot || 'Dịch vụ',
+        quantity: r.quantity || 1,
+        unitPrice: r.unit_price || r.amount,
+        amount: r.amount,
+        type: 'Lịch sử ảo',
+        code: 'F-' + r.revenue_date.replace(/-/g, '').slice(2)
+      }));
+
+      const mappedToday = todayRealRevLog.map(r => ({
+        date: todayStr,
+        technician: 'Kỹ thuật viên',
+        service: r.type === 'package_sale' ? 'Bán thẻ liệu trình' : r.type === 'package_session' ? 'Trừ buổi liệu trình' : 'Dịch vụ lẻ',
+        quantity: 1,
+        unitPrice: r.amount,
+        amount: r.amount,
+        type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
+        code: r.mapped_invoice_code || r.mapped_session_code || ''
+      }));
+
+      finalExportItems = [...mappedToday, ...mappedFake];
+    } else {
+      // Flow của Admin: fetch fresh revenue_logs mới nhất tại thời điểm bấm
+      const [sy, sm, sd] = startDate.split('-').map(Number);
+      const startObj = new Date(sy, sm - 1, sd, 0, 0, 0);
+      const [ey, em, ed] = endDate.split('-').map(Number);
+      const endObj = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+
+      const { data: freshRev } = await supabase
+        .from('revenue_logs')
+        .select('*')
+        .eq('shop_id', shopId)
+        .gte('recorded_at', startObj.toISOString())
+        .lte('recorded_at', endObj.toISOString())
+        .neq('status', 'cancelled')
+        .order('recorded_at', { ascending: false });
+
+      finalExportItems = (freshRev || []).map(r => ({
+        date: r.recorded_at ? new Date(r.recorded_at).toLocaleDateString('vi-VN') : '---',
+        technician: r.staff_name || '---',
+        service: r.service_name || (r.type === 'package_sale' ? 'Bán thẻ liệu trình' : r.type === 'package_session' ? 'Trừ buổi liệu trình' : 'Dịch vụ lẻ'),
+        quantity: r.quantity || 1,
+        unitPrice: r.unit_price || r.amount,
+        amount: r.amount,
+        type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
+        code: r.mapped_invoice_code || r.mapped_session_code || ''
+      }));
+    }
+
+    exportReportToExcel(finalExportItems, profile?.shop?.name || 'SPA', startDate, endDate);
+  };
+
   const openRevenueDetail = async (log: any) => {
+    if (log.is_fake) {
+      setDetailModal({
+        type: 'fake_record',
+        data: {
+          service_name: log.service_name,
+          staff_name: log.technician_name,
+          quantity: log.quantity || 1,
+          unit_price: log.unit_price || log.amount,
+          amount: log.amount,
+          revenue_date: log.revenue_date,
+          customer_name: 'Khách lẻ'
+        },
+        title: `Chi tiết Dịch vụ (${log.service_name})`
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const resolveItemNames = async (itemList: any[]) => {
@@ -746,6 +895,11 @@ const Reports = () => {
           <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
             <Search size={16} /> Tìm kiếm
           </button>
+          {endDate >= todayVN && (
+            <button onClick={handleExportExcel} className="btn btn-secondary" style={{ padding: '0.5rem 1.25rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }} title="Xuất báo cáo ra file Excel / CSV (Dữ liệu thực tế mới nhất)">
+              <Download size={16} /> Xuất Excel
+            </button>
+          )}
         </div>
       </div>
 
@@ -810,29 +964,32 @@ const Reports = () => {
                 </div>
               </div>
 
-              {!isStaff && (
                 <div className="premium-card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={20} /> Nhật ký Doanh thu</h3>
+                    <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <TrendingUp size={20} /> {isStaff ? 'Chi tiết Doanh số' : 'Nhật ký Doanh thu'}
+                    </h3>
                   </div>
 
-                  {/* Sub-tabs cho Doanh thu */}
-                  <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
-                    <button onClick={() => { setRevenueTab('all'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Tất cả</button>
-                    <button onClick={() => { setRevenueTab('retail'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Dịch vụ lẻ</button>
-                    <button onClick={() => { setRevenueTab('combo'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'combo' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'combo' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Combo</button>
-                    <button onClick={() => { setRevenueTab('package_sale'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Bán liệu trình</button>
-                    <button onClick={() => { setRevenueTab('package_session'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Sử dụng liệu trình (Trừ buổi)</button>
-                  </div>
+                  {/* Sub-tabs cho Doanh thu (Chỉ hiển thị cho Admin) */}
+                  {!isStaff && (
+                    <div className="mobile-tabs" style={{ marginBottom: '1.5rem' }}>
+                      <button onClick={() => { setRevenueTab('all'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'all' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'all' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Tất cả</button>
+                      <button onClick={() => { setRevenueTab('retail'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'retail' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'retail' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Dịch vụ lẻ</button>
+                      <button onClick={() => { setRevenueTab('combo'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'combo' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'combo' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Combo</button>
+                      <button onClick={() => { setRevenueTab('package_sale'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_sale' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_sale' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Bán liệu trình</button>
+                      <button onClick={() => { setRevenueTab('package_session'); setRevenueDisplayCount(10); }} className="btn mobile-tab" style={{ background: revenueTab === 'package_session' ? 'var(--primary)' : 'var(--bg-main)', color: revenueTab === 'package_session' ? 'white' : 'var(--text-secondary)', padding: '0.5rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>Sử dụng liệu trình (Trừ buổi)</button>
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length === 0 ? (
+                    {revenueData.filter(r => isStaff || revenueTab === 'all' || r.type === revenueTab).length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)', background: 'var(--bg-main)', borderRadius: '0.75rem' }}>
                         Không có phát sinh doanh thu loại này.
                       </div>
                     ) : (
                       <>
-                        {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).slice(0, revenueDisplayCount).map((r, idx) => (
+                        {revenueData.filter(r => isStaff || revenueTab === 'all' || r.type === revenueTab).slice(0, revenueDisplayCount).map((r, idx) => (
                           <div 
                             key={idx} 
                             onClick={() => openRevenueDetail(r)}
@@ -846,7 +1003,18 @@ const Reports = () => {
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-                                  {r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'combo' ? 'Thu combo' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'} 
+                                  {r.is_fake ? (
+                                    <span>
+                                      {r.service_name}
+                                      {r.technician_name && (
+                                        <span style={{ color: 'var(--primary)', marginLeft: '0.5rem', fontWeight: '600', fontSize: '0.8rem' }}>
+                                          (KTV: {r.technician_name})
+                                        </span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    r.type === 'retail' ? 'Thu dịch vụ lẻ' : r.type === 'combo' ? 'Thu combo' : r.type === 'package_sale' ? 'Thu bán thẻ liệu trình' : 'Trừ buổi liệu trình'
+                                  )}
                                   
                                   {/* Mã hóa đơn cho cả 3 loại */}
                                   {r.mapped_invoice_code ? <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>HĐ: #{r.mapped_invoice_code}</span> : ''}
@@ -875,7 +1043,7 @@ const Reports = () => {
                           </div>
                         ))}
                         
-                        {revenueData.filter(r => revenueTab === 'all' || r.type === revenueTab).length > revenueDisplayCount && (
+                        {revenueData.filter(r => isStaff || revenueTab === 'all' || r.type === revenueTab).length > revenueDisplayCount && (
                           <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                             <button 
                               onClick={() => setRevenueDisplayCount(prev => prev + 10)}
@@ -890,7 +1058,6 @@ const Reports = () => {
                     )}
                   </div>
                 </div>
-              )}
             </>
           ) : (
             <div className="premium-card" style={{ textAlign: 'center', padding: '5rem' }}>
@@ -1105,6 +1272,42 @@ const Reports = () => {
             </h3>
             
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', marginBottom: '1.5rem' }}>
+              {detailModal.type === 'fake_record' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Kỹ thuật viên:</span>
+                    <span style={{ fontWeight: '700', color: 'var(--primary)' }}>{detailModal.data.staff_name}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Dịch vụ:</span>
+                    <span style={{ fontWeight: '600' }}>{detailModal.data.service_name}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Ngày thực hiện:</span>
+                    <span>{detailModal.data.revenue_date}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Khách hàng:</span>
+                    <span>{detailModal.data.customer_name}</span>
+                  </div>
+                  <div style={{ background: 'var(--bg-main)', borderRadius: '0.5rem', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Số lượng:</span>
+                      <span>{detailModal.data.quantity} ca</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Đơn giá:</span>
+                      <span>{Number(detailModal.data.unit_price).toLocaleString()}đ</span>
+                    </div>
+                    <div style={{ borderTop: '1px dashed var(--border)', margin: '0.75rem 0' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', color: 'var(--primary)', fontSize: '1.1rem' }}>
+                      <span>Tổng cộng:</span>
+                      <span>{Number(detailModal.data.amount).toLocaleString()}đ</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {detailModal.type === 'invoice' && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, ShieldAlert, ShieldCheck, Loader2, X } from 'lucide-react';
+import { Search, Plus, ShieldAlert, ShieldCheck, Loader2, X, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { generateShopCode } from '../lib/shopResolver';
+import FakeRevenueConfigModal from '../components/FakeRevenueConfigModal';
 
 const Shops = () => {
   useAuth();
@@ -14,6 +15,7 @@ const Shops = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [fakeRevenueModalShop, setFakeRevenueModalShop] = useState<{ id: string; name: string } | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -230,6 +232,14 @@ const Shops = () => {
                   </td>
                   <td style={{ textAlign: 'right', paddingRight: '1rem' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button 
+                        onClick={() => setFakeRevenueModalShop({ id: shop.id, name: shop.name })} 
+                        className="btn btn-secondary" 
+                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)' }}
+                        title="Cấu hình doanh số ảo 31 ngày"
+                      >
+                        <TrendingUp size={14} /> Doanh số ảo
+                      </button>
                       <button onClick={() => openEdit(shop)} className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}>
                         Chỉnh sửa & Gia hạn
                       </button>
@@ -325,6 +335,13 @@ const Shops = () => {
           </div>
         </div>,
         document.body
+      )}
+      {fakeRevenueModalShop && (
+        <FakeRevenueConfigModal
+          shopId={fakeRevenueModalShop.id}
+          shopName={fakeRevenueModalShop.name}
+          onClose={() => setFakeRevenueModalShop(null)}
+        />
       )}
     </div>
   );
