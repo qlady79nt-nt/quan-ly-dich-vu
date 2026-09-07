@@ -18,11 +18,21 @@ export interface ShopFakeRevenueConfig {
   id?: string;
   shop_id: string;
   fake_start_date: string;
-  base_config: Record<string, number>;
+  base_config: Record<string, any>;
   variation_percent: number;
   created_at?: string;
   updated_at?: string;
 }
+
+/**
+ * Lấy danh sách ID nhân viên được chọn từ cấu hình
+ */
+export const getSelectedStaffIdsFromConfig = (config: ShopFakeRevenueConfig | null): string[] => {
+  if (!config || !config.base_config) return [];
+  const raw = config.base_config.selected_staff_ids;
+  if (Array.isArray(raw)) return raw;
+  return [];
+};
 
 /**
  * Lấy chuỗi ngày YYYY-MM-DD theo giờ Việt Nam
@@ -68,19 +78,26 @@ export const getShopFakeRevenueConfig = async (shopId: string): Promise<ShopFake
 };
 
 /**
- * Lưu/Cập nhật cấu hình doanh số ảo cho Shop (Dành riêng cho Super Admin)
+ * Lưu/Cập nhật cấu hình doanh số ảo và danh sách nhân viên được chọn cho Shop
  */
 export const saveShopFakeRevenueConfig = async (
   shopId: string,
   fakeStartDate: string,
   baseConfig: Record<string, number>,
-  variationPercent: number = 10
+  variationPercent: number = 10,
+  selectedStaffIds: string[] = []
 ): Promise<{ success: boolean; error?: string }> => {
   try {
+    // Đóng gói mảng selected_staff_ids cùng với 31 ngày vào base_config JSONB
+    const mergedBaseConfig: Record<string, any> = {
+      ...baseConfig,
+      selected_staff_ids: selectedStaffIds
+    };
+
     const payload = {
       shop_id: shopId,
       fake_start_date: fakeStartDate,
-      base_config: baseConfig,
+      base_config: mergedBaseConfig,
       variation_percent: variationPercent,
       updated_at: new Date().toISOString()
     };

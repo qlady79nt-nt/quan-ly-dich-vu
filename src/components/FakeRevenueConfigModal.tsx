@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, Sparkles, AlertCircle, Calendar, Percent } from 'lucide-react';
+import { X, Save, Sparkles, AlertCircle, Calendar, Percent, Users } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { getShopFakeRevenueConfig, saveShopFakeRevenueConfig } from '../lib/fakeRevenueService';
 
 interface FakeRevenueConfigModalProps {
@@ -15,6 +16,10 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
   const [fakeStartDate, setFakeStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [variationPercent, setVariationPercent] = useState(10);
   
+  // Danh sách nhân viên thật của shop & danh sách được chọn
+  const [staffList, setStaffList] = useState<{ id: string; full_name: string; position?: string }[]>([]);
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
+
   // 31 ngày BASE (1 -> 31)
   const [baseConfig, setBaseConfig] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
@@ -32,15 +37,48 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
 
   const loadConfig = async () => {
     setLoading(true);
-    const config = await getShopFakeRevenueConfig(shopId);
-    if (config) {
-      if (config.fake_start_date) setFakeStartDate(config.fake_start_date);
-      if (config.variation_percent) setVariationPercent(config.variation_percent);
-      if (config.base_config && Object.keys(config.base_config).length > 0) {
-        setBaseConfig(prev => ({ ...prev, ...config.base_config }));
+    try {
+      // 1. Tải danh sách nhân viên thật của Shop (chỉ lấy active, chưa xóa)
+      const { data: staffs, error: staffErr } = await supabase
+        .from('staffs')
+        .select('id, full_name, position')
+        .eq('shop_id', shopId)
+        .eq('status', 'active')
+        .is('deleted_at', null)
+        .order('full_name');
+
+      if (staffErr) {
+        console.warn('Lỗi khi tải danh sách nhân viên:', staffErr.message);
       }
+      const loadedStaffs = staffs || [];
+      setStaffList(loadedStaffs);
+
+      // 2. Tải cấu hình shop_fake_revenue_configs
+      const config = await getShopFakeRevenueConfig(shopId);
+      if (config) {
+        if (config.fake_start_date) setFakeStartDate(config.fake_start_date);
+        if (config.variation_percent) setVariationPercent(config.variation_percent);
+        if (config.base_config) {
+          // Tách riêng các key 1..31 cho baseConfig để không bị lẫn selected_staff_ids
+          const daysOnly: Record<string, number> = {};
+          for (let i = 1; i <= 31; i++) {
+            if (config.base_config[String(i)] !== undefined) {
+              daysOnly[String(i)] = Number(config.base_config[String(i)]);
+            }
+          }
+          setBaseConfig(prev => ({ ...prev, ...daysOnly }));
+
+          // Nạp selected_staff_ids nếu đã cấu hình
+          if (Array.isArray(config.base_config.selected_staff_ids)) {
+            setSelectedStaffIds(config.base_config.selected_staff_ids);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi khi nạp cấu hình:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDayChange = (day: number, value: string) => {
@@ -61,9 +99,36 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
     setBaseConfig(updated);
   };
 
+  const handleToggleStaff = (id: string) => {
+    setSelectedStaffIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllStaff = () => {
+    setSelectedStaffIds(staffList.map(s => s.id));
+  };
+
+  const handleDeselectAllStaff = () => {
+    setSelectedStaffIds([]);
+  };
+
   const handleSave = async () => {
+    if (selectedStaffIds.length === 0) {
+      const confirmEmpty = confirm(
+        'CẢNH BÁO QUAN TRỌNG:\n\nBạn chưa chọn bất kỳ nhân viên nào cho doanh số giả lập.\n\nTheo quy định hệ thống:\n- Hệ thống sẽ KHÔNG sinh doanh số giả lập cho các ngày tới.\n- Không tạo lịch sử giả lập.\n- AutoSync sẽ không tạo file Excel rỗng.\n\nBạn có chắc chắn muốn lưu với 0 nhân viên được chọn?'
+      );
+      if (!confirmEmpty) return;
+    }
+
     setSaving(true);
-    const res = await saveShopFakeRevenueConfig(shopId, fakeStartDate, baseConfig, variationPercent);
+    const res = await saveShopFakeRevenueConfig(
+      shopId, 
+      fakeStartDate, 
+      baseConfig, 
+      variationPercent, 
+      selectedStaffIds
+    );
     setSaving(false);
     if (res.success) {
       alert('Lưu cấu hình doanh số ảo thành công!');
@@ -184,6 +249,145 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
                     Mặc định ±10% quanh mức BASE
                   </span>
                 </div>
+              </div>
+
+              {/* Chọn nhân viên dùng cho doanh thu giả lập */}
+              <div style={{
+                border: '1px solid var(--border)',
+                borderRadius: '0.75rem',
+                padding: '1rem',
+                background: 'var(--bg-secondary, #f8fafc)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '0.75rem',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Users size={18} style={{ color: 'var(--primary)' }} />
+                    <strong style={{ fontSize: '0.95rem' }}>Nhân viên dùng cho Doanh thu Giả lập</strong>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '1rem',
+                      background: selectedStaffIds.length > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: selectedStaffIds.length > 0 ? '#16a34a' : '#dc2626',
+                      fontWeight: '700'
+                    }}>
+                      Đã chọn: {selectedStaffIds.length} / {staffList.length}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={handleSelectAllStaff}
+                      className="btn"
+                      style={{
+                        padding: '0.25rem 0.6rem',
+                        fontSize: '0.75rem',
+                        background: 'white',
+                        border: '1px solid var(--border)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Chọn tất cả
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeselectAllStaff}
+                      className="btn"
+                      style={{
+                        padding: '0.25rem 0.6rem',
+                        fontSize: '0.75rem',
+                        background: 'white',
+                        border: '1px solid var(--border)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Bỏ chọn tất cả
+                    </button>
+                  </div>
+                </div>
+
+                <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Chỉ những nhân viên được tick chọn mới được phân bổ doanh thu trong lịch sử giả lập và xuất file Excel.
+                  Nếu không chọn nhân viên nào, hệ thống sẽ <strong>không sinh doanh số giả lập</strong>.
+                </p>
+
+                {staffList.length === 0 ? (
+                  <div style={{
+                    padding: '1rem',
+                    textAlign: 'center',
+                    fontSize: '0.85rem',
+                    color: 'var(--text-secondary)',
+                    background: 'white',
+                    borderRadius: '0.5rem',
+                    border: '1px dashed var(--border)'
+                  }}>
+                    Không tìm thấy nhân viên đang hoạt động nào trong cửa hàng.
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    gap: '0.5rem',
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                    padding: '0.5rem',
+                    background: 'white',
+                    borderRadius: '0.5rem',
+                    border: '1px solid var(--border)'
+                  }}>
+                    {staffList.map(staff => {
+                      const isChecked = selectedStaffIds.includes(staff.id);
+                      return (
+                        <label
+                          key={staff.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.4rem 0.6rem',
+                            borderRadius: '0.375rem',
+                            cursor: 'pointer',
+                            background: isChecked ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
+                            border: `1px solid ${isChecked ? 'rgba(59, 130, 246, 0.3)' : 'transparent'}`,
+                            userSelect: 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleStaff(staff.id)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <div style={{ overflow: 'hidden' }}>
+                            <div style={{
+                              fontSize: '0.85rem',
+                              fontWeight: isChecked ? '600' : '400',
+                              color: isChecked ? 'var(--primary)' : 'var(--text-main)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}>
+                              {staff.full_name}
+                            </div>
+                            {staff.position && (
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                                {staff.position}
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Công cụ gán nhanh */}

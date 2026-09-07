@@ -7,7 +7,8 @@ import {
   Search,
   Info,
   Briefcase,
-  Download
+  Download,
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -15,6 +16,7 @@ import { TableSkeleton } from '../components/Skeleton';
 import { createPortal } from 'react-dom';
 import ReportsStaff from '../components/ReportsStaff';
 import ReconciliationModal from '../components/ReconciliationModal';
+import FakeRevenueConfigModal from '../components/FakeRevenueConfigModal';
 import { fetchFakeRevenueForRange, getTodayVNString } from '../lib/fakeRevenueService';
 import { exportReportToExcel } from '../lib/exportExcel';
 
@@ -56,6 +58,7 @@ const Reports = () => {
   const [reconStep, setReconStep] = useState(1);
   const [reconPin, setReconPin] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [showFakeConfigModal, setShowFakeConfigModal] = useState(false);
   
   const [, setClickCount] = useState(0);
   const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -900,6 +903,16 @@ const Reports = () => {
               <Download size={16} /> Xuất Excel
             </button>
           )}
+          {isShopAdmin && shopId && (
+            <button
+              onClick={() => setShowFakeConfigModal(true)}
+              className="btn btn-secondary"
+              style={{ padding: '0.5rem 1.25rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
+              title="Cấu hình doanh số ảo và chọn nhân viên"
+            >
+              <Sparkles size={16} style={{ color: 'var(--primary)' }} /> Cấu hình Doanh số Ảo
+            </button>
+          )}
         </div>
       </div>
 
@@ -1705,6 +1718,13 @@ const Reports = () => {
           )}
         </>,
         document.body
+      )}
+      {showFakeConfigModal && shopId && (
+        <FakeRevenueConfigModal
+          shopId={shopId}
+          shopName={profile?.shop?.name || 'Cửa hàng'}
+          onClose={() => setShowFakeConfigModal(false)}
+        />
       )}
     </div>
   );
