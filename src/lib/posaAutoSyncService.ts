@@ -45,6 +45,36 @@ export const getYesterdayVNString = (): string => {
   return `${prevY}-${prevM}-${prevD}`;
 };
 
+const SYNCED_REPORTS_STORAGE_KEY = 'posa_synced_reports_v1_';
+
+export const getSyncedDates = (shopId: string): Set<string> => {
+  try {
+    const raw = localStorage.getItem(`${SYNCED_REPORTS_STORAGE_KEY}${shopId}`);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return new Set(arr);
+      }
+    }
+  } catch (e) {
+    console.warn('[POSA AutoSync] Không thể đọc danh sách ngày đã đồng bộ từ localStorage:', e);
+  }
+  return new Set<string>();
+};
+
+export const markDateAsSynced = (shopId: string, dateStr: string): void => {
+  try {
+    const set = getSyncedDates(shopId);
+    set.add(dateStr);
+    localStorage.setItem(
+      `${SYNCED_REPORTS_STORAGE_KEY}${shopId}`,
+      JSON.stringify(Array.from(set))
+    );
+  } catch (e) {
+    console.warn('[POSA AutoSync] Không thể lưu danh sách ngày đã đồng bộ vào localStorage:', e);
+  }
+};
+
 /**
  * Service đồng bộ nền và Catch-up Excel cho POSA Desktop
  * 
@@ -56,7 +86,8 @@ export const getYesterdayVNString = (): string => {
  */
 export const syncMissingPastPosaReports = async (
   shopId: string, 
-  shopName: string = 'SPA'
+  shopName: string = 'SPA',
+  forceResync: boolean = false
 ): Promise<{ checked: number; generated: string[]; errors: string[] }> => {
   const result = { checked: 0, generated: [] as string[], errors: [] as string[] };
 
@@ -102,15 +133,25 @@ export const syncMissingPastPosaReports = async (
       return result;
     }
 
-    // Lọc các ngày cũ còn thiếu file
-    const missingDates = targetDates.filter(d => !existingDates.includes(d) && d < todayStr);
+    // Lấy tập hợp các ngày đã được hệ thống xác thực và đồng bộ thành công với dữ liệu thật
+    const syncedDates = forceResync ? new Set<string>() : getSyncedDates(shopId);
+
+    // Lọc các ngày cần đồng bộ hoặc bù file:
+    // 1. Chưa có file trên đĩa (!existingDates.includes(d))
+    // 2. HOẶC file trên đĩa là file cũ chưa được xác thực dữ liệu thật (!syncedDates.has(d))
+    //    -> Giúp tự động bù/ghi đè các file rỗng 0 rows đã sinh trong quá khứ khi RPC lỗi
+    const missingDates = targetDates.filter(d => {
+      const hasFile = existingDates.includes(d);
+      const isVerified = syncedDates.has(d);
+      return (!hasFile || !isVerified) && d < todayStr;
+    });
 
     if (missingDates.length === 0) {
-      console.info('[POSA AutoSync] Tất cả các ngày cũ đều đã có file báo cáo đầy đủ.');
+      console.info('[POSA AutoSync] Tất cả các ngày cũ đều đã có file báo cáo đầy đủ và hợp lệ.');
       return result;
     }
 
-    console.info(`[POSA AutoSync] Phát hiện ${missingDates.length} ngày cũ thiếu file Excel. Đang tiến hành bù tự động...`, missingDates);
+    console.info(`[POSA AutoSync] Phát hiện ${missingDates.length} ngày cũ cần đồng bộ/bù file Excel...`, missingDates);
 
     // Đồng bộ tuần tự từng ngày
     for (const dateStr of missingDates) {
@@ -123,7 +164,13 @@ export const syncMissingPastPosaReports = async (
         // 1. Gọi RPC để lấy hoặc sinh Fake Revenue đã khóa
         const records = await fetchFakeRevenueForDay(shopId, dateStr);
 
-        // 2. Định dạng payload gửi sang Tauri Rust native writer
+        // 2. Guard: Nếu không có bản ghi hợp lệ từ DB, tuyệt đối không tạo file Excel rỗng
+        if (!records || records.length === 0) {
+          console.warn(`[POSA AutoSync] Bỏ qua ngày ${dateStr}: Không có bản ghi doanh thu hợp lệ từ DB (records = 0). Tuyệt đối không tạo file Excel rỗng.`);
+          continue;
+        }
+
+        // 3. Định dạng payload gửi sang Tauri Rust native writer
         const invoiceCode = 'F-' + dateStr.replace(/-/g, '').slice(2);
         const payload: PosaNativeReportPayload = {
           date: dateStr,
@@ -139,13 +186,14 @@ export const syncMissingPastPosaReports = async (
           }))
         };
 
-        // 3. Gọi Tauri command lưu file XLSX chuẩn
+        // 4. Gọi Tauri command lưu file XLSX chuẩn (ghi mới hoặc ghi đè file rỗng cũ)
         const saveRes = await window.__posa_native.saveDailyReport(payload);
         result.generated.push(dateStr);
-        console.info(`[POSA AutoSync] Đã sinh file ngày ${dateStr}:`, saveRes);
+        markDateAsSynced(shopId, dateStr);
+        console.info(`[POSA AutoSync] Đã sinh file ngày ${dateStr} thành công (${records.length} dòng):`, saveRes);
       } catch (dayErr: any) {
         const msg = dayErr?.message || String(dayErr);
-        console.error(`[POSA AutoSync] Lỗi khi sinh file ngày ${dateStr}:`, msg);
+        console.error(`[POSA AutoSync] Lỗi khi đồng bộ ngày ${dateStr} (không tạo file):`, msg);
         result.errors.push(`${dateStr}: ${msg}`);
         // Nếu lỗi do quyền truy cập thư mục C:\Program Files\POSA\data (Access Denied), dừng để tránh spam log
         if (msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('quyền')) {

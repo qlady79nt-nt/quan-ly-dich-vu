@@ -117,7 +117,7 @@ export const fetchFakeRevenueForDay = async (
 
     if (error) {
       console.error(`Lỗi RPC sp_get_or_create_fake_revenue_day ngày ${dateStr}:`, error);
-      return [];
+      throw new Error(`RPC Error [sp_get_or_create_fake_revenue_day]: ${error.message || JSON.stringify(error)}`);
     }
 
     return (data || []).map((r: any) => ({
@@ -134,8 +134,8 @@ export const fetchFakeRevenueForDay = async (
       created_at: r.created_at
     }));
   } catch (err) {
-    console.error('Lỗi khi gọi RPC fake revenue:', err);
-    return [];
+    console.error(`Lỗi khi gọi RPC fake revenue ngày ${dateStr}:`, err);
+    throw err;
   }
 };
 
