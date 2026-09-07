@@ -19,8 +19,6 @@ import ReconciliationModal from '../components/ReconciliationModal';
 import FakeRevenueConfigModal from '../components/FakeRevenueConfigModal';
 import { fetchFakeRevenueForRange, getTodayVNString } from '../lib/fakeRevenueService';
 import { exportReportToExcel } from '../lib/exportExcel';
-import { isPosaDesktop } from '../lib/posaZoom';
-import { syncMissingPastPosaReports } from '../lib/posaAutoSyncService';
 
 const Reports = () => {
   const { hasPermission, profile, user } = useAuth();
@@ -661,23 +659,6 @@ const Reports = () => {
         type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
         code: r.mapped_invoice_code || r.mapped_session_code || ''
       }));
-    }
-
-    // Nếu chạy trên POSA Desktop: Tự động đồng bộ và lưu toàn bộ file Excel vào C:\Program Files\POSA\data
-    if (isPosaDesktop() && window.__posa_native?.saveDailyReport) {
-      try {
-        const syncRes = await syncMissingPastPosaReports(shopId, profile?.shop?.name || 'SPA', true);
-        if (syncRes.generated.length > 0) {
-          alert(`Đã xuất và lưu thành công ${syncRes.generated.length} ngày vào folder data:\nC:\\Program Files\\POSA\\data\n(${syncRes.generated.join(', ')})`);
-        } else if (syncRes.errors.length > 0) {
-          alert(`Không thể lưu file vào C:\\Program Files\\POSA\\data:\n${syncRes.errors.join('\n')}\nVui lòng chạy POSA với quyền Administrator (Run as administrator).`);
-        } else {
-          alert('Đã đồng bộ folder data: Toàn bộ file Excel trong C:\\Program Files\\POSA\\data đã được cập nhật.');
-        }
-      } catch (err: any) {
-        console.error('[POSA Native] Lỗi khi ghi file:', err);
-        alert(`Lỗi ghi file vào folder data: ${err?.message || err}\nVui lòng chạy POSA với quyền Administrator.`);
-      }
     }
 
     exportReportToExcel(finalExportItems, profile?.shop?.name || 'SPA', startDate, endDate);
