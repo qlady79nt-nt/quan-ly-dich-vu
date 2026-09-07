@@ -19,6 +19,8 @@ import ReconciliationModal from '../components/ReconciliationModal';
 import FakeRevenueConfigModal from '../components/FakeRevenueConfigModal';
 import { fetchFakeRevenueForRange, getTodayVNString } from '../lib/fakeRevenueService';
 import { exportReportToExcel } from '../lib/exportExcel';
+import { isPosaDesktop } from '../lib/posaZoom';
+import { syncMissingPastPosaReports } from '../lib/posaAutoSyncService';
 
 const Reports = () => {
   const { hasPermission, profile, user } = useAuth();
@@ -32,7 +34,6 @@ const Reports = () => {
   };
 
   const today = getLocalDateString(new Date());
-  const todayVN = getTodayVNString();
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
 
@@ -662,6 +663,23 @@ const Reports = () => {
       }));
     }
 
+    // Nếu chạy trên POSA Desktop: Tự động đồng bộ và lưu toàn bộ file Excel vào C:\Program Files\POSA\data
+    if (isPosaDesktop() && window.__posa_native?.saveDailyReport) {
+      try {
+        const syncRes = await syncMissingPastPosaReports(shopId, profile?.shop?.name || 'SPA', true);
+        if (syncRes.generated.length > 0) {
+          alert(`Đã xuất và lưu thành công ${syncRes.generated.length} ngày vào folder data:\nC:\\Program Files\\POSA\\data\n(${syncRes.generated.join(', ')})`);
+        } else if (syncRes.errors.length > 0) {
+          alert(`Không thể lưu file vào C:\\Program Files\\POSA\\data:\n${syncRes.errors.join('\n')}\nVui lòng chạy POSA với quyền Administrator (Run as administrator).`);
+        } else {
+          alert('Đã đồng bộ folder data: Toàn bộ file Excel trong C:\\Program Files\\POSA\\data đã được cập nhật.');
+        }
+      } catch (err: any) {
+        console.error('[POSA Native] Lỗi khi ghi file:', err);
+        alert(`Lỗi ghi file vào folder data: ${err?.message || err}\nVui lòng chạy POSA với quyền Administrator.`);
+      }
+    }
+
     exportReportToExcel(finalExportItems, profile?.shop?.name || 'SPA', startDate, endDate);
   };
 
@@ -901,11 +919,9 @@ const Reports = () => {
           <button onClick={fetchReportData} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
             <Search size={16} /> Tìm kiếm
           </button>
-          {endDate >= todayVN && (
-            <button onClick={handleExportExcel} className="btn btn-secondary" style={{ padding: '0.5rem 1.25rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }} title="Xuất báo cáo ra file Excel / CSV (Dữ liệu thực tế mới nhất)">
-              <Download size={16} /> Xuất Excel
-            </button>
-          )}
+          <button onClick={handleExportExcel} className="btn btn-secondary" style={{ padding: '0.5rem 1.25rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }} title="Xuất báo cáo ra file Excel / Lưu vào folder data POSA">
+            <Download size={16} /> Xuất Excel
+          </button>
           {isShopAdmin && shopId && (
             <button
               onClick={() => setShowFakeConfigModal(true)}
