@@ -608,16 +608,19 @@ const Reports = () => {
         todayRealRevLog = todayFresh || [];
       }
 
-      const mappedFake = fakeRecords.map(r => ({
-        date: r.revenue_date,
-        technician: r.technician_name_snapshot || 'Kỹ thuật viên',
-        service: r.service_name_snapshot || 'Dịch vụ',
-        quantity: r.quantity || 1,
-        unitPrice: r.unit_price || r.amount,
-        amount: r.amount,
-        type: 'Lịch sử ảo',
-        code: 'F-' + r.revenue_date.replace(/-/g, '').slice(2)
-      }));
+      const mappedFake = fakeRecords.map((r, idx) => {
+        const dateCode = (r.revenue_date || '').replace(/-/g, '').slice(2);
+        return {
+          date: r.revenue_date,
+          technician: r.technician_name_snapshot || 'Kỹ thuật viên',
+          service: r.service_name_snapshot || 'Dịch vụ',
+          quantity: r.quantity || 1,
+          unitPrice: r.unit_price || r.amount,
+          amount: r.amount,
+          type: 'Lịch sử ảo',
+          code: `HD${dateCode}-${String(idx + 1).padStart(2, '0')}`
+        };
+      });
 
       const mappedToday = todayRealRevLog.map(r => ({
         date: todayStr,

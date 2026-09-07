@@ -171,15 +171,16 @@ export const syncMissingPastPosaReports = async (
         }
 
         // 3. Định dạng payload gửi sang Tauri Rust native writer
-        const invoiceCode = 'F-' + dateStr.replace(/-/g, '').slice(2);
+        // Mỗi ca dịch vụ có một mã phiếu riêng biệt kèm số thứ tự (ví dụ: HD260901-01, HD260901-02...)
+        const dateCode = dateStr.replace(/-/g, '').slice(2);
         const payload: PosaNativeReportPayload = {
           date: dateStr,
           shop_name: shopName,
-          items: records.map(r => ({
+          items: records.map((r, idx) => ({
             date: r.revenue_date,
             technician: r.technician_name_snapshot || 'Kỹ thuật viên',
             service: r.service_name_snapshot || 'Dịch vụ',
-            code: invoiceCode,
+            code: `HD${dateCode}-${String(idx + 1).padStart(2, '0')}`,
             quantity: r.quantity || 1,
             unit_price: Number(r.unit_price || 0),
             amount: Number(r.amount || 0)
