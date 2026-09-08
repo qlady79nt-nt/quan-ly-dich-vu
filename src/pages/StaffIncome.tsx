@@ -66,11 +66,12 @@ const StaffIncome = () => {
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
 
-    // Áp dụng bộ lọc thời gian
+    // Áp dụng bộ lọc thời gian: Nhân viên thường (user) chỉ được xem ngày hôm nay
     const now = new Date();
-    if (filterType === 'today') {
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      query = query.gte('created_at', startOfDay);
+    if (!isShopAdmin || filterType === 'today') {
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).toISOString();
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
+      query = query.gte('created_at', startOfDay).lte('created_at', endOfDay);
     } else if (filterType === 'this_week') {
       const day = now.getDay();
       const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Bắt đầu từ thứ 2
@@ -399,27 +400,37 @@ const StaffIncome = () => {
           </div>
         </div>
 
-      {/* Bộ Lọc */}
+      {/* Bộ Lọc: Chỉ Quản lý mới được xem Tuần này, Tháng này, Tùy chọn (quá khứ). Nhân viên chỉ xem Hôm nay */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
-          <button onClick={() => setFilterType('today')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', background: filterType === 'today' ? 'var(--primary)' : 'var(--bg-main)', color: filterType === 'today' ? 'white' : 'inherit', borderRadius: '2rem' }}>
-            Hôm nay
-          </button>
-          <button onClick={() => setFilterType('this_week')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', background: filterType === 'this_week' ? 'var(--primary)' : 'var(--bg-main)', color: filterType === 'this_week' ? 'white' : 'inherit', borderRadius: '2rem' }}>
-            Tuần này
-          </button>
-          <button onClick={() => setFilterType('this_month')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', background: filterType === 'this_month' ? 'var(--primary)' : 'var(--bg-main)', color: filterType === 'this_month' ? 'white' : 'inherit', borderRadius: '2rem' }}>
-            Tháng này
-          </button>
-          <button onClick={() => setFilterType('custom')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', background: filterType === 'custom' ? 'var(--primary)' : 'var(--bg-main)', color: filterType === 'custom' ? 'white' : 'inherit', borderRadius: '2rem' }}>
-            Tùy chọn
-          </button>
-        </div>
-        
-        {filterType === 'custom' && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <input type="date" className="form-input" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ flex: 1 }} />
-            <input type="date" className="form-input" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ flex: 1 }} />
+        {isShopAdmin ? (
+          <>
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
+              <button onClick={() => setFilterType('today')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', background: filterType === 'today' ? 'var(--primary)' : 'var(--bg-main)', color: filterType === 'today' ? 'white' : 'inherit', borderRadius: '2rem' }}>
+                Hôm nay
+              </button>
+              <button onClick={() => setFilterType('this_week')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', background: filterType === 'this_week' ? 'var(--primary)' : 'var(--bg-main)', color: filterType === 'this_week' ? 'white' : 'inherit', borderRadius: '2rem' }}>
+                Tuần này
+              </button>
+              <button onClick={() => setFilterType('this_month')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', background: filterType === 'this_month' ? 'var(--primary)' : 'var(--bg-main)', color: filterType === 'this_month' ? 'white' : 'inherit', borderRadius: '2rem' }}>
+                Tháng này
+              </button>
+              <button onClick={() => setFilterType('custom')} className="btn" style={{ flexShrink: 0, padding: '0.5rem 1rem', background: filterType === 'custom' ? 'var(--primary)' : 'var(--bg-main)', color: filterType === 'custom' ? 'white' : 'inherit', borderRadius: '2rem' }}>
+                Tùy chọn
+              </button>
+            </div>
+            
+            {filterType === 'custom' && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <input type="date" className="form-input" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ flex: 1 }} />
+                <input type="date" className="form-input" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ flex: 1 }} />
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span className="btn" style={{ flexShrink: 0, padding: '0.5rem 1.25rem', background: 'var(--primary)', color: 'white', borderRadius: '2rem', fontWeight: 'bold', fontSize: '0.875rem', cursor: 'default' }}>
+              Hôm nay
+            </span>
           </div>
         )}
       </div>
