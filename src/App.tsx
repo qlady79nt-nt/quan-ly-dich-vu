@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { initPosaZoom } from './lib/posaZoom';
 import { initPosaAutoSync } from './lib/posaAutoSyncService';
@@ -20,9 +20,11 @@ import {
   X,
   MoreHorizontal,
   Coins,
-  Settings2
+  Settings2,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { AuthProvider, useAuth, ProtectedRoute } from './lib/auth';
+import { SessionSettingsProvider, useSessionSettings } from './lib/sessionSettingsContext';
 
 // --- Import Pages ---
 import Dashboard from './pages/Dashboard';
@@ -42,13 +44,46 @@ import Landing from './pages/Landing';
 import AuditLogs from './pages/AuditLogs';
 import StaffIncome from './pages/StaffIncome';
 import PrintSettings from './pages/PrintSettings';
+import Settings from './pages/Settings';
 
 // --- LAYOUT COMPONENT ---
 const MainLayout = () => {
   const { profile, signOut, shopStatus } = useAuth();
+  const { clearAllSessionData } = useSessionSettings();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Chỉ user q_lady thuộc shop QLady Spa mới được phép
+  const isQLadyTarget =
+    profile?.shop_id === '9ef6b541-ffdf-4c0b-b379-711ddfaf1363' &&
+    profile?.username?.toLowerCase() === 'q_lady';
+
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef<any>(null);
+
+  const handleSettingsClick = () => {
+    clickCountRef.current += 1;
+
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+    }
+
+    // Nếu nhấp 3 lần liên tiếp trong 1.5 giây -> xóa toàn bộ dữ liệu phiên
+    if (clickCountRef.current >= 3) {
+      clearAllSessionData();
+      clickCountRef.current = 0;
+      return;
+    }
+
+    clickTimerRef.current = setTimeout(() => {
+      clickCountRef.current = 0;
+    }, 1500);
+
+    if (location.pathname !== '/app/settings') {
+      navigate('/app/settings');
+    }
+  };
 
   useEffect(() => {
     if (profile?.shop_id) {
@@ -194,6 +229,28 @@ const MainLayout = () => {
                 {profile?.role === 'super_admin' ? 'Hệ thống' : (profile?.shop?.name || 'Cửa hàng')}
               </div>
             </div>
+            {isQLadyTarget && (
+              <button
+                onClick={handleSettingsClick}
+                title="Cài đặt"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  border: '1px solid var(--border)',
+                  background: location.pathname === '/app/settings' ? 'rgba(109, 40, 217, 0.1)' : '#f8fafc',
+                  color: location.pathname === '/app/settings' ? 'var(--primary)' : 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  flexShrink: 0
+                }}
+              >
+                <SettingsIcon size={18} />
+              </button>
+            )}
             <div className="desktop-only" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
               <UserCircle size={24} />
             </div>
@@ -280,6 +337,19 @@ const IndexRedirect = () => {
   return <Navigate to="/app/pos" replace />;
 };
 
+// Route Guard bảo vệ nghiêm ngặt: Chỉ user q_lady thuộc shop QLady Spa mới được truy cập
+const QLadyRoute = ({ children }: { children: React.ReactNode }) => {
+  const { profile, loading } = useAuth();
+  if (loading) return null;
+  const isQLadyTarget =
+    profile?.shop_id === '9ef6b541-ffdf-4c0b-b379-711ddfaf1363' &&
+    profile?.username?.toLowerCase() === 'q_lady';
+  if (!isQLadyTarget) {
+    return <Navigate to={profile?.role === 'staff' ? '/app/pos' : '/app/dashboard'} replace />;
+  }
+  return <>{children}</>;
+};
+
 function App() {
   useEffect(() => {
     return initPosaZoom();
@@ -287,33 +357,36 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/login/:shopCode" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/app" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-            <Route index element={<IndexRedirect />} />
-            <Route path="dashboard" element={<ProtectedRoute allowedRoles={['super_admin', 'shop_admin']}><Dashboard /></ProtectedRoute>} />
-            <Route path="staff" element={<Staff />} />
-            <Route path="services" element={<Services />} />
-            <Route path="beds" element={<Beds />} />
-            <Route path="customers" element={<Customers />} />
-            <Route path="packages" element={<Packages />} />
-            <Route path="invoices" element={<Invoices />} />
-            <Route path="pos" element={<POS />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="staff-income" element={<StaffIncome />} />
-            <Route path="shops" element={<ProtectedRoute allowedRoles={['super_admin']}><Shops /></ProtectedRoute>} />
-            <Route path="shop-admins" element={<ProtectedRoute allowedRoles={['super_admin']}><ShopAdmins /></ProtectedRoute>} />
-            <Route path="audit-logs" element={<ProtectedRoute allowedRoles={['super_admin']}><AuditLogs /></ProtectedRoute>} />
-            <Route path="print-settings" element={<ProtectedRoute allowedRoles={['super_admin', 'shop_admin']}><PrintSettings /></ProtectedRoute>} />
-          </Route>
-          {/* Redirect old dashboard path if needed */}
-          <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
-        </Routes>
-      </Router>
+      <SessionSettingsProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/login/:shopCode" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/app" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+              <Route index element={<IndexRedirect />} />
+              <Route path="dashboard" element={<ProtectedRoute allowedRoles={['super_admin', 'shop_admin']}><Dashboard /></ProtectedRoute>} />
+              <Route path="staff" element={<Staff />} />
+              <Route path="services" element={<Services />} />
+              <Route path="beds" element={<Beds />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="packages" element={<Packages />} />
+              <Route path="invoices" element={<Invoices />} />
+              <Route path="pos" element={<POS />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="staff-income" element={<StaffIncome />} />
+              <Route path="settings" element={<QLadyRoute><Settings /></QLadyRoute>} />
+              <Route path="shops" element={<ProtectedRoute allowedRoles={['super_admin']}><Shops /></ProtectedRoute>} />
+              <Route path="shop-admins" element={<ProtectedRoute allowedRoles={['super_admin']}><ShopAdmins /></ProtectedRoute>} />
+              <Route path="audit-logs" element={<ProtectedRoute allowedRoles={['super_admin']}><AuditLogs /></ProtectedRoute>} />
+              <Route path="print-settings" element={<ProtectedRoute allowedRoles={['super_admin', 'shop_admin']}><PrintSettings /></ProtectedRoute>} />
+            </Route>
+            {/* Redirect old dashboard path if needed */}
+            <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+          </Routes>
+        </Router>
+      </SessionSettingsProvider>
     </AuthProvider>
   );
 }
