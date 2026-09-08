@@ -3,10 +3,16 @@ import { createPortal } from 'react-dom';
 import { Plus, Search, Scissors, Trash2, Edit2, Loader2, DollarSign, Percent, Folder, ChevronRight, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useSessionSettings } from '../lib/sessionSettingsContext';
 
 const Services = () => {
   const { profile, isRestricted } = useAuth();
+  const { serviceList: sessionServices } = useSessionSettings();
   const shopId = profile?.shop_id;
+
+  const isQLadyTarget =
+    profile?.shop_id === '9ef6b541-ffdf-4c0b-b379-711ddfaf1363' &&
+    profile?.username?.toLowerCase() === 'q_lady';
 
   const [activeTab, setActiveTab] = useState<'all' | 'groups'>('all');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -197,6 +203,9 @@ const Services = () => {
   };
 
   const filteredAllServices = services.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredSessionServices = (isQLadyTarget ? sessionServices : []).filter(s =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   const drillDownGroup = groups.find(g => g.id === selectedGroupId);
   const groupServices = services.filter(s => s.service_group_id === selectedGroupId && s.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -250,7 +259,53 @@ const Services = () => {
       ) : (
         <>
           {activeTab === 'all' && !selectedGroupId && (
-            <div>{renderServicesList(filteredAllServices)}</div>
+            <div>
+              {renderServicesList(filteredAllServices)}
+              {isQLadyTarget && filteredSessionServices.map(s => {
+                const isInactive = s.status === 'Tạm ngưng';
+                const iconBg = isInactive ? 'rgba(0,0,0,0.05)' : 'rgba(234, 88, 12, 0.08)';
+                const iconColor = isInactive ? 'var(--text-light)' : '#ea580c';
+
+                return (
+                  <div
+                    key={`session_service_${s.id}`}
+                    className="premium-card"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1.5rem',
+                      opacity: isInactive ? 0.6 : 1,
+                      transition: 'opacity 0.2s',
+                      marginBottom: '1rem',
+                      cursor: 'default',
+                      userSelect: 'none'
+                    }}
+                    onClick={(e) => {
+                      // Presentation-only: tuyệt đối không can thiệp nghiệp vụ
+                      e.stopPropagation();
+                    }}
+                  >
+                    <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor, flexShrink: 0 }}>
+                      <Scissors size={28} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <h4 style={{ fontSize: '1.1rem', textDecoration: isInactive ? 'line-through' : 'none', margin: 0 }}>{s.name}</h4>
+                        {isInactive && <span className="badge" style={{ background: 'var(--bg-main)', color: 'var(--text-light)', border: '1px solid var(--border)' }}>NGƯNG BÁN</span>}
+                      </div>
+                      <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: isInactive ? 'var(--text-secondary)' : 'var(--primary)', fontWeight: '700' }}>
+                          {Number(s.price).toLocaleString()}đ
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-secondary)' }}>
+                          ⏱ {s.duration_minutes} phút
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           {activeTab === 'groups' && !selectedGroupId && (
