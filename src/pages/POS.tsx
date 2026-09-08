@@ -308,7 +308,7 @@ const POS = () => {
   const addToComboCart = (svc: any) => {
     if (isRestricted()) return alert('Vui lòng gia hạn gói dịch vụ để thực hiện bán hàng');
     if (!hasPermission('sale.create')) return alert('Bạn không có quyền tạo đơn hàng');
-    if (comboCart.length >= 5) return alert('Chỉ được chọn tối đa 5 dịch vụ trong 1 Combo');
+    if (comboCart.length >= 6) return alert('Chỉ được chọn tối đa 6 dịch vụ trong 1 Combo');
     setComboCart([...comboCart, { ...svc, cartId: Math.random(), staff_id: '' }]);
     if (isMobile) {
       setShowMobileCart(true);

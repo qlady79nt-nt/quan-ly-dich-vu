@@ -8,6 +8,7 @@ import { ReceiptTemplate } from '../components/ReceiptTemplate';
 import { PrintContainer } from '../components/PrintContainer';
 import { getPrintSettings } from '../lib/printSettings';
 import type { ShopPrintSettings } from '../lib/printSettings';
+import { sortBySessionOrder } from '../lib/sessionOrderUtil';
 import '../receipt.css';
 
 const Beds = () => {
@@ -95,6 +96,7 @@ const Beds = () => {
         staffs: staffsData.find(stf => stf.id === sess.staff_id) || null,
         customer_packages: cps.find(c => c.id === sess.customer_package_id) || null
       }));
+      bedSessions = sortBySessionOrder(bedSessions);
       
       const comboGroupId = bedSessions.find(s => s.combo_group_id)?.combo_group_id;
       const comboGroup = comboGroupId ? comboGroupsData.find(c => c.id === comboGroupId) : null;
@@ -222,7 +224,7 @@ const Beds = () => {
       // Nếu là thanh toán combo
       if (bedData.comboGroup) {
         const comboGroup = bedData.comboGroup;
-        const sessions = bedData.sessions;
+        const sessions = sortBySessionOrder(bedData.sessions);
         
         const totalOriginalPrice = sessions.reduce((sum: number, sess: any) => sum + Number(sess.service_price || sess.services?.price || 0), 0);
         
@@ -427,6 +429,7 @@ const Beds = () => {
       multiCheckoutSession.forEach(bed => {
          allSessions = [...allSessions, ...bed.sessions];
       });
+      allSessions = sortBySessionOrder(allSessions);
 
       const totalOriginalPrice = allSessions.reduce((sum: number, sess: any) => sum + Number(sess.service_price || sess.services?.price || 0), 0);
       

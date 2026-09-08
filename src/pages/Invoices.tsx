@@ -8,6 +8,7 @@ import { PrintContainer } from '../components/PrintContainer';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
 import { getPrintSettings } from '../lib/printSettings';
 import type { ShopPrintSettings } from '../lib/printSettings';
+import { sortBySessionOrder } from '../lib/sessionOrderUtil';
 import {
   logPrintEvent,
   captureBeforePrint,
@@ -164,7 +165,7 @@ const Invoices = () => {
         const sessionIds = [...new Set((revLogs || []).map(r => r.service_session_id).filter(Boolean))];
         let sessionsList: any[] = [];
         if (sessionIds.length > 0) {
-          const { data } = await supabase.from('service_sessions').select('id, staff_id').in('id', sessionIds);
+          const { data } = await supabase.from('service_sessions').select('id, staff_id, session_code').in('id', sessionIds);
           if (data) sessionsList = data;
         }
 
@@ -193,7 +194,8 @@ const Invoices = () => {
             if (invRevLogs.length > 0) {
               const invSessionIds = invRevLogs.map(r => r.service_session_id);
               const invSessions = sessionsList.filter(s => invSessionIds.includes(s.id));
-              const invStaffIds = invSessions.map(s => s.staff_id).filter(Boolean);
+              const sortedInvSessions = sortBySessionOrder(invSessions);
+              const invStaffIds = sortedInvSessions.map(s => s.staff_id).filter(Boolean);
               if (invStaffIds.length > 0) {
                 const mappedStaffs = invStaffIds.map(id => staffs.find(s => s.id === id)).filter(Boolean);
                 if (mappedStaffs.length > 0) {
@@ -386,15 +388,61 @@ const Invoices = () => {
         if (revLogs && revLogs.length > 0) {
           const sessionIds = [...new Set(revLogs.map((r: any) => r.service_session_id).filter(Boolean))];
           if (sessionIds.length > 0) {
-            const { data: sessions } = await supabase.from('service_sessions').select('staff_id').in('id', sessionIds);
-            if (sessions && sessions.length > 0) {
-              const staffIds = sessions.map((s: any) => s.staff_id).filter(Boolean);
+            const { data: sessionsData } = await supabase.from('service_sessions').select('id, staff_id, service_id, session_code').in('id', sessionIds);
+            if (sessionsData && sessionsData.length > 0) {
+              const sortedSessions = sortBySessionOrder(sessionsData);
+              const staffIds = sortedSessions.map((s: any) => s.staff_id).filter(Boolean);
+
+              let staffs: any[] = [];
               if (staffIds.length > 0) {
-                const { data: staffs } = await supabase.from('staffs').select('id, full_name').in('id', [...new Set(staffIds)]);
-                if (staffs && staffs.length > 0) {
-                  const mappedStaffs = staffIds.map(id => staffs.find(s => s.id === id)).filter(Boolean);
-                  realStaffName = mappedStaffs.map((s: any) => s.full_name).join(', ');
+                const { data: staffsRes } = await supabase.from('staffs').select('id, full_name').in('id', [...new Set(staffIds)]);
+                if (staffsRes) staffs = staffsRes;
+              }
+
+              // Lấy commission_logs để liên kết chính xác invoice_item_id <-> service_session_id
+              const { data: commLogs } = await supabase.from('commission_logs')
+                .select('invoice_item_id, service_session_id, staff_id')
+                .in('service_session_id', sessionIds);
+
+              // Sắp xếp lại items theo đúng thứ tự của sortedSessions (Session 1 -> Dịch vụ 1, Session 2 -> Dịch vụ 2...)
+              if (items.length > 1) {
+                const orderedItems: any[] = [];
+                const unassignedItems = [...items];
+
+                for (const sess of sortedSessions) {
+                  // 1. Ưu tiên tìm item qua commission_logs (nối trực tiếp invoice_item_id và service_session_id)
+                  const comm = (commLogs || []).find(c => c.service_session_id === sess.id);
+                  let matchedIndex = -1;
+                  if (comm && comm.invoice_item_id) {
+                    matchedIndex = unassignedItems.findIndex(it => it.id === comm.invoice_item_id);
+                  }
+                  // 2. Fallback: tìm theo service_id
+                  if (matchedIndex === -1 && sess.service_id) {
+                    matchedIndex = unassignedItems.findIndex(it => it.service_id === sess.service_id);
+                  }
+                  if (matchedIndex !== -1) {
+                    const [matchedItem] = unassignedItems.splice(matchedIndex, 1);
+                    const stf = staffs.find(s => s.id === sess.staff_id);
+                    orderedItems.push({
+                      ...matchedItem,
+                      staff_name: stf?.full_name || ''
+                    });
+                  }
                 }
+                items = [...orderedItems, ...unassignedItems];
+              } else if (items.length === 1 && sortedSessions.length > 0) {
+                const stf = staffs.find(s => s.id === sortedSessions[0].staff_id);
+                items[0] = {
+                  ...items[0],
+                  staff_name: stf?.full_name || ''
+                };
+              }
+
+              const mappedStaffNames = sortedSessions
+                .map(sess => staffs.find(s => s.id === sess.staff_id)?.full_name)
+                .filter(Boolean);
+              if (mappedStaffNames.length > 0) {
+                realStaffName = mappedStaffNames.join(', ');
               }
             }
           }
@@ -1186,9 +1234,14 @@ const Invoices = () => {
                     ) : (
                       <>
                         {detailModal.data.items?.map((item: any, idx: number) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span>{item.name || item.service_name || 'Dịch vụ'}</span>
-                            <span>{Number(item.price || item.unit_price).toLocaleString()}đ</span>
+                          <div key={idx} style={{ marginBottom: '0.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{item.name || item.service_name || 'Dịch vụ'}</span>
+                              <span>{Number(item.price || item.unit_price).toLocaleString()}đ</span>
+                            </div>
+                            {item.staff_name && (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>KTV: {item.staff_name}</div>
+                            )}
                           </div>
                         ))}
 
