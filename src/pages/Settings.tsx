@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Users, 
@@ -11,8 +11,12 @@ import {
   X, 
   CheckSquare, 
   Square,
-  Search
+  Search,
+  User,
+  Loader2
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 import { 
   useSessionSettings, 
   type SessionStaff, 
@@ -38,6 +42,31 @@ const Settings = () => {
     addInvoice,
     deleteInvoices
   } = useSessionSettings();
+
+  const { profile } = useAuth();
+  const shopId = profile?.shop_id;
+
+  const [realStaff, setRealStaff] = useState<any[]>([]);
+  const [loadingRealStaff, setLoadingRealStaff] = useState(false);
+
+  useEffect(() => {
+    if (shopId) {
+      fetchRealStaff();
+    }
+  }, [shopId]);
+
+  const fetchRealStaff = async () => {
+    setLoadingRealStaff(true);
+    const { data, error } = await supabase
+      .from('staffs')
+      .select('*')
+      .eq('shop_id', shopId)
+      .order('created_at', { ascending: true });
+    if (!error && data) {
+      setRealStaff(data);
+    }
+    setLoadingRealStaff(false);
+  };
 
   const [activeTab, setActiveTab] = useState<'staff' | 'place' | 'service' | 'invoice'>('staff');
   const [searchTerm, setSearchTerm] = useState('');
@@ -228,10 +257,25 @@ const Settings = () => {
     setSelectedInvoiceIds([]);
   };
 
+  const getStaffPositionLabel = (pos: string) => {
+    if (!pos) return 'Nhân viên';
+    if (pos === 'technician' || pos === 'staff') return 'Kỹ thuật viên';
+    if (pos === 'manager') return 'Quản lý';
+    if (pos === 'receptionist') return 'Lễ tân';
+    if (pos === 'tour') return 'Tour';
+    if (pos === 'collaborator') return 'Cộng tác viên';
+    return pos;
+  };
+
   // --- Filtering ---
-  const filteredStaff = staffList.filter(s => 
-    s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.phone.includes(searchTerm)
+  const filteredRealStaff = realStaff.filter(s =>
+    (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.phone || '').includes(searchTerm)
+  );
+
+  const filteredSessionStaff = staffList.filter(s =>
+    (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.phone || '').includes(searchTerm)
   );
 
   const filteredPlaces = placeList.filter(p => 
@@ -281,7 +325,7 @@ const Settings = () => {
             }}
           >
             <Users size={16} />
-            Nhân viên ({staffList.length})
+            Nhân viên ({realStaff.length + staffList.length})
           </button>
 
           <button
@@ -442,69 +486,175 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Tab 1: Staff Table */}
+        {/* Tab 1: Staff Cards */}
         {activeTab === 'staff' && (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                  <th style={{ padding: '0.75rem 1.5rem', fontWeight: '600' }}>Họ tên</th>
-                  <th style={{ padding: '0.75rem 1.5rem', fontWeight: '600' }}>Số điện thoại</th>
-                  <th style={{ padding: '0.75rem 1.5rem', fontWeight: '600' }}>Vị trí</th>
-                  <th style={{ padding: '0.75rem 1.5rem', fontWeight: '600' }}>Trạng thái</th>
-                  <th style={{ padding: '0.75rem 1.5rem', fontWeight: '600', textAlign: 'right' }}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStaff.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-light)' }}>
-                      Chưa có nhân viên nào trong danh sách
-                    </td>
-                  </tr>
-                ) : (
-                  filteredStaff.map(item => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '0.875rem 1.5rem', fontWeight: '600', color: 'var(--text-main)' }}>{item.full_name}</td>
-                      <td style={{ padding: '0.875rem 1.5rem', color: 'var(--text-secondary)' }}>{item.phone || '---'}</td>
-                      <td style={{ padding: '0.875rem 1.5rem' }}>
-                        <span style={{ background: 'rgba(109, 40, 217, 0.1)', color: 'var(--primary)', padding: '0.2rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600' }}>
-                          {item.position}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.875rem 1.5rem' }}>
-                        <span style={{ 
-                          background: item.status === 'Đang làm' ? '#dcfce7' : '#fee2e2', 
-                          color: item.status === 'Đang làm' ? '#15803d' : '#b91c1c', 
-                          padding: '0.2rem 0.5rem', 
-                          borderRadius: '0.375rem', 
-                          fontSize: '0.75rem', 
-                          fontWeight: '600' 
-                        }}>
-                          {item.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.875rem 1.5rem', textAlign: 'right' }}>
-                        <button
-                          onClick={() => handleOpenStaffModal(item)}
-                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--primary)', marginRight: '0.75rem', padding: '0.25rem' }}
-                          title="Sửa"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => deleteStaff(item.id)}
-                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '0.25rem' }}
-                          title="Xóa"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div style={{ padding: '1.5rem' }}>
+            {loadingRealStaff ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
+                <Loader2 className="animate-spin" size={24} style={{ display: 'inline', marginRight: '0.5rem' }} />
+                Đang tải...
+              </div>
+            ) : filteredRealStaff.length === 0 && filteredSessionStaff.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
+                Chưa có nhân viên nào trong danh sách
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+                gap: '1rem'
+              }}>
+                {/* 1. Nhân viên thật hiện tại của shop */}
+                {filteredRealStaff.map(item => (
+                  <div
+                    key={`real_staff_${item.id}`}
+                    className="premium-card"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      padding: '1.25rem 1rem',
+                      borderRadius: '0.75rem',
+                      border: '1px solid var(--border)',
+                      background: 'white',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      background: 'rgba(109, 40, 217, 0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--primary)',
+                      marginBottom: '0.75rem'
+                    }}>
+                      <User size={26} />
+                    </div>
+                    <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.95rem', fontWeight: '700', color: 'var(--text-main)', wordBreak: 'break-word', lineHeight: '1.3' }}>
+                      {item.full_name}
+                    </h4>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                      {getStaffPositionLabel(item.position)}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: 'auto' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          // Nhân viên thật: Sửa không có tác vụ
+                          e.stopPropagation();
+                        }}
+                        className="btn"
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem',
+                          fontSize: '0.8rem',
+                          background: 'transparent',
+                          color: 'var(--primary)',
+                          border: '1px solid var(--border)'
+                        }}
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          // Nhân viên thật: Xóa không có tác vụ
+                          e.stopPropagation();
+                        }}
+                        className="btn"
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem',
+                          fontSize: '0.8rem',
+                          background: 'transparent',
+                          color: 'var(--danger)',
+                          border: '1px solid var(--border)'
+                        }}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* 2. Nhân viên tạo trong Cài đặt (staffList) */}
+                {filteredSessionStaff.map(item => (
+                  <div
+                    key={`session_staff_${item.id}`}
+                    className="premium-card"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      padding: '1.25rem 1rem',
+                      borderRadius: '0.75rem',
+                      border: '1px solid var(--border)',
+                      background: 'white',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      background: 'rgba(109, 40, 217, 0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--primary)',
+                      marginBottom: '0.75rem'
+                    }}>
+                      <User size={26} />
+                    </div>
+                    <h4 style={{ margin: '0 0 0.25rem', fontSize: '0.95rem', fontWeight: '700', color: 'var(--text-main)', wordBreak: 'break-word', lineHeight: '1.3' }}>
+                      {item.full_name}
+                    </h4>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                      {getStaffPositionLabel(item.position)}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: 'auto' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenStaffModal(item)}
+                        className="btn"
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem',
+                          fontSize: '0.8rem',
+                          background: 'transparent',
+                          color: 'var(--primary)',
+                          border: '1px solid var(--border)'
+                        }}
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteStaff(item.id)}
+                        className="btn"
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem',
+                          fontSize: '0.8rem',
+                          background: 'transparent',
+                          color: 'var(--danger)',
+                          border: '1px solid var(--border)'
+                        }}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
