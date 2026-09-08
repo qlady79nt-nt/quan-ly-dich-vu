@@ -84,6 +84,11 @@ DECLARE
     selected_svc_indices INT[] := ARRAY[]::INT[];
     selected_staff_indices INT[] := ARRAY[]::INT[];
 
+    staff_perm INT[] := ARRAY[]::INT[];
+    v_shuf_j INT;
+    v_shuf_swap INT;
+    v_shuf_temp INT;
+
     arr_staff_ids UUID[];
     arr_staff_names TEXT[];
     arr_service_ids UUID[];
@@ -193,7 +198,21 @@ BEGIN
     v_target_total := ROUND(v_raw_target / 10000.0) * 10000;
     IF v_target_total <= 0 THEN v_target_total := 10000; END IF;
 
-    -- 9. CHỌN TỔ HỢP DỊCH VỤ THẬT THEO ĐÚNG ĐƠN GIÁ NIÊM YẾT MENU (services.price)
+    -- 9. THIẾT LẬP THỨ TỰ KTV THEO TOUR XOAY VÒNG (ROUND-ROBIN VỚI SHUFFLE THEO NGÀY)
+    -- Đảm bảo 100%: Các nhân viên được chia đều số ca làm việc, chênh lệch tối đa 1 ca!
+    staff_perm := ARRAY[]::INT[];
+    FOR v_shuf_j IN 1..v_staff_count LOOP
+        staff_perm := array_append(staff_perm, v_shuf_j);
+    END LOOP;
+    
+    FOR v_shuf_j IN REVERSE v_staff_count..2 LOOP
+        v_shuf_swap := 1 + (abs(('x' || substr(md5(v_hash_hex || '_shuf_' || v_shuf_j::text), 1, 8))::bit(32)::bigint) % v_shuf_j);
+        v_shuf_temp := staff_perm[v_shuf_j];
+        staff_perm[v_shuf_j] := staff_perm[v_shuf_swap];
+        staff_perm[v_shuf_swap] := v_shuf_temp;
+    END LOOP;
+
+    -- 10. CHỌN TỔ HỢP DỊCH VỤ THẬT THEO ĐÚNG ĐƠN GIÁ NIÊM YẾT MENU (services.price)
     -- ĐẢM BẢO TUYỆT ĐỐI: Cùng một dịch vụ luôn có đơn giá hoàn toàn giống nhau!
     v_current_sum := 0;
     v_item_idx := 0;
@@ -224,7 +243,7 @@ BEGIN
                     END LOOP;
                     
                     v_item_idx := 1;
-                    chosen_staff_idx := 1 + (abs(('x' || substr(md5(v_hash_hex || '_staff_' || v_item_idx::text), 1, 8))::bit(32)::bigint) % v_staff_count);
+                    chosen_staff_idx := staff_perm[1 + ((v_item_idx - 1) % v_staff_count)];
                     chosen_price := arr_service_prices[chosen_svc_idx];
                     v_current_sum := chosen_price;
                     
@@ -236,7 +255,7 @@ BEGIN
 
             v_item_idx := v_item_idx + 1;
             chosen_svc_idx := candidate_indices[1 + (abs(('x' || substr(md5(v_hash_hex || '_svc_' || v_item_idx::text), 1, 8))::bit(32)::bigint) % array_length(candidate_indices, 1))];
-            chosen_staff_idx := 1 + (abs(('x' || substr(md5(v_hash_hex || '_staff_' || v_item_idx::text), 1, 8))::bit(32)::bigint) % v_staff_count);
+            chosen_staff_idx := staff_perm[1 + ((v_item_idx - 1) % v_staff_count)];
             
             chosen_price := arr_service_prices[chosen_svc_idx];
             v_current_sum := v_current_sum + chosen_price;
