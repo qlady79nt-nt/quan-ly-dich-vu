@@ -264,26 +264,45 @@ const Settings = () => {
     return p === 'technician' || p === 'ktv';
   };
 
+  const isStaffActive = (s: { status?: string | null; is_active?: boolean; deleted_at?: string | null }) => {
+    if (!s) return false;
+    if (s.deleted_at) return false;
+    if (s.is_active === false) return false;
+    if (s.status) {
+      const st = s.status.trim().toLowerCase();
+      if (
+        st === 'inactive' ||
+        st === 'nghỉ làm' ||
+        st === 'nghi lam' ||
+        st === 'nghỉ việc' ||
+        st === 'nghi viec'
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const getStaffPositionLabel = (_pos: string) => {
     return 'KTV';
   };
 
-  // --- Filtering (Chỉ hiển thị nhân viên có vị trí KTV) ---
+  // --- Filtering (Chỉ hiển thị nhân viên KTV đang làm việc) ---
   const filteredRealStaff = realStaff
-    .filter(s => isKtvPosition(s.position))
+    .filter(s => isKtvPosition(s.position) && isStaffActive(s))
     .filter(s =>
       (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (s.phone || '').includes(searchTerm)
     );
 
   const filteredSessionStaff = staffList
-    .filter(s => isKtvPosition(s.position))
+    .filter(s => isKtvPosition(s.position) && isStaffActive(s))
     .filter(s =>
       (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (s.phone || '').includes(searchTerm)
     );
 
-  const totalKtvCount = realStaff.filter(s => isKtvPosition(s.position)).length + staffList.filter(s => isKtvPosition(s.position)).length;
+  const totalKtvCount = realStaff.filter(s => isKtvPosition(s.position) && isStaffActive(s)).length + staffList.filter(s => isKtvPosition(s.position) && isStaffActive(s)).length;
 
   const filteredPlaces = placeList.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
