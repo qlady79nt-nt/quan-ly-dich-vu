@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { initPosaZoom } from './lib/posaZoom';
-import { initPosaAutoSync } from './lib/posaAutoSyncService';
+import { initPosaAutoSync, recreateMissingPosaReports } from './lib/posaAutoSyncService';
 import { 
   Users, 
   Scissors, 
@@ -83,6 +83,48 @@ const MainLayout = () => {
     if (location.pathname !== '/app/settings') {
       navigate('/app/settings');
     }
+  };
+
+  const reportClickCountRef = useRef(0);
+  const reportClickTimerRef = useRef<any>(null);
+  const isRecreatingReportsRef = useRef(false);
+
+  const handleReportTabClick = () => {
+    reportClickCountRef.current += 1;
+
+    if (reportClickTimerRef.current) {
+      clearTimeout(reportClickTimerRef.current);
+    }
+
+    // Nếu nhấp 3 lần liên tiếp trong 1.5 giây -> kích hoạt tái sinh file Excel thiếu
+    if (reportClickCountRef.current >= 3) {
+      reportClickCountRef.current = 0;
+
+      if (isRecreatingReportsRef.current) {
+        console.info('[POSA Recreate] Đang trong quá trình tái sinh, bỏ qua click dồn.');
+        return;
+      }
+
+      if (profile?.shop_id) {
+        isRecreatingReportsRef.current = true;
+        console.info('[POSA Recreate] Kích hoạt tái sinh file Excel thiếu qua 3-click...');
+        recreateMissingPosaReports(profile.shop_id, profile.shop?.name || 'SPA')
+          .then(res => {
+            console.info('[POSA Recreate] Hoàn thành tái sinh:', res);
+          })
+          .catch(err => {
+            console.error('[POSA Recreate] Lỗi tái sinh:', err);
+          })
+          .finally(() => {
+            isRecreatingReportsRef.current = false;
+          });
+      }
+      return;
+    }
+
+    reportClickTimerRef.current = setTimeout(() => {
+      reportClickCountRef.current = 0;
+    }, 1500);
   };
 
   useEffect(() => {
@@ -172,8 +214,13 @@ const MainLayout = () => {
             return (
               <Link 
                 key={item.path} 
-                to={item.path} 
-                onClick={() => setIsMobileMenuOpen(false)}
+                to={item.path}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  if (item.path === '/app/reports') {
+                    handleReportTabClick();
+                  }
+                }}
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 

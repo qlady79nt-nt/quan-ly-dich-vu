@@ -6,6 +6,8 @@ import {
   getDatesInRange,
   formatInvoiceCode
 } from './fakeRevenueService';
+import { supabase } from './supabase';
+import { enrichRealRevenueLogs } from './realRevenueEnrichment';
 
 export interface PosaNativeReportItem {
   date: string;
@@ -76,24 +78,27 @@ export const markDateAsSynced = (shopId: string, dateStr: string): void => {
   }
 };
 
-/**
- * Service đồng bộ nền và Catch-up Excel cho POSA Desktop
- * 
- * Nguyên tắc vàng:
- * 1. TUYỆT ĐỐI KHÔNG tự động sinh Excel cho ngày hiện tại (Today) hoặc tương lai.
- * 2. Tự động kiểm tra thư mục C:\Program Files\POSA\data và bù các file ngày cũ còn thiếu.
- * 3. File ngày cũ lấy 100% dữ liệu từ fake_revenue_records đã khóa trong Database (thông qua RPC).
- * 4. Xử lý lỗi (ví dụ permission denied) an toàn, không làm crash ứng dụng.
- */
-export const syncMissingPastPosaReports = async (
-  shopId: string, 
-  shopName: string = 'SPA',
-  forceResync: boolean = false
-): Promise<{ checked: number; generated: string[]; errors: string[] }> => {
-  const result = { checked: 0, generated: [] as string[], errors: [] as string[] };
 
-  // Guard: Chỉ chạy trên POSA Desktop và có native bridge
+
+/**
+ * Tái sinh các file báo cáo Excel còn thiếu trên máy POSA Desktop.
+ *
+ * NGUYÊN TẮC VÀNG:
+ * 1. TUYỆT ĐỐI KHÔNG GHI ĐÈ BẤT KỲ FILE NÀO ĐÃ CÓ TRÊN ĐĨA.
+ * 2. CHỈ sinh các file bị thiếu:
+ *    - Quá khứ: lấy từ dữ liệu ảo đã khóa (fake_revenue_records).
+ *    - Hôm nay: lấy từ dữ liệu doanh thu thật (revenue_logs) đã làm giàu đầy đủ KTV + Dịch vụ + Mã HĐ.
+ * 3. Tuyệt đối không tạo file rỗng 0 rows.
+ */
+export const recreateMissingPosaReports = async (
+  shopId: string,
+  shopName: string = 'SPA'
+): Promise<{ checked: number; generated: string[]; skipped: string[]; errors: string[] }> => {
+  const result = { checked: 0, generated: [] as string[], skipped: [] as string[], errors: [] as string[] };
+
+  // 1. Kiểm tra môi trường POSA Native Desktop
   if (!isPosaDesktop() || !window.__posa_native?.checkExistingReports || !window.__posa_native?.saveDailyReport) {
+    console.info('[POSA Recreate] Không phải POSA Desktop hoặc thiếu Native API. Bỏ qua.');
     return result;
   }
 
@@ -101,152 +106,150 @@ export const syncMissingPastPosaReports = async (
     const todayStr = getTodayVNString();
     const yesterdayStr = getYesterdayVNString();
 
-    // Lấy cấu hình ngày bắt đầu ảo của Shop (do Super Admin cấu hình)
-    const config = await getShopFakeRevenueConfig(shopId);
-    const startDate = config?.fake_start_date;
-
-    // Yêu cầu nghiệp vụ: Nếu shop chưa cấu hình fake_start_date -> TUYỆT ĐỐI KHÔNG auto-generate
-    if (!startDate) {
-      console.info('[POSA AutoSync] Shop chưa được Super Admin cấu hình fake_start_date. Bỏ qua tự động sinh báo cáo để tránh tạo dữ liệu ngoài ý muốn.');
-      return result;
-    }
-
-    if (startDate > yesterdayStr) {
-      // Chưa có ngày cũ nào cần sinh
-      return result;
-    }
-
-    // Danh sách toàn bộ ngày quá khứ cần có file
-    const targetDates = getDatesInRange(startDate, yesterdayStr).filter(d => d < todayStr);
-    result.checked = targetDates.length;
-
-    if (targetDates.length === 0) {
-      return result;
-    }
-
-    // Quét các file đã có trong C:\Program Files\POSA\data qua Tauri Command
+    // 2. Quét các file ĐANG TỒN TẠI trên đĩa
     let existingDates: string[] = [];
     try {
       existingDates = await window.__posa_native.checkExistingReports();
     } catch (scanErr: any) {
-      console.warn('[POSA AutoSync] Lỗi khi quét danh sách file hiện có:', scanErr);
+      console.warn('[POSA Recreate] Lỗi khi quét danh sách file hiện có:', scanErr);
       result.errors.push(`Lỗi scan: ${scanErr.message || scanErr}`);
       return result;
     }
 
-    // Lấy tập hợp các ngày đã được hệ thống xác thực và đồng bộ thành công với dữ liệu thật
-    const syncedDates = forceResync ? new Set<string>() : getSyncedDates(shopId);
+    const config = await getShopFakeRevenueConfig(shopId);
+    const startDate = config?.fake_start_date;
 
-    // Lọc các ngày cần đồng bộ hoặc bù file:
-    // 1. Chưa có file trên đĩa (!existingDates.includes(d))
-    // 2. HOẶC file trên đĩa là file cũ chưa được xác thực dữ liệu thật (!syncedDates.has(d))
-    //    -> Giúp tự động bù/ghi đè các file rỗng 0 rows đã sinh trong quá khứ khi RPC lỗi
-    const missingDates = targetDates.filter(d => {
-      const hasFile = existingDates.includes(d);
-      const isVerified = syncedDates.has(d);
-      return (!hasFile || !isVerified) && d < todayStr;
-    });
+    // A. Xử lý các ngày quá khứ (startDate -> yesterdayStr)
+    if (startDate && startDate <= yesterdayStr) {
+      const pastDates = getDatesInRange(startDate, yesterdayStr).filter(d => d < todayStr);
+      result.checked += pastDates.length;
 
-    if (missingDates.length === 0) {
-      console.info('[POSA AutoSync] Tất cả các ngày cũ đều đã có file báo cáo đầy đủ và hợp lệ.');
-      return result;
-    }
-
-    console.info(`[POSA AutoSync] Phát hiện ${missingDates.length} ngày cũ cần đồng bộ/bù file Excel...`, missingDates);
-
-    // Đồng bộ tuần tự từng ngày
-    for (const dateStr of missingDates) {
-      // Guard nghiêm ngặt tuyệt đối không sinh cho today hoặc future
-      if (dateStr >= todayStr) {
-        continue;
-      }
-
-      try {
-        // 1. Gọi RPC để lấy hoặc sinh Fake Revenue đã khóa
-        const records = await fetchFakeRevenueForDay(shopId, dateStr);
-
-        // 2. Guard: Nếu không có bản ghi hợp lệ từ DB, tuyệt đối không tạo file Excel rỗng
-        if (!records || records.length === 0) {
-          console.warn(`[POSA AutoSync] Bỏ qua ngày ${dateStr}: Không có bản ghi doanh thu hợp lệ từ DB (records = 0). Tuyệt đối không tạo file Excel rỗng.`);
+      for (const d of pastDates) {
+        // TUYỆT ĐỐI KHÔNG GHI ĐÈ FILE ĐANG CÓ
+        if (existingDates.includes(d)) {
+          console.info(`[POSA Recreate] File ngày ${d} đã tồn tại -> BỎ QUA, KHÔNG GHI ĐÈ.`);
+          result.skipped.push(d);
           continue;
         }
 
-        // 3. Định dạng payload gửi sang Tauri Rust native writer
-        // Định dạng mã phiếu chuẩn: #HD + NgàyTháng + 4 số ngẫu nhiên (ví dụ #HD07094722)
-        const payload: PosaNativeReportPayload = {
-          date: dateStr,
-          shop_name: shopName,
-          items: records.map((r, idx) => ({
-            date: r.revenue_date,
-            technician: r.technician_name_snapshot || 'Kỹ thuật viên',
-            service: r.service_name_snapshot || 'Dịch vụ',
-            code: formatInvoiceCode(r.revenue_date, r.id || `${dateStr}_${idx}`),
-            quantity: r.quantity || 1,
-            unit_price: Number(r.unit_price || 0),
-            amount: Number(r.amount || 0)
-          }))
-        };
+        // Tái sinh ngày thiếu từ fake_revenue_records đã khóa
+        try {
+          const records = await fetchFakeRevenueForDay(shopId, d);
+          if (!records || records.length === 0) {
+            console.warn(`[POSA Recreate] Bỏ qua ngày ${d}: Không có bản ghi doanh thu hợp lệ từ DB.`);
+            continue;
+          }
 
-        // 4. Gọi Tauri command lưu file XLSX chuẩn (ghi mới hoặc ghi đè file rỗng cũ)
-        const saveRes = await window.__posa_native.saveDailyReport(payload);
-        result.generated.push(dateStr);
-        markDateAsSynced(shopId, dateStr);
-        console.info(`[POSA AutoSync] Đã sinh file ngày ${dateStr} thành công (${records.length} dòng):`, saveRes);
-      } catch (dayErr: any) {
-        const msg = dayErr?.message || String(dayErr);
-        console.error(`[POSA AutoSync] Lỗi khi đồng bộ ngày ${dateStr} (không tạo file):`, msg);
-        result.errors.push(`${dateStr}: ${msg}`);
-        // Nếu lỗi do quyền truy cập thư mục C:\Program Files\POSA\data (Access Denied), dừng để tránh spam log
-        if (msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('quyền')) {
-          console.warn('[POSA AutoSync] Quyền ghi thư mục bị từ chối. Dừng các ngày tiếp theo.');
-          break;
+          const payload: PosaNativeReportPayload = {
+            date: d,
+            shop_name: shopName,
+            items: records.map((r, idx) => ({
+              date: r.revenue_date,
+              technician: r.technician_name_snapshot || 'Kỹ thuật viên',
+              service: r.service_name_snapshot || 'Dịch vụ',
+              code: formatInvoiceCode(r.revenue_date, r.id || `${d}_${idx}`),
+              quantity: r.quantity || 1,
+              unit_price: Number(r.unit_price || 0),
+              amount: Number(r.amount || 0)
+            }))
+          };
+
+          const saveRes = await window.__posa_native.saveDailyReport(payload);
+          result.generated.push(d);
+          markDateAsSynced(shopId, d);
+          console.info(`[POSA Recreate] Đã tái sinh file ngày ${d} thành công (${records.length} dòng):`, saveRes);
+        } catch (dayErr: any) {
+          const msg = dayErr?.message || String(dayErr);
+          console.error(`[POSA Recreate] Lỗi tái sinh ngày ${d}:`, msg);
+          result.errors.push(`${d}: ${msg}`);
+          if (msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('quyền')) {
+            console.warn('[POSA Recreate] Quyền ghi thư mục bị từ chối. Dừng các ngày tiếp theo.');
+            break;
+          }
         }
+      }
+    }
+
+    // B. Xử lý ngày hôm nay (todayStr)
+    result.checked += 1;
+    if (existingDates.includes(todayStr)) {
+      console.info(`[POSA Recreate] File ngày hôm nay ${todayStr} đã tồn tại -> BỎ QUA, KHÔNG GHI ĐÈ.`);
+      result.skipped.push(todayStr);
+    } else {
+      // Tái sinh ngày hôm nay từ revenue_logs thật
+      try {
+        const { data: rawLogs, error: logsErr } = await supabase
+          .from('revenue_logs')
+          .select('*')
+          .eq('shop_id', shopId)
+          .eq('revenue_date', todayStr);
+
+        if (logsErr) {
+          console.error(`[POSA Recreate] Lỗi truy vấn revenue_logs hôm nay (${todayStr}):`, logsErr);
+          result.errors.push(`${todayStr}: ${logsErr.message}`);
+        } else if (rawLogs && rawLogs.length > 0) {
+          const enrichedLogs = await enrichRealRevenueLogs(rawLogs);
+          const enrichedItems: PosaNativeReportItem[] = enrichedLogs.map((r, idx) => ({
+            date: todayStr,
+            technician: r.technician_name || '---',
+            service: r.service_name || 'Dịch vụ lẻ',
+            code: r.code || formatInvoiceCode(todayStr, r.id || `${todayStr}_${idx}`),
+            quantity: 1,
+            unit_price: Number(r.amount || 0),
+            amount: Number(r.amount || 0)
+          }));
+
+          const payload: PosaNativeReportPayload = {
+            date: todayStr,
+            shop_name: shopName,
+            items: enrichedItems
+          };
+
+          const saveRes = await window.__posa_native.saveDailyReport(payload);
+          result.generated.push(todayStr);
+          console.info(`[POSA Recreate] Đã tái sinh file hôm nay ${todayStr} thành công (${enrichedItems.length} dòng doanh thu thật):`, saveRes);
+        } else {
+          console.info(`[POSA Recreate] Ngày hôm nay (${todayStr}) chưa có bản ghi doanh thu thật nào. Bỏ qua, không tạo file rỗng.`);
+        }
+      } catch (todayErr: any) {
+        const msg = todayErr?.message || String(todayErr);
+        console.error(`[POSA Recreate] Lỗi tái sinh ngày hôm nay ${todayStr}:`, msg);
+        result.errors.push(`${todayStr}: ${msg}`);
       }
     }
 
     return result;
   } catch (err: any) {
-    console.error('[POSA AutoSync] Ngoại lệ không xác định:', err);
+    console.error('[POSA Recreate] Ngoại lệ không xác định:', err);
     result.errors.push(err.message || String(err));
     return result;
   }
 };
 
 /**
- * Khởi chạy background sync và hẹn giờ kiểm tra khi qua nửa đêm (00:01 AM)
+ * Wrapper tương thích ngược cho syncMissingPastPosaReports
+ */
+export const syncMissingPastPosaReports = async (
+  shopId: string, 
+  shopName: string = 'SPA',
+  _forceResync: boolean = false
+): Promise<{ checked: number; generated: string[]; errors: string[] }> => {
+  const res = await recreateMissingPosaReports(shopId, shopName);
+  return {
+    checked: res.checked,
+    generated: res.generated,
+    errors: res.errors
+  };
+};
+
+/**
+ * Khởi chạy AutoSync: ĐÃ VÔ HIỆU HÓA HOÀN TOÀN TỰ ĐỘNG SINH FILE
+ * Hệ thống tuân thủ nghiêm ngặt: Tuyệt đối không tự sinh file khi mở app hoặc định kỳ.
+ * File chỉ được phép tái sinh khi người dùng nhấn 3 lần liên tục vào tab "Báo cáo".
  */
 export const initPosaAutoSync = (
-  shopId: string, 
-  shopName: string = 'SPA'
+  _shopId: string,
+  _shopName: string = 'SPA'
 ): (() => void) => {
-  if (!isPosaDesktop() || !shopId) {
-    return () => {};
-  }
-
-  let isRunning = false;
-
-  const triggerSync = async () => {
-    if (isRunning) return;
-    isRunning = true;
-    try {
-      await syncMissingPastPosaReports(shopId, shopName);
-    } finally {
-      isRunning = false;
-    }
-  };
-
-  // 1. Chạy ngay khi mở ứng dụng (catch-up các ngày còn thiếu do máy tắt)
-  const initialTimer = setTimeout(() => {
-    triggerSync();
-  }, 2500); // Đợi 2.5s để UI và Supabase auth sẵn sàng
-
-  // 2. Chạy định kỳ mỗi 15 phút để đảm bảo nếu máy mở qua đêm sẽ tự bù ngày vừa kết thúc
-  const intervalId = setInterval(() => {
-    triggerSync();
-  }, 15 * 60 * 1000);
-
-  return () => {
-    clearTimeout(initialTimer);
-    clearInterval(intervalId);
-  };
+  return () => {};
 };
