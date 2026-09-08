@@ -77,7 +77,7 @@ const Settings = () => {
   const [staffForm, setStaffForm] = useState({
     full_name: '',
     phone: '',
-    position: 'Kỹ thuật viên',
+    position: 'KTV',
     status: 'Đang làm'
   });
 
@@ -127,7 +127,7 @@ const Settings = () => {
       setStaffForm({
         full_name: staff.full_name,
         phone: staff.phone,
-        position: staff.position,
+        position: staff.position || 'KTV',
         status: staff.status
       });
     } else {
@@ -135,7 +135,7 @@ const Settings = () => {
       setStaffForm({
         full_name: '',
         phone: '',
-        position: 'Kỹ thuật viên',
+        position: 'KTV',
         status: 'Đang làm'
       });
     }
@@ -145,10 +145,11 @@ const Settings = () => {
   const handleSaveStaff = (e: React.FormEvent) => {
     e.preventDefault();
     if (!staffForm.full_name.trim()) return;
+    const staffData = { ...staffForm, position: 'KTV' };
     if (editingStaffId) {
-      updateStaff(editingStaffId, staffForm);
+      updateStaff(editingStaffId, staffData);
     } else {
-      addStaff(staffForm);
+      addStaff(staffData);
     }
     setStaffModalOpen(false);
   };
@@ -257,26 +258,30 @@ const Settings = () => {
     setSelectedInvoiceIds([]);
   };
 
-  const getStaffPositionLabel = (pos: string) => {
-    if (!pos) return 'Nhân viên';
-    if (pos === 'technician' || pos === 'staff') return 'Kỹ thuật viên';
-    if (pos === 'manager') return 'Quản lý';
-    if (pos === 'receptionist') return 'Lễ tân';
-    if (pos === 'tour') return 'Tour';
-    if (pos === 'collaborator') return 'Cộng tác viên';
-    return pos;
+  const isKtvPosition = (pos: string) => {
+    return (pos || '').trim().toUpperCase() === 'KTV';
   };
 
-  // --- Filtering ---
-  const filteredRealStaff = realStaff.filter(s =>
-    (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.phone || '').includes(searchTerm)
-  );
+  const getStaffPositionLabel = (_pos: string) => {
+    return 'KTV';
+  };
 
-  const filteredSessionStaff = staffList.filter(s =>
-    (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.phone || '').includes(searchTerm)
-  );
+  // --- Filtering (Chỉ hiển thị nhân viên có vị trí KTV) ---
+  const filteredRealStaff = realStaff
+    .filter(s => isKtvPosition(s.position))
+    .filter(s =>
+      (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.phone || '').includes(searchTerm)
+    );
+
+  const filteredSessionStaff = staffList
+    .filter(s => isKtvPosition(s.position))
+    .filter(s =>
+      (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.phone || '').includes(searchTerm)
+    );
+
+  const totalKtvCount = realStaff.filter(s => isKtvPosition(s.position)).length + staffList.filter(s => isKtvPosition(s.position)).length;
 
   const filteredPlaces = placeList.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -325,7 +330,7 @@ const Settings = () => {
             }}
           >
             <Users size={16} />
-            Nhân viên ({realStaff.length + staffList.length})
+            Nhân viên ({totalKtvCount})
           </button>
 
           <button
@@ -906,15 +911,12 @@ const Settings = () => {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.25rem' }}>Vị trí</label>
-                <select
-                  value={staffForm.position}
-                  onChange={e => setStaffForm({ ...staffForm, position: e.target.value })}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.875rem' }}
-                >
-                  <option value="Kỹ thuật viên">Kỹ thuật viên</option>
-                  <option value="Quản lý">Quản lý</option>
-                  <option value="Lễ tân">Lễ tân</option>
-                </select>
+                <input
+                  type="text"
+                  readOnly
+                  value="KTV"
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid var(--border)', borderRadius: '0.5rem', fontSize: '0.875rem', background: '#f8fafc', color: 'var(--text-main)', cursor: 'default' }}
+                />
               </div>
 
               <div>
