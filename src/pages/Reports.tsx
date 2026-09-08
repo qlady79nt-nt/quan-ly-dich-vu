@@ -123,38 +123,39 @@ const Reports = () => {
     // 1. Batch fetch tầng 1: service_sessions, package_sales, invoices, invoice_items
     const [sessionsRes, packageSalesRes, invoicesRes, invoiceItemsRes] = await Promise.all([
       sessionIds.length > 0
-        ? supabase.from('service_sessions').select('id, session_code, service_id, staff_id, customer_package_id, invoice_id').in('id', sessionIds)
-        : Promise.resolve({ data: [] as any[] }),
+        ? supabase.from('service_sessions').select('id, session_code, service_id, staff_id, customer_package_id').in('id', sessionIds)
+        : Promise.resolve({ data: [] as any[], error: null }),
       packageSaleIds.length > 0
         ? supabase.from('package_sales').select('id, invoice_id, seller_id, customer_package_id').in('id', packageSaleIds)
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: [] as any[], error: null }),
       invoiceIds.length > 0
         ? supabase.from('invoices').select('id, invoice_code, customer_name, created_by').in('id', invoiceIds)
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: [] as any[], error: null }),
       invoiceIds.length > 0
-        ? supabase.from('invoice_items').select('id, invoice_id, service_id, package_id, price, unit_price, quantity').in('invoice_id', invoiceIds)
-        : Promise.resolve({ data: [] as any[] })
+        ? supabase.from('invoice_items').select('id, invoice_id, service_id, package_id, price, unit_price').in('invoice_id', invoiceIds)
+        : Promise.resolve({ data: [] as any[], error: null })
     ]);
+
+    if (sessionsRes.error) console.error('[enrichRealRevenueLogs] Lỗi truy vấn service_sessions:', sessionsRes.error);
+    if (packageSalesRes.error) console.error('[enrichRealRevenueLogs] Lỗi truy vấn package_sales:', packageSalesRes.error);
+    if (invoicesRes.error) console.error('[enrichRealRevenueLogs] Lỗi truy vấn invoices:', invoicesRes.error);
+    if (invoiceItemsRes.error) console.error('[enrichRealRevenueLogs] Lỗi truy vấn invoice_items:', invoiceItemsRes.error);
 
     const sessions: any[] = sessionsRes.data || [];
     const packageSales: any[] = packageSalesRes.data || [];
     const invoices: any[] = invoicesRes.data || [];
     const invoiceItems: any[] = invoiceItemsRes.data || [];
 
-    // Tìm thêm invoice nếu session hoặc package_sale có invoice_id mà chưa có trong danh sách
+    // Tìm thêm invoice nếu package_sale có invoice_id mà chưa có trong danh sách
     const extraInvoiceIds: string[] = [];
-    for (const s of sessions) {
-      if (s.invoice_id && !invoiceIds.includes(s.invoice_id) && !extraInvoiceIds.includes(s.invoice_id)) {
-        extraInvoiceIds.push(s.invoice_id);
-      }
-    }
     for (const ps of packageSales) {
       if (ps.invoice_id && !invoiceIds.includes(ps.invoice_id) && !extraInvoiceIds.includes(ps.invoice_id)) {
         extraInvoiceIds.push(ps.invoice_id);
       }
     }
     if (extraInvoiceIds.length > 0) {
-      const { data: extraInvs } = await supabase.from('invoices').select('id, invoice_code, customer_name, created_by').in('id', extraInvoiceIds);
+      const { data: extraInvs, error: extraInvsErr } = await supabase.from('invoices').select('id, invoice_code, customer_name, created_by').in('id', extraInvoiceIds);
+      if (extraInvsErr) console.error('[enrichRealRevenueLogs] Lỗi truy vấn extra invoices:', extraInvsErr);
       if (extraInvs) invoices.push(...extraInvs);
     }
 
@@ -184,17 +185,22 @@ const Reports = () => {
     const [staffsRes, servicesRes, packagesRes, custPkgsRes] = await Promise.all([
       staffIds.length > 0
         ? supabase.from('staffs').select('id, full_name').in('id', staffIds)
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: [] as any[], error: null }),
       serviceIds.length > 0
         ? supabase.from('services').select('id, name, price').in('id', serviceIds)
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: [] as any[], error: null }),
       packageIds.length > 0
         ? supabase.from('packages').select('id, name').in('id', packageIds)
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: [] as any[], error: null }),
       custPkgIds.length > 0
         ? supabase.from('customer_packages').select('id, package_id, customer_name, card_code').in('id', custPkgIds)
-        : Promise.resolve({ data: [] as any[] })
+        : Promise.resolve({ data: [] as any[], error: null })
     ]);
+
+    if (staffsRes.error) console.error('[enrichRealRevenueLogs] Lỗi truy vấn staffs:', staffsRes.error);
+    if (servicesRes.error) console.error('[enrichRealRevenueLogs] Lỗi truy vấn services:', servicesRes.error);
+    if (packagesRes.error) console.error('[enrichRealRevenueLogs] Lỗi truy vấn packages:', packagesRes.error);
+    if (custPkgsRes.error) console.error('[enrichRealRevenueLogs] Lỗi truy vấn customer_packages:', custPkgsRes.error);
 
     const staffs: any[] = staffsRes.data || [];
     const services: any[] = servicesRes.data || [];
@@ -237,7 +243,7 @@ const Reports = () => {
 
       const session = sId ? sessionMap.get(sId) : null;
       const pkgSale = psId ? packageSaleMap.get(psId) : null;
-      const invoice = invId ? invoiceMap.get(invId) : (session?.invoice_id ? invoiceMap.get(session.invoice_id) : (pkgSale?.invoice_id ? invoiceMap.get(pkgSale.invoice_id) : null));
+      const invoice = invId ? invoiceMap.get(invId) : (pkgSale?.invoice_id ? invoiceMap.get(pkgSale.invoice_id) : null);
       const items = invoice ? (itemsByInvoiceId.get(invoice.id) || []) : [];
 
       // 1. KỸ THUẬT VIÊN / NGƯỜI BÁN
