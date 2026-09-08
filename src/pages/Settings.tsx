@@ -259,7 +259,9 @@ const Settings = () => {
   };
 
   const isKtvPosition = (pos: string) => {
-    return (pos || '').trim().toUpperCase() === 'KTV';
+    if (!pos) return false;
+    const p = pos.trim().toLowerCase();
+    return p === 'technician' || p === 'ktv';
   };
 
   const getStaffPositionLabel = (_pos: string) => {
