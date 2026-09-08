@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Plus, Loader2, BedDouble, CheckCircle2, Clock, X, Printer, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useSessionSettings } from '../lib/sessionSettingsContext';
 import { ReceiptTemplate } from '../components/ReceiptTemplate';
 import { PrintContainer } from '../components/PrintContainer';
 import { getPrintSettings } from '../lib/printSettings';
@@ -11,7 +12,12 @@ import '../receipt.css';
 
 const Beds = () => {
   const { profile, hasPermission, isRestricted } = useAuth();
+  const { placeList } = useSessionSettings();
   const shopId = profile?.shop_id;
+
+  const isQLadyTarget =
+    profile?.shop_id === '9ef6b541-ffdf-4c0b-b379-711ddfaf1363' &&
+    profile?.username?.toLowerCase() === 'q_lady';
   const [beds, setBeds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [printSettings, setPrintSettings] = useState<ShopPrintSettings | undefined>(undefined);
@@ -682,7 +688,51 @@ const Beds = () => {
               })()}
             </div>
           )})}
-          {beds.length === 0 && (
+
+          {/* Chỗ hiển thị chỉ dành riêng cho q_lady (Presentation-only, hoàn toàn không can thiệp nghiệp vụ) */}
+          {isQLadyTarget && placeList.map((place) => (
+            <div
+              key={`session_place_${place.id}`}
+              className="premium-card"
+              style={{
+                borderTop: `4px solid ${place.status === 'Bảo trì' ? '#ef4444' : '#10b981'}`,
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '0.5rem 0.75rem',
+                cursor: 'default',
+                userSelect: 'none'
+              }}
+              onClick={(e) => {
+                // Presentation-only: tuyệt đối không chạy bất kỳ nghiệp vụ nào
+                e.stopPropagation();
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ color: place.status === 'Bảo trì' ? '#ef4444' : '#10b981' }}>
+                    <BedDouble size={20} />
+                  </div>
+                  <h4 style={{ fontSize: '0.9rem', margin: 0, fontWeight: '800' }}>{place.name}</h4>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{
+                    fontSize: '0.65rem',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    color: place.status === 'Bảo trì' ? '#ef4444' : '#10b981',
+                    background: place.status === 'Bảo trì' ? '#ef444415' : '#10b98115',
+                    padding: '0.2rem 0.4rem',
+                    borderRadius: '1rem',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {place.status === 'Bảo trì' ? 'Dọn' : 'Trống'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {beds.length === 0 && (!isQLadyTarget || placeList.length === 0) && (
             <div style={{ gridColumn: 'span 4', textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
               Chưa có dữ liệu chỗ. Vui lòng thêm chỗ để quản lý.
             </div>

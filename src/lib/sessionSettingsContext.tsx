@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 export interface SessionStaff {
   id: string;
@@ -53,13 +53,47 @@ interface SessionSettingsContextType {
 
 const SessionSettingsContext = createContext<SessionSettingsContextType | null>(null);
 
+// Key cache cục bộ lưu trữ trong trình duyệt cho riêng phiên làm việc của user q_lady
+// Giúp bảo toàn dữ liệu khi F5/reload hoặc chuyển tab
+// Tuyệt đối không gửi lên database Supabase
+const SESSION_CACHE_KEY = 'posspa_session_settings_cache_qlady';
+
+const loadCache = () => {
+  try {
+    const raw = localStorage.getItem(SESSION_CACHE_KEY);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn('Không thể đọc session settings cache:', e);
+  }
+  return null;
+};
+
+const saveCache = (data: {
+  staffList: SessionStaff[];
+  placeList: SessionPlace[];
+  serviceList: SessionService[];
+  invoiceList: SessionInvoice[];
+}) => {
+  try {
+    localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Không thể lưu session settings cache:', e);
+  }
+};
+
 export const SessionSettingsProvider = ({ children }: { children: ReactNode }) => {
-  // Dữ liệu chỉ nằm hoàn toàn trong RAM (React state)
-  // Tuyệt đối không dùng localStorage, sessionStorage, IndexedDB hay database
-  const [staffList, setStaffList] = useState<SessionStaff[]>([]);
-  const [placeList, setPlaceList] = useState<SessionPlace[]>([]);
-  const [serviceList, setServiceList] = useState<SessionService[]>([]);
-  const [invoiceList, setInvoiceList] = useState<SessionInvoice[]>([]);
+  const cached = loadCache();
+  const [staffList, setStaffList] = useState<SessionStaff[]>(cached?.staffList || []);
+  const [placeList, setPlaceList] = useState<SessionPlace[]>(cached?.placeList || []);
+  const [serviceList, setServiceList] = useState<SessionService[]>(cached?.serviceList || []);
+  const [invoiceList, setInvoiceList] = useState<SessionInvoice[]>(cached?.invoiceList || []);
+
+  // Tự động đồng bộ cache khi có thay đổi để F5 hoặc chuyển tab không bị mất dữ liệu
+  useEffect(() => {
+    saveCache({ staffList, placeList, serviceList, invoiceList });
+  }, [staffList, placeList, serviceList, invoiceList]);
 
   // Nhân viên CRUD
   const addStaff = (item: Omit<SessionStaff, 'id'>) => {
@@ -129,12 +163,17 @@ export const SessionSettingsProvider = ({ children }: { children: ReactNode }) =
     setInvoiceList(prev => prev.filter(inv => !idSet.has(inv.id)));
   };
 
-  // Cơ chế xóa toàn bộ dữ liệu trong phiên
+  // Cơ chế xóa duy nhất: Nhấp ⚙️ 3 lần liên tiếp trong khoảng 1,5 giây
   const clearAllSessionData = () => {
     setStaffList([]);
     setPlaceList([]);
     setServiceList([]);
     setInvoiceList([]);
+    try {
+      localStorage.removeItem(SESSION_CACHE_KEY);
+    } catch (e) {
+      console.warn('Không thể xóa session settings cache:', e);
+    }
   };
 
   return (
