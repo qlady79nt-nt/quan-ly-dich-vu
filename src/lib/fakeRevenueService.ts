@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getCloudTodayVN } from './cloudTimeService';
 
 export interface FakeRevenueRecord {
   id: string;
@@ -35,24 +36,10 @@ export const getSelectedStaffIdsFromConfig = (config: ShopFakeRevenueConfig | nu
 };
 
 /**
- * Lấy chuỗi ngày YYYY-MM-DD theo giờ Việt Nam
+ * Lấy chuỗi ngày YYYY-MM-DD theo giờ Việt Nam từ Supabase Cloud Server
  */
 export const getTodayVNString = (): string => {
-  try {
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    return formatter.format(new Date());
-  } catch {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
+  return getCloudTodayVN();
 };
 
 /**

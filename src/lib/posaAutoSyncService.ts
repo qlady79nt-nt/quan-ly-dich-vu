@@ -1,11 +1,17 @@
 import { isPosaDesktop } from './posaZoom';
 import { 
-  getTodayVNString, 
   getShopFakeRevenueConfig, 
   fetchFakeRevenueForDay, 
   getDatesInRange,
   formatInvoiceCode
 } from './fakeRevenueService';
+import {
+  getCloudTodayVN,
+  getCloudYesterdayVN,
+  getVNDayUTCRange,
+  isCloudTimeReady,
+  initCloudTimeSync
+} from './cloudTimeService';
 import { supabase } from './supabase';
 import { enrichRealRevenueLogs } from './realRevenueEnrichment';
 
@@ -35,17 +41,10 @@ declare global {
 }
 
 /**
- * Tính ngày hôm qua theo GMT+7
+ * Tính ngày hôm qua theo GMT+7 từ Cloud Server
  */
 export const getYesterdayVNString = (): string => {
-  const todayStr = getTodayVNString();
-  const [y, m, d] = todayStr.split('-').map(Number);
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() - 1);
-  const prevY = dt.getFullYear();
-  const prevM = String(dt.getMonth() + 1).padStart(2, '0');
-  const prevD = String(dt.getDate()).padStart(2, '0');
-  return `${prevY}-${prevM}-${prevD}`;
+  return getCloudYesterdayVN();
 };
 
 const SYNCED_REPORTS_STORAGE_KEY = 'posa_synced_reports_v1_';
@@ -103,8 +102,19 @@ export const recreateMissingPosaReports = async (
   }
 
   try {
-    const todayStr = getTodayVNString();
-    const yesterdayStr = getYesterdayVNString();
+    // Đảm bảo đồng bộ mốc thời gian Cloud trước khi tái sinh
+    if (!isCloudTimeReady()) {
+      await initCloudTimeSync();
+    }
+    if (!isCloudTimeReady()) {
+      const errOffline = 'Chưa thể xác định ngày chuẩn từ máy chủ Cloud. Vui lòng kết nối Internet.';
+      console.warn('[POSA Recreate]', errOffline);
+      result.errors.push(errOffline);
+      return result;
+    }
+
+    const todayStr = getCloudTodayVN();
+    const yesterdayStr = getCloudYesterdayVN();
 
     // 2. Quét các file ĐANG TỒN TẠI trên đĩa
     let existingDates: string[] = [];
@@ -178,11 +188,16 @@ export const recreateMissingPosaReports = async (
     } else {
       // Tái sinh ngày hôm nay từ revenue_logs thật
       try {
+        const { startUTC, endUTC } = getVNDayUTCRange(todayStr);
+
         const { data: rawLogs, error: logsErr } = await supabase
           .from('revenue_logs')
           .select('*')
           .eq('shop_id', shopId)
-          .eq('revenue_date', todayStr);
+          .gte('recorded_at', startUTC)
+          .lte('recorded_at', endUTC)
+          .neq('status', 'cancelled')
+          .order('recorded_at', { ascending: false });
 
         if (logsErr) {
           console.error(`[POSA Recreate] Lỗi truy vấn revenue_logs hôm nay (${todayStr}):`, logsErr);

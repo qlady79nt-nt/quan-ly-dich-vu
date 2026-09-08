@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { initPosaZoom } from './lib/posaZoom';
 import { initPosaAutoSync, recreateMissingPosaReports } from './lib/posaAutoSyncService';
+import { initCloudTimeSync } from './lib/cloudTimeService';
 import { 
   Users, 
   Scissors, 
@@ -128,6 +129,7 @@ const MainLayout = () => {
   };
 
   useEffect(() => {
+    initCloudTimeSync().catch(console.error);
     if (profile?.shop_id) {
       return initPosaAutoSync(profile.shop_id, profile.shop?.name || 'SPA');
     }

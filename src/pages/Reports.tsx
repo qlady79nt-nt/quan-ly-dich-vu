@@ -19,9 +19,14 @@ import ReconciliationModal from '../components/ReconciliationModal';
 import FakeRevenueConfigModal from '../components/FakeRevenueConfigModal';
 import { 
   fetchFakeRevenueForRange, 
-  getTodayVNString,
   formatInvoiceCode
 } from '../lib/fakeRevenueService';
+import {
+  getCloudTodayVN,
+  getVNDayUTCRange,
+  isCloudTimeReady,
+  initCloudTimeSync
+} from '../lib/cloudTimeService';
 import { exportReportToExcel } from '../lib/exportExcel';
 import { isPosaDesktop } from '../lib/posaZoom';
 import { enrichRealRevenueLogs } from '../lib/realRevenueEnrichment';
@@ -30,14 +35,7 @@ const Reports = () => {
   const { hasPermission, profile, user } = useAuth();
   const shopId = profile?.shop_id;
 
-  const getLocalDateString = (d: Date) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const today = getLocalDateString(new Date());
+  const today = isCloudTimeReady() ? getCloudTodayVN() : '';
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
 
@@ -100,14 +98,41 @@ const Reports = () => {
   });
 
   useEffect(() => {
-    if (shopId) fetchReportData();
+    const initAndFetch = async () => {
+      if (!isCloudTimeReady()) {
+        await initCloudTimeSync();
+      }
+      let currentToday = '';
+      if (isCloudTimeReady()) {
+        currentToday = getCloudTodayVN();
+        if (!startDate) setStartDate(currentToday);
+        if (!endDate) setEndDate(currentToday);
+      }
+      if (shopId) {
+        fetchReportData(currentToday, currentToday);
+      }
+    };
+    initAndFetch();
   }, [shopId]);
 
 
-  const fetchReportData = async () => {
+  const fetchReportData = async (overrideStart?: any, overrideEnd?: string) => {
     if (!shopId) return;
     setLoading(true);
     try {
+      if (!isCloudTimeReady()) {
+        await initCloudTimeSync();
+      }
+      const cloudToday = isCloudTimeReady() ? getCloudTodayVN() : '';
+      const effectiveStart = (typeof overrideStart === 'string' ? overrideStart : '') || startDate || cloudToday;
+      const effectiveEnd = (typeof overrideEnd === 'string' ? overrideEnd : '') || endDate || cloudToday;
+
+      if (!effectiveStart || !effectiveEnd) {
+        console.warn('[Reports] Chưa xác định được ngày báo cáo chuẩn từ Cloud.');
+        setLoading(false);
+        return;
+      }
+
       // Check Permissions before fetching
       // Nhân viên staff được phép xem view revenue (KPI ảo)
       const canViewRevenue = hasPermission('report.revenue.view') || isStaff;
@@ -116,37 +141,31 @@ const Reports = () => {
       let revLog: any[] = [];
       let commLog: any[] = [];
 
-      const [sy, sm, sd] = startDate.split('-').map(Number);
-      const startObj = new Date(sy, sm - 1, sd, 0, 0, 0);
-      const [ey, em, ed] = endDate.split('-').map(Number);
-      const endObj = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-      const start = startObj.toISOString();
-      const end = endObj.toISOString();
+      const start = getVNDayUTCRange(effectiveStart).startUTC;
+      const end = getVNDayUTCRange(effectiveEnd).endUTC;
 
       if (isStaff) {
-        const todayStr = getTodayVNString();
+        const todayStr = cloudToday || getCloudTodayVN();
         let fakeRecords: any[] = [];
         let todayRealRevLog: any[] = [];
 
         // 1. Nếu khoảng ngày có chứa ngày quá khứ (< todayStr)
-        if (startDate < todayStr) {
-          const fakeEnd = endDate < todayStr ? endDate : (() => {
-            const t = new Date();
-            t.setDate(t.getDate() - 1);
-            const y = t.getFullYear();
-            const m = String(t.getMonth() + 1).padStart(2, '0');
-            const d = String(t.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
+        if (effectiveStart < todayStr) {
+          const fakeEnd = effectiveEnd < todayStr ? effectiveEnd : (() => {
+            const [ty, tm, td] = todayStr.split('-').map(Number);
+            const prev = new Date(Date.UTC(ty, tm - 1, td - 1));
+            const py = prev.getUTCFullYear();
+            const pm = String(prev.getUTCMonth() + 1).padStart(2, '0');
+            const pd = String(prev.getUTCDate()).padStart(2, '0');
+            return `${py}-${pm}-${pd}`;
           })();
 
-          fakeRecords = await fetchFakeRevenueForRange(shopId, startDate, fakeEnd);
+          fakeRecords = await fetchFakeRevenueForRange(shopId, effectiveStart, fakeEnd);
         }
 
         // 2. Nếu khoảng ngày có chứa ngày hôm nay (todayStr)
-        if (startDate <= todayStr && endDate >= todayStr) {
-          const [ty, tm, td] = todayStr.split('-').map(Number);
-          const tStart = new Date(ty, tm - 1, td, 0, 0, 0).toISOString();
-          const tEnd = new Date(ty, tm - 1, td, 23, 59, 59, 999).toISOString();
+        if (effectiveStart <= todayStr && effectiveEnd >= todayStr) {
+          const { startUTC: tStart, endUTC: tEnd } = getVNDayUTCRange(todayStr);
 
           const { data: todayData } = await supabase
             .from('revenue_logs')
@@ -577,7 +596,14 @@ const Reports = () => {
 
   const handleExportExcel = async () => {
     if (!shopId) return;
-    const todayStr = getTodayVNString();
+    if (!isCloudTimeReady()) {
+      await initCloudTimeSync();
+    }
+    if (!isCloudTimeReady()) {
+      alert('Không thể xác định ngày chuẩn từ máy chủ Cloud. Vui lòng kiểm tra kết nối Internet để xuất báo cáo.');
+      return;
+    }
+    const todayStr = getCloudTodayVN();
     let finalExportItems: any[] = [];
 
     if (isStaff) {
@@ -587,21 +613,19 @@ const Reports = () => {
       // 1. Nếu có ngày quá khứ (< todayStr)
       if (startDate < todayStr) {
         const fakeEnd = endDate < todayStr ? endDate : (() => {
-          const t = new Date();
-          t.setDate(t.getDate() - 1);
-          const y = t.getFullYear();
-          const m = String(t.getMonth() + 1).padStart(2, '0');
-          const d = String(t.getDate()).padStart(2, '0');
-          return `${y}-${m}-${d}`;
+          const [ty, tm, td] = todayStr.split('-').map(Number);
+          const prev = new Date(Date.UTC(ty, tm - 1, td - 1));
+          const py = prev.getUTCFullYear();
+          const pm = String(prev.getUTCMonth() + 1).padStart(2, '0');
+          const pd = String(prev.getUTCDate()).padStart(2, '0');
+          return `${py}-${pm}-${pd}`;
         })();
         fakeRecords = await fetchFakeRevenueForRange(shopId, startDate, fakeEnd);
       }
 
       // 2. Nếu có ngày hôm nay (todayStr): fetch REAL mới nhất tại thời điểm bấm
       if (startDate <= todayStr && endDate >= todayStr) {
-        const [ty, tm, td] = todayStr.split('-').map(Number);
-        const tStart = new Date(ty, tm - 1, td, 0, 0, 0).toISOString();
-        const tEnd = new Date(ty, tm - 1, td, 23, 59, 59, 999).toISOString();
+        const { startUTC: tStart, endUTC: tEnd } = getVNDayUTCRange(todayStr);
 
         const { data: todayFresh } = await supabase
           .from('revenue_logs')
@@ -640,17 +664,15 @@ const Reports = () => {
       finalExportItems = [...mappedToday, ...mappedFake];
     } else {
       // Flow của Admin: fetch fresh revenue_logs mới nhất tại thời điểm bấm
-      const [sy, sm, sd] = startDate.split('-').map(Number);
-      const startObj = new Date(sy, sm - 1, sd, 0, 0, 0);
-      const [ey, em, ed] = endDate.split('-').map(Number);
-      const endObj = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+      const startUTC = getVNDayUTCRange(startDate).startUTC;
+      const endUTC = getVNDayUTCRange(endDate).endUTC;
 
       const { data: freshRev } = await supabase
         .from('revenue_logs')
         .select('*')
         .eq('shop_id', shopId)
-        .gte('recorded_at', startObj.toISOString())
-        .lte('recorded_at', endObj.toISOString())
+        .gte('recorded_at', startUTC)
+        .lte('recorded_at', endUTC)
         .neq('status', 'cancelled')
         .order('recorded_at', { ascending: false });
 
