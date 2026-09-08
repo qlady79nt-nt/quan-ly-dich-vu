@@ -3,7 +3,8 @@ import {
   getTodayVNString, 
   getShopFakeRevenueConfig, 
   fetchFakeRevenueForDay, 
-  getDatesInRange 
+  getDatesInRange,
+  formatInvoiceCode
 } from './fakeRevenueService';
 
 export interface PosaNativeReportItem {
@@ -171,8 +172,7 @@ export const syncMissingPastPosaReports = async (
         }
 
         // 3. Định dạng payload gửi sang Tauri Rust native writer
-        // Mỗi ca dịch vụ có một mã phiếu riêng biệt kèm số thứ tự (ví dụ: HD260901-01, HD260901-02...)
-        const dateCode = dateStr.replace(/-/g, '').slice(2);
+        // Định dạng mã phiếu chuẩn: #HD + NgàyTháng + 4 số ngẫu nhiên (ví dụ #HD07094722)
         const payload: PosaNativeReportPayload = {
           date: dateStr,
           shop_name: shopName,
@@ -180,7 +180,7 @@ export const syncMissingPastPosaReports = async (
             date: r.revenue_date,
             technician: r.technician_name_snapshot || 'Kỹ thuật viên',
             service: r.service_name_snapshot || 'Dịch vụ',
-            code: `HD${dateCode}-${String(idx + 1).padStart(2, '0')}`,
+            code: formatInvoiceCode(r.revenue_date, r.id || `${dateStr}_${idx}`),
             quantity: r.quantity || 1,
             unit_price: Number(r.unit_price || 0),
             amount: Number(r.amount || 0)

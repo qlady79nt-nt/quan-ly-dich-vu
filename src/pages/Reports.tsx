@@ -17,7 +17,12 @@ import { createPortal } from 'react-dom';
 import ReportsStaff from '../components/ReportsStaff';
 import ReconciliationModal from '../components/ReconciliationModal';
 import FakeRevenueConfigModal from '../components/FakeRevenueConfigModal';
-import { fetchFakeRevenueForRange, getTodayVNString } from '../lib/fakeRevenueService';
+import { 
+  fetchFakeRevenueForRange, 
+  getTodayVNString,
+  formatInvoiceCode,
+  normalizeInvoiceCode
+} from '../lib/fakeRevenueService';
 import { exportReportToExcel } from '../lib/exportExcel';
 import { isPosaDesktop } from '../lib/posaZoom';
 
@@ -171,7 +176,7 @@ const Reports = () => {
         });
 
         // Chuẩn hóa danh sách chi tiết cho Staff
-        const mappedFake = fakeRecords.map(r => ({
+        const mappedFake = fakeRecords.map((r, idx) => ({
           id: r.id,
           is_fake: true,
           type: 'retail',
@@ -183,7 +188,7 @@ const Reports = () => {
           quantity: r.quantity,
           unit_price: r.unit_price,
           revenue_date: r.revenue_date,
-          mapped_invoice_code: 'F-' + r.revenue_date.replace(/-/g, '').slice(2)
+          mapped_invoice_code: formatInvoiceCode(r.revenue_date, r.id || idx)
         }));
 
         const mappedToday = todayRealRevLog.map(r => ({
@@ -608,33 +613,27 @@ const Reports = () => {
         todayRealRevLog = todayFresh || [];
       }
 
-      const mappedFake = fakeRecords.map((r, idx) => {
-        const dateCode = (r.revenue_date || '').replace(/-/g, '').slice(2);
-        return {
-          date: r.revenue_date,
-          technician: r.technician_name_snapshot || 'Kỹ thuật viên',
-          service: r.service_name_snapshot || 'Dịch vụ',
-          quantity: r.quantity || 1,
-          unitPrice: r.unit_price || r.amount,
-          amount: r.amount,
-          type: 'Lịch sử ảo',
-          code: `HD${dateCode}-${String(idx + 1).padStart(2, '0')}`
-        };
-      });
+      const mappedFake = fakeRecords.map((r, idx) => ({
+        date: r.revenue_date,
+        technician: r.technician_name_snapshot || 'Kỹ thuật viên',
+        service: r.service_name_snapshot || 'Dịch vụ',
+        quantity: r.quantity || 1,
+        unitPrice: r.unit_price || r.amount,
+        amount: r.amount,
+        type: 'Lịch sử ảo',
+        code: formatInvoiceCode(r.revenue_date, r.id || `${r.revenue_date}_${idx}`)
+      }));
 
-      const mappedToday = todayRealRevLog.map((r, idx) => {
-        const dateCode = todayStr.replace(/-/g, '').slice(2);
-        return {
-          date: todayStr,
-          technician: r.staff_name || 'Kỹ thuật viên',
-          service: r.service_name || (r.type === 'package_sale' ? 'Bán thẻ liệu trình' : r.type === 'package_session' ? 'Trừ buổi liệu trình' : 'Dịch vụ lẻ'),
-          quantity: r.quantity || 1,
-          unitPrice: r.unit_price || r.amount,
-          amount: r.amount,
-          type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
-          code: r.mapped_invoice_code || r.mapped_session_code || `HD${dateCode}-${String(idx + 1).padStart(2, '0')}`
-        };
-      });
+      const mappedToday = todayRealRevLog.map((r, idx) => ({
+        date: todayStr,
+        technician: r.staff_name || 'Kỹ thuật viên',
+        service: r.service_name || (r.type === 'package_sale' ? 'Bán thẻ liệu trình' : r.type === 'package_session' ? 'Trừ buổi liệu trình' : 'Dịch vụ lẻ'),
+        quantity: r.quantity || 1,
+        unitPrice: r.unit_price || r.amount,
+        amount: r.amount,
+        type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
+        code: normalizeInvoiceCode(r.mapped_invoice_code || r.mapped_session_code, todayStr, r.id || idx)
+      }));
 
       finalExportItems = [...mappedToday, ...mappedFake];
     } else {
@@ -653,16 +652,19 @@ const Reports = () => {
         .neq('status', 'cancelled')
         .order('recorded_at', { ascending: false });
 
-      finalExportItems = (freshRev || []).map(r => ({
-        date: r.recorded_at ? new Date(r.recorded_at).toLocaleDateString('vi-VN') : '---',
-        technician: r.staff_name || '---',
-        service: r.service_name || (r.type === 'package_sale' ? 'Bán thẻ liệu trình' : r.type === 'package_session' ? 'Trừ buổi liệu trình' : 'Dịch vụ lẻ'),
-        quantity: r.quantity || 1,
-        unitPrice: r.unit_price || r.amount,
-        amount: r.amount,
-        type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
-        code: r.mapped_invoice_code || r.mapped_session_code || ''
-      }));
+      finalExportItems = (freshRev || []).map((r, idx) => {
+        const rowDate = r.recorded_at ? r.recorded_at.split('T')[0] : todayStr;
+        return {
+          date: r.recorded_at ? new Date(r.recorded_at).toLocaleDateString('vi-VN') : '---',
+          technician: r.staff_name || '---',
+          service: r.service_name || (r.type === 'package_sale' ? 'Bán thẻ liệu trình' : r.type === 'package_session' ? 'Trừ buổi liệu trình' : 'Dịch vụ lẻ'),
+          quantity: r.quantity || 1,
+          unitPrice: r.unit_price || r.amount,
+          amount: r.amount,
+          type: r.type === 'package_sale' ? 'Bán gói' : r.type === 'package_session' ? 'Trừ buổi' : 'Bán lẻ',
+          code: normalizeInvoiceCode(r.mapped_invoice_code || r.mapped_session_code, rowDate, r.id || idx)
+        };
+      });
     }
 
     // Nếu chạy trên POSA Desktop: Lưu trực tiếp file Excel vào C:\Program Files\POSA\data
@@ -687,7 +689,6 @@ const Reports = () => {
 
         const savedFiles: string[] = [];
         for (const [dStr, items] of dateGroups.entries()) {
-          const dateCode = dStr.replace(/-/g, '').slice(2);
           const payload = {
             date: dStr,
             shop_name: profile?.shop?.name || 'SPA',
@@ -695,7 +696,7 @@ const Reports = () => {
               date: dStr,
               technician: it.technician || 'Kỹ thuật viên',
               service: it.service || 'Dịch vụ',
-              code: (it.code && it.code !== '---') ? it.code : `HD${dateCode}-${String(idx + 1).padStart(2, '0')}`,
+              code: normalizeInvoiceCode(it.code, dStr, it.id || idx),
               quantity: Number(it.quantity || 1),
               unit_price: Number(it.unitPrice || it.amount || 0),
               amount: Number(it.amount || 0)

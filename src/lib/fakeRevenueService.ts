@@ -56,6 +56,64 @@ export const getTodayVNString = (): string => {
 };
 
 /**
+ * Tạo mã phiếu/hóa đơn chuẩn theo định dạng thực tế trên POS:
+ * #HD + [2 số Ngày] + [2 số Tháng] + [4 số ngẫu nhiên]
+ * Ví dụ ngày 7 tháng 9: #HD07094722
+ */
+export const formatInvoiceCode = (dateStr?: string, seed?: string | number): string => {
+  let dd = '01';
+  let mm = '01';
+  const effectiveDate = dateStr || getTodayVNString();
+  if (effectiveDate.includes('-')) {
+    const parts = effectiveDate.split('-');
+    if (parts.length === 3) {
+      mm = parts[1].padStart(2, '0');
+      dd = parts[2].padStart(2, '0');
+    }
+  } else if (effectiveDate.includes('/')) {
+    const parts = effectiveDate.split('/');
+    if (parts.length === 3) {
+      dd = parts[0].padStart(2, '0');
+      mm = parts[1].padStart(2, '0');
+    }
+  }
+
+  let rand4 = 1000;
+  if (seed !== undefined && seed !== null) {
+    let hash = 0;
+    const str = String(seed);
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    rand4 = 1000 + (Math.abs(hash) % 9000);
+  } else {
+    rand4 = Math.floor(1000 + Math.random() * 9000);
+  }
+
+  return `#HD${dd}${mm}${rand4}`;
+};
+
+/**
+ * Chuẩn hóa mã hóa đơn: đảm bảo luôn có tiền tố #HD và đúng định dạng
+ * Định dạng: #HD + [2 số Ngày] + [2 số Tháng] + [4 số ngẫu nhiên] (ví dụ: #HD07094722)
+ */
+export const normalizeInvoiceCode = (rawCode?: string | null, dateStr?: string, seed?: string | number): string => {
+  if (rawCode && rawCode !== '---') {
+    const trimmed = rawCode.trim();
+    // Nếu là mã cũ có dấu gạch ngang (ví dụ HD260907-01), tạo lại theo chuẩn mới
+    if (trimmed.includes('-')) {
+      return formatInvoiceCode(dateStr, seed || trimmed);
+    }
+    if (trimmed.startsWith('#HD')) return trimmed;
+    if (trimmed.startsWith('HD')) return `#${trimmed}`;
+    if (trimmed.startsWith('#')) return trimmed;
+    return `#${trimmed}`;
+  }
+  return formatInvoiceCode(dateStr, seed);
+};
+
+/**
  * Kiểm tra cấu hình doanh số ảo của Shop
  */
 export const getShopFakeRevenueConfig = async (shopId: string): Promise<ShopFakeRevenueConfig | null> => {
