@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pospa.app",
+      "sha256_cert_fingerprints": [
+        "10:62:B9:E0:C2:D2:40:1C:68:9F:3B:02:53:56:C0:13:B2:F7:2C:28:01:E9:20:93:AA:F4:87:4F:D1:FF:11:47"
+      ]
+    }
+  }
+]
