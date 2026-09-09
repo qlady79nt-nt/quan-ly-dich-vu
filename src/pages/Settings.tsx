@@ -398,10 +398,11 @@ const Settings = () => {
             Dịch vụ ({serviceList.length})
           </button>
 
+          {/* Tab Hóa đơn được ẩn theo yêu cầu */}
           <button
             onClick={() => { setActiveTab('invoice'); setSearchTerm(''); }}
             style={{
-              display: 'flex',
+              display: 'none',
               alignItems: 'center',
               gap: '0.5rem',
               padding: '0.5rem 1rem',
