@@ -36,6 +36,105 @@ export const getSelectedStaffIdsFromConfig = (config: ShopFakeRevenueConfig | nu
 };
 
 /**
+ * Lấy danh sách file Excel bị loại trừ khỏi Auto Sync từ cấu hình (shop_fake_revenue_configs.base_config.excluded_excel_files)
+ * Xử lý an toàn: key không tồn tại, null/undefined, không đúng kiểu dữ liệu.
+ */
+export const getExcludedExcelFilesFromConfig = (config: ShopFakeRevenueConfig | null): string[] => {
+  if (!config || !config.base_config) return [];
+  const raw = config.base_config.excluded_excel_files;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map(item => item.trim());
+};
+
+/**
+ * Kiểm tra xem tên file có nằm trong danh sách loại trừ không (case-insensitive theo quy chuẩn Windows)
+ * Xử lý an toàn: null/undefined, trim, loại bỏ path nếu có để lấy đúng basename.
+ */
+export const isExcludedReportFile = (
+  fileName: string | null | undefined,
+  excludedList?: string[] | null
+): boolean => {
+  if (!fileName || typeof fileName !== 'string') return false;
+  const cleanFileName = fileName.trim();
+  if (!cleanFileName) return false;
+
+  // Lấy filename thuần túy (loại bỏ path nếu có)
+  const baseName = cleanFileName.replace(/^.*[\\/]/, '').toLowerCase();
+  if (!baseName) return false;
+
+  if (!excludedList || !Array.isArray(excludedList) || excludedList.length === 0) {
+    return false;
+  }
+
+  return excludedList.some(item => {
+    if (!item || typeof item !== 'string') return false;
+    const cleanItem = item.trim().replace(/^.*[\\/]/, '').toLowerCase();
+    return cleanItem === baseName;
+  });
+};
+
+export interface ValidateExcelFileNameResult {
+  valid: boolean;
+  error?: string;
+  cleanName?: string;
+}
+
+/**
+ * Validation nghiêm ngặt tên file Excel theo yêu cầu hệ thống:
+ * 5.1 Không rỗng
+ * 5.2 Trim khoảng trắng
+ * 5.3 Không trùng lặp (case-insensitive)
+ * 5.4 Không chứa đường dẫn / path traversal (/, \, .., :)
+ * 5.5 Bắt buộc có đuôi .xlsx
+ */
+export const validateExcelFileName = (
+  rawName: string,
+  existingList: string[] = []
+): ValidateExcelFileNameResult => {
+  if (!rawName || typeof rawName !== 'string') {
+    return { valid: false, error: 'Tên file không được để trống.' };
+  }
+
+  const trimmed = rawName.trim();
+  if (trimmed.length === 0) {
+    return { valid: false, error: 'Tên file không được để trống.' };
+  }
+
+  // 5.4 Chặn đường dẫn / path traversal
+  if (
+    trimmed.includes('/') ||
+    trimmed.includes('\\') ||
+    trimmed.includes('..') ||
+    trimmed.includes(':')
+  ) {
+    return {
+      valid: false,
+      error: 'Chỉ được nhập tên file, không được nhập đường dẫn thư mục (/ \\ .. :).'
+    };
+  }
+
+  // 5.5 Kiểm tra extension .xlsx (case-insensitive)
+  if (!trimmed.toLowerCase().endsWith('.xlsx')) {
+    return {
+      valid: false,
+      error: 'Tên file phải có đuôi mở rộng là .xlsx (ví dụ: DoanhThu_2026-09-11.xlsx).'
+    };
+  }
+
+  // 5.3 Chặn duplicate (case-insensitive)
+  const isDuplicate = existingList.some(
+    item => item.trim().toLowerCase() === trimmed.toLowerCase()
+  );
+  if (isDuplicate) {
+    return { valid: false, error: 'File này đã có trong danh sách.' };
+  }
+
+  return { valid: true, cleanName: trimmed };
+};
+
+/**
  * Lấy chuỗi ngày YYYY-MM-DD theo giờ Việt Nam từ Supabase Cloud Server
  */
 export const getTodayVNString = (): string => {
@@ -123,20 +222,23 @@ export const getShopFakeRevenueConfig = async (shopId: string): Promise<ShopFake
 };
 
 /**
- * Lưu/Cập nhật cấu hình doanh số ảo và danh sách nhân viên được chọn cho Shop
+ * Lưu/Cập nhật cấu hình doanh số ảo, danh sách nhân viên và danh sách file Excel loại trừ cho Shop
  */
 export const saveShopFakeRevenueConfig = async (
   shopId: string,
   fakeStartDate: string,
   baseConfig: Record<string, number>,
   variationPercent: number = 10,
-  selectedStaffIds: string[] = []
+  selectedStaffIds: string[] = [],
+  excludedExcelFiles: string[] = []
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // Đóng gói mảng selected_staff_ids cùng với 31 ngày vào base_config JSONB
+    // Đóng gói mảng selected_staff_ids và excluded_excel_files cùng với 31 ngày vào base_config JSONB
+    // Đảm bảo merge an toàn mọi key hiện có trong baseConfig (không làm mất key nào)
     const mergedBaseConfig: Record<string, any> = {
       ...baseConfig,
-      selected_staff_ids: selectedStaffIds
+      selected_staff_ids: selectedStaffIds,
+      excluded_excel_files: excludedExcelFiles
     };
 
     const payload = {
@@ -144,6 +246,42 @@ export const saveShopFakeRevenueConfig = async (
       fake_start_date: fakeStartDate,
       base_config: mergedBaseConfig,
       variation_percent: variationPercent,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from('shop_fake_revenue_configs')
+      .upsert(payload, { onConflict: 'shop_id' });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Lỗi không xác định' };
+  }
+};
+
+/**
+ * Lưu danh sách file Excel loại trừ riêng biệt, bảo toàn 100% cấu hình hiện có
+ */
+export const saveShopExcelExclusions = async (
+  shopId: string,
+  excludedFiles: string[]
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const existing = await getShopFakeRevenueConfig(shopId);
+    const existingBase = existing?.base_config || {};
+    
+    // Giữ nguyên 100% các key "1"-"31", selected_staff_ids, variation, v.v.
+    const updatedBaseConfig: Record<string, any> = {
+      ...existingBase,
+      excluded_excel_files: excludedFiles
+    };
+
+    const payload = {
+      shop_id: shopId,
+      fake_start_date: existing?.fake_start_date || new Date().toISOString().split('T')[0],
+      base_config: updatedBaseConfig,
+      variation_percent: existing?.variation_percent ?? 10,
       updated_at: new Date().toISOString()
     };
 

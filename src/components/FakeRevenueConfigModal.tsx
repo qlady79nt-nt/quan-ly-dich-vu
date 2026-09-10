@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, Sparkles, AlertCircle, Calendar, Percent, Users } from 'lucide-react';
+import { X, Save, Sparkles, AlertCircle, Calendar, Percent, Users, FileSpreadsheet } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { getShopFakeRevenueConfig, saveShopFakeRevenueConfig } from '../lib/fakeRevenueService';
+import { useAuth } from '../lib/auth';
+import { 
+  getShopFakeRevenueConfig, 
+  saveShopFakeRevenueConfig,
+  getExcludedExcelFilesFromConfig,
+  validateExcelFileName
+} from '../lib/fakeRevenueService';
 
 interface FakeRevenueConfigModalProps {
   shopId: string;
@@ -11,6 +17,9 @@ interface FakeRevenueConfigModalProps {
 }
 
 const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfigModalProps) => {
+  const { profile } = useAuth();
+  const isSuperAdmin = profile?.role === 'super_admin';
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fakeStartDate, setFakeStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -19,6 +28,10 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
   // Danh sách nhân viên thật của shop & danh sách được chọn
   const [staffList, setStaffList] = useState<{ id: string; full_name: string; position?: string }[]>([]);
   const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
+
+  // Danh sách file Excel bị loại trừ khỏi Auto Sync (Chỉ Super Admin)
+  const [excludedFiles, setExcludedFiles] = useState<string[]>([]);
+  const [newFileName, setNewFileName] = useState('');
 
   // 31 ngày BASE (1 -> 31)
   const [baseConfig, setBaseConfig] = useState<Record<string, number>>(() => {
@@ -72,6 +85,10 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
           if (Array.isArray(config.base_config.selected_staff_ids)) {
             setSelectedStaffIds(config.base_config.selected_staff_ids);
           }
+
+          // Nạp excluded_excel_files nếu đã cấu hình (Section 2, 6)
+          const loadedExclusions = getExcludedExcelFilesFromConfig(config);
+          setExcludedFiles(loadedExclusions);
         }
       }
     } catch (err) {
@@ -113,6 +130,31 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
     setSelectedStaffIds([]);
   };
 
+  const handleAddExcludedFile = () => {
+    if (!isSuperAdmin) {
+      alert('Chỉ Super Admin mới có quyền thêm file loại trừ.');
+      return;
+    }
+    const res = validateExcelFileName(newFileName, excludedFiles);
+    if (!res.valid) {
+      alert(res.error);
+      return;
+    }
+    setExcludedFiles(prev => [...prev, res.cleanName!]);
+    setNewFileName('');
+  };
+
+  const handleRemoveExcludedFile = (fileNameToRemove: string) => {
+    if (!isSuperAdmin) {
+      alert('Chỉ Super Admin mới có quyền xóa file khỏi danh sách loại trừ.');
+      return;
+    }
+    // Section 11: Chỉ xóa quy tắc exclusion, tuyệt đối KHÔNG xóa file vật lý trên đĩa
+    setExcludedFiles(prev => 
+      prev.filter(f => f.trim().toLowerCase() !== fileNameToRemove.trim().toLowerCase())
+    );
+  };
+
   const handleSave = async () => {
     if (selectedStaffIds.length === 0) {
       const confirmEmpty = confirm(
@@ -127,7 +169,8 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
       fakeStartDate, 
       baseConfig, 
       variationPercent, 
-      selectedStaffIds
+      selectedStaffIds,
+      excludedFiles
     );
     setSaving(false);
     if (res.success) {
@@ -470,6 +513,126 @@ const FakeRevenueConfigModal = ({ shopId, shopName, onClose }: FakeRevenueConfig
                   ))}
                 </div>
               </div>
+
+              {/* Khu vực: File Excel không tự động đồng bộ (Chỉ Super Admin được xem và quản lý - Section 3, 4) */}
+              {isSuperAdmin && (
+                <div style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: '0.75rem',
+                  padding: '1.25rem',
+                  background: 'var(--bg-secondary, #f8fafc)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <FileSpreadsheet size={18} style={{ color: 'var(--primary)' }} />
+                    <strong style={{ fontSize: '0.95rem' }}>File Excel không tự động đồng bộ</strong>
+                  </div>
+                  <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Nhập chính xác tên file Excel mà hệ thống không được tự động tạo, sửa, ghi đè hoặc đồng bộ.
+                  </p>
+
+                  {/* Form nhập tên file */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="DoanhThu_2026-09-11.xlsx"
+                      value={newFileName}
+                      onChange={e => setNewFileName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddExcludedFile();
+                        }
+                      }}
+                      style={{ flex: 1, padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddExcludedFile}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '0.45rem 1rem',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        whiteSpace: 'nowrap',
+                        color: 'var(--primary)',
+                        fontWeight: '600'
+                      }}
+                    >
+                      + Thêm
+                    </button>
+                  </div>
+
+                  {/* Danh sách file đang exclude */}
+                  <div style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>
+                    Danh sách ({excludedFiles.length}):
+                  </div>
+
+                  {excludedFiles.length === 0 ? (
+                    <div style={{
+                      padding: '0.75rem 1rem',
+                      textAlign: 'center',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-secondary)',
+                      background: 'white',
+                      borderRadius: '0.5rem',
+                      border: '1px dashed var(--border)'
+                    }}>
+                      Chưa có file nào trong danh sách loại trừ.
+                    </div>
+                  ) : (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.35rem',
+                      maxHeight: '160px',
+                      overflowY: 'auto',
+                      background: 'white',
+                      padding: '0.5rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid var(--border)'
+                    }}>
+                      {excludedFiles.map((file, idx) => (
+                        <div
+                          key={`${file}_${idx}`}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.35rem 0.6rem',
+                            borderRadius: '0.375rem',
+                            background: 'var(--bg-main, #fff)',
+                            border: '1px solid var(--border)'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: '500' }}>
+                            {file}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExcludedFile(file)}
+                            className="btn"
+                            style={{
+                              padding: '0.2rem 0.5rem',
+                              fontSize: '0.75rem',
+                              color: '#dc2626',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: 'none',
+                              borderRadius: '0.25rem',
+                              cursor: 'pointer'
+                            }}
+                            title="Xóa quy tắc này khỏi danh sách (không xóa file thật trên đĩa)"
+                          >
+                            [Xóa]
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

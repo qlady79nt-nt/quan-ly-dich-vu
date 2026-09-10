@@ -3,7 +3,9 @@ import {
   getShopFakeRevenueConfig, 
   fetchFakeRevenueForDay, 
   getDatesInRange,
-  formatInvoiceCode
+  formatInvoiceCode,
+  getExcludedExcelFilesFromConfig,
+  isExcludedReportFile
 } from './fakeRevenueService';
 import {
   getCloudTodayVN,
@@ -128,6 +130,7 @@ export const recreateMissingPosaReports = async (
 
     const config = await getShopFakeRevenueConfig(shopId);
     const startDate = config?.fake_start_date;
+    const excludedFiles = getExcludedExcelFilesFromConfig(config);
 
     // A. Xử lý các ngày quá khứ (startDate -> yesterdayStr)
     if (startDate && startDate <= yesterdayStr) {
@@ -135,7 +138,17 @@ export const recreateMissingPosaReports = async (
       result.checked += pastDates.length;
 
       for (const d of pastDates) {
-        // TUYỆT ĐỐI KHÔNG GHI ĐÈ FILE ĐANG CÓ
+        const fileName = `DoanhThu_${d}.xlsx`;
+
+        // 1. KIỂM TRA DANH SÁCH EXCLUSION TRƯỚC TIÊN (Section 7, 8, 9, 10)
+        // Nếu file nằm trong exclusion list -> BỎ QUA HOÀN TOÀN: không ghi, không tạo, không sinh fake
+        if (isExcludedReportFile(fileName, excludedFiles)) {
+          console.info(`[POSA Auto Sync] EXCLUDED — skip: ${fileName}`);
+          result.skipped.push(d);
+          continue;
+        }
+
+        // 2. TUYỆT ĐỐI KHÔNG GHI ĐÈ FILE ĐANG CÓ TRÊN ĐĨA
         if (existingDates.includes(d)) {
           console.info(`[POSA Recreate] File ngày ${d} đã tồn tại -> BỎ QUA, KHÔNG GHI ĐÈ.`);
           result.skipped.push(d);
@@ -182,7 +195,13 @@ export const recreateMissingPosaReports = async (
 
     // B. Xử lý ngày hôm nay (todayStr)
     result.checked += 1;
-    if (existingDates.includes(todayStr)) {
+    const todayFileName = `DoanhThu_${todayStr}.xlsx`;
+
+    // 1. KIỂM TRA DANH SÁCH EXCLUSION CHO HÔM NAY (Section 7, 8, 9, 10)
+    if (isExcludedReportFile(todayFileName, excludedFiles)) {
+      console.info(`[POSA Auto Sync] EXCLUDED — skip: ${todayFileName}`);
+      result.skipped.push(todayStr);
+    } else if (existingDates.includes(todayStr)) {
       console.info(`[POSA Recreate] File ngày hôm nay ${todayStr} đã tồn tại -> BỎ QUA, KHÔNG GHI ĐÈ.`);
       result.skipped.push(todayStr);
     } else {
@@ -261,6 +280,10 @@ export const syncMissingPastPosaReports = async (
  * Khởi chạy AutoSync: ĐÃ VÔ HIỆU HÓA HOÀN TOÀN TỰ ĐỘNG SINH FILE
  * Hệ thống tuân thủ nghiêm ngặt: Tuyệt đối không tự sinh file khi mở app hoặc định kỳ.
  * File chỉ được phép tái sinh khi người dùng nhấn 3 lần liên tục vào tab "Báo cáo".
+ * 
+ * LƯU Ý CHO ROLLOVER TƯƠNG LAI (Section 12):
+ * Nếu sau này kích hoạt cơ chế Rollover tự động sang ngày mới, bắt buộc phải nạp config
+ * và kiểm tra isExcludedReportFile(fileName, excludedFiles) trước khi ghi/tái sinh bất kỳ file nào.
  */
 export const initPosaAutoSync = (
   _shopId: string,
